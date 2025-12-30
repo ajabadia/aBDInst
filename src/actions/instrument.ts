@@ -49,10 +49,20 @@ export async function createInstrument(data: FormData) {
     }
 }
 
-export async function getInstruments() {
+export async function getInstruments(query?: string) {
     try {
         await dbConnect();
-        const instruments = await Instrument.find({}).sort({ brand: 1, model: 1 });
+
+        const filter = query
+            ? {
+                $or: [
+                    { brand: { $regex: query, $options: 'i' } },
+                    { model: { $regex: query, $options: 'i' } }
+                ]
+            }
+            : {};
+
+        const instruments = await Instrument.find(filter).sort({ brand: 1, model: 1 });
         return instruments.map(doc => ({
             ...doc.toObject(),
             _id: doc._id.toString(),
@@ -78,5 +88,47 @@ export async function getInstrumentById(id: string) {
     } catch (error) {
         console.error('Get Instrument Error:', error);
         return null;
+    }
+}
+
+export async function updateInstrument(id: string, data: FormData) {
+    try {
+        const session = await auth();
+        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
+            throw new Error('Unauthorized');
+        }
+
+        await dbConnect();
+
+        const updateData = {
+            type: data.get('type'),
+            subtype: data.get('subtype'),
+            brand: data.get('brand'),
+            model: data.get('model'),
+            version: data.get('version'),
+            years: data.get('years')?.toString().split(',').map(y => y.trim()),
+            description: data.get('description'),
+            specs: {
+                polyphony: Number(data.get('specs.polyphony')) || undefined,
+                oscillators: Number(data.get('specs.oscillators')) || undefined,
+                sequencer: data.get('specs.sequencer') === 'on',
+                midi: data.get('specs.midi') === 'on',
+                weight: Number(data.get('specs.weight')) || undefined,
+                dimensions: data.get('specs.dimensions'),
+            },
+            genericImages: data.get('genericImages') ? [data.get('genericImages')] : undefined,
+        };
+
+        // Remove undefined fields
+        Object.keys(updateData).forEach(key => (updateData as any)[key] === undefined && delete (updateData as any)[key]);
+
+        await Instrument.findByIdAndUpdate(id, updateData);
+
+        revalidatePath('/instruments');
+        revalidatePath(`/instruments/${id}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error('Update Instrument Error:', error);
+        return { success: false, error: error.message };
     }
 }

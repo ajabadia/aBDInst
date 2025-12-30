@@ -37,9 +37,12 @@ export default async function InstrumentDetailPage({ params }: { params: { id: s
                                 <p className="text-xl text-gray-600 dark:text-gray-400">{instrument.type} {instrument.subtype && `• ${instrument.subtype}`}</p>
                             </div>
                             {canEdit && (
-                                <button className="text-gray-400 hover:text-blue-500">
+                                <Link
+                                    href={`/instruments/${id}/edit`}
+                                    className="text-gray-400 hover:text-blue-500 border border-gray-600 px-3 py-1 rounded text-sm transition hover:border-blue-500"
+                                >
                                     Editar
-                                </button>
+                                </Link>
                             )}
                         </div>
 

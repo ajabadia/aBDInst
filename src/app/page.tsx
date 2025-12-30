@@ -1,65 +1,84 @@
-import Image from "next/image";
+import Link from 'next/link';
+import { auth } from '@/auth';
 
-export default function Home() {
+export default async function Home() {
+  const session = await auth();
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <div className="flex flex-col min-h-[calc(100vh-4rem)]">
+      {/* Hero Section */}
+      <section className="flex-grow flex flex-col justify-center items-center text-center px-4 py-20 bg-gradient-to-b from-white to-blue-50 dark:from-gray-950 dark:to-gray-900">
+        <h1 className="text-5xl md:text-7xl font-extrabold tracking-tight mb-6 bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-purple-600 dark:from-blue-400 dark:to-purple-400">
+          Tu Colección.<br />Elevada.
+        </h1>
+        <p className="text-xl md:text-2xl text-gray-600 dark:text-gray-300 max-w-2xl mb-10">
+          Gestiona tus instrumentos musicales con la precisión que merecen.
+          Catálogo maestro, inventario personal y seguimiento detallado en una sola app.
+        </p>
+
+        <div className="flex flex-col sm:flex-row gap-4">
+          {!session ? (
+            <Link
+              href="/api/auth/signin"
+              className="px-8 py-3 bg-blue-600 text-white rounded-full text-lg font-semibold hover:bg-blue-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-1"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              Empezar Ahora
+            </Link>
+          ) : (
+            <Link
+              href="/dashboard"
+              className="px-8 py-3 bg-blue-600 text-white rounded-full text-lg font-semibold hover:bg-blue-700 transition shadow-lg hover:shadow-xl transform hover:-translate-y-1"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+              Ir a mi Colección
+            </Link>
+          )}
+          <Link
+            href="/instruments"
+            className="px-8 py-3 bg-white dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700 rounded-full text-lg font-semibold hover:bg-gray-50 dark:hover:bg-gray-700 transition shadow hover:shadow-md"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Explorar Catálogo
+          </Link>
         </div>
-      </main>
+      </section>
+
+      {/* Features Grid */}
+      <section className="py-20 bg-white dark:bg-gray-950 px-4">
+        <div className="container mx-auto">
+          <div className="grid md:grid-cols-3 gap-8 text-center md:text-left">
+            <div className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-900 border dark:border-gray-800">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center mb-4 text-2xl mx-auto md:mx-0">
+                🎸
+              </div>
+              <h3 className="text-xl font-bold mb-2">Catálogo Maestro</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Una base de datos curada con especificaciones técnicas, historias y fotos genéricas de miles de instrumentos.
+              </p>
+            </div>
+            <div className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-900 border dark:border-gray-800">
+              <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-xl flex items-center justify-center mb-4 text-2xl mx-auto md:mx-0">
+                📦
+              </div>
+              <h3 className="text-xl font-bold mb-2">Inventario Personal</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Añade tus unidades, registra números de serie, precios de compra, sube tus fotos y documenta reparaciones.
+              </p>
+            </div>
+            <div className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-900 border dark:border-gray-800">
+              <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center mb-4 text-2xl mx-auto md:mx-0">
+                📱
+              </div>
+              <h3 className="text-xl font-bold mb-2">Mobile First & PWA</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Instálala en tu móvil. Funciona offline para que siempre tengas acceso a tu inventario, estés donde estés.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <footer className="py-8 text-center text-sm text-gray-500 dark:text-gray-600 border-t dark:border-gray-800">
+        <p>Instrument Collector © {new Date().getFullYear()} - Built with Next.js 15</p>
+      </footer>
     </div>
   );
 }

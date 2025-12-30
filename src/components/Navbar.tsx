@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { ModeToggle } from './ModeToggle';
 
 export default function Navbar({ session }: { session: any }) {
     const pathname = usePathname();
@@ -42,13 +43,22 @@ export default function Navbar({ session }: { session: any }) {
                                 </div>
                             </>
                         ) : (
-                            <Link
-                                href="/api/auth/signin"
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
-                            >
-                                Entrar
-                            </Link>
+                            <>
+                                <Link
+                                    href="/api/auth/signin"
+                                    className="px-4 py-2 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700"
+                                >
+                                    Entrar
+                                </Link>
+                                <Link
+                                    href="/register"
+                                    className="px-4 py-2 text-gray-600 dark:text-gray-300 rounded-md text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800"
+                                >
+                                    Registrarse
+                                </Link>
+                            </>
                         )}
+                        <ModeToggle />
                     </div>
 
                     {/* Mobile menu button */}
@@ -94,14 +104,26 @@ export default function Navbar({ session }: { session: any }) {
                                 </div>
                             </>
                         ) : (
-                            <Link
-                                href="/api/auth/signin"
-                                onClick={() => setIsOpen(false)}
-                                className="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-blue-50"
-                            >
-                                Entrar
-                            </Link>
+                            <>
+                                <Link
+                                    href="/api/auth/signin"
+                                    onClick={() => setIsOpen(false)}
+                                    className="block px-3 py-2 rounded-md text-base font-medium text-blue-600 hover:bg-blue-50"
+                                >
+                                    Entrar
+                                </Link>
+                                <Link
+                                    href="/register"
+                                    onClick={() => setIsOpen(false)}
+                                    className="block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-800"
+                                >
+                                    Registrarse
+                                </Link>
+                            </>
                         )}
+                        <div className="px-3 py-2">
+                            <ModeToggle />
+                        </div>
                     </div>
                 </div>
             )}

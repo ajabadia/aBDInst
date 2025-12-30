@@ -21,6 +21,9 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
     turbo: {
 
     }
