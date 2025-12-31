@@ -28,14 +28,9 @@ export async function createInstrument(data: FormData) {
             version: data.get('version'),
             years: data.get('years')?.toString().split(',').map(y => y.trim()),
             description: data.get('description'),
-            specs: {
-                polyphony: Number(data.get('specs.polyphony')) || undefined,
-                oscillators: Number(data.get('specs.oscillators')) || undefined,
-                sequencer: data.get('specs.sequencer') === 'on',
-                midi: data.get('specs.midi') === 'on',
-                weight: Number(data.get('specs.weight')) || undefined,
-                dimensions: data.get('specs.dimensions'),
-            },
+            specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [],
+            genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
+            documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
             createdBy: (session.user as any).id,
         };
 
@@ -77,14 +72,12 @@ export async function getInstruments(query?: string) {
 export async function getInstrumentById(id: string) {
     try {
         await dbConnect();
-        const instrument = await Instrument.findById(id);
+        const instrument = await Instrument.findById(id).lean();
         if (!instrument) return null;
 
-        return {
-            ...instrument.toObject(),
-            _id: instrument._id.toString(),
-            createdBy: instrument.createdBy?.toString(),
-        };
+        // Deep sanitize by serializing to JSON
+        // This handles _id inside arrays (specs) and other nested paths
+        return JSON.parse(JSON.stringify(instrument));
     } catch (error) {
         console.error('Get Instrument Error:', error);
         return null;
@@ -108,15 +101,9 @@ export async function updateInstrument(id: string, data: FormData) {
             version: data.get('version'),
             years: data.get('years')?.toString().split(',').map(y => y.trim()),
             description: data.get('description'),
-            specs: {
-                polyphony: Number(data.get('specs.polyphony')) || undefined,
-                oscillators: Number(data.get('specs.oscillators')) || undefined,
-                sequencer: data.get('specs.sequencer') === 'on',
-                midi: data.get('specs.midi') === 'on',
-                weight: Number(data.get('specs.weight')) || undefined,
-                dimensions: data.get('specs.dimensions'),
-            },
-            genericImages: data.get('genericImages') ? [data.get('genericImages')] : undefined,
+            specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : undefined,
+            genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : undefined,
+            documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : undefined,
         };
 
         // Remove undefined fields

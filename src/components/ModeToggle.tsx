@@ -5,6 +5,15 @@ import { useTheme } from "next-themes"
 
 export function ModeToggle() {
     const { theme, setTheme } = useTheme()
+    const [mounted, setMounted] = React.useState(false)
+
+    React.useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    if (!mounted) {
+        return null // or a placeholder with same dimensions to avoid jumping
+    }
 
     return (
         <button

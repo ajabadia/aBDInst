@@ -3,6 +3,7 @@ import { getInstrumentById } from '@/actions/instrument';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import AddToCollectionButton from '@/components/AddToCollectionButton';
+import ImageGallery from '@/components/ImageGallery';
 
 export default async function InstrumentDetailPage({ params }: { params: { id: string } }) {
     const { id } = await params;
@@ -22,13 +23,7 @@ export default async function InstrumentDetailPage({ params }: { params: { id: s
             <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
                 <div className="md:flex">
                     <div className="md:w-1/2 p-4">
-                        <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center text-gray-500">
-                            {instrument.genericImages?.[0] ? (
-                                <img src={instrument.genericImages[0]} alt={instrument.model} className="w-full h-full object-cover rounded" />
-                            ) : (
-                                <span>Sin imagen</span>
-                            )}
-                        </div>
+                        <ImageGallery images={instrument.genericImages || []} altText={`${instrument.brand} ${instrument.model}`} />
                     </div>
                     <div className="p-8 md:w-1/2">
                         <div className="flex justify-between items-start">
@@ -53,6 +48,11 @@ export default async function InstrumentDetailPage({ params }: { params: { id: s
                         )}
 
                         <div className="mt-6 space-y-4">
+                            <div>
+                                <span className="font-semibold text-gray-400 uppercase text-xs">Marca</span>
+                                <p className="text-lg dark:text-white">{instrument.brand}</p>
+                            </div>
+
                             {instrument.version && (
                                 <div>
                                     <span className="font-semibold text-gray-400 uppercase text-xs">Versión</span>
@@ -76,42 +76,62 @@ export default async function InstrumentDetailPage({ params }: { params: { id: s
                 </div>
 
                 <div className="p-8 border-t dark:border-gray-700">
-                    <h3 className="text-xl font-bold mb-4">Especificaciones Técnicas</h3>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                        {instrument.specs?.polyphony && (
-                            <div>
-                                <span className="font-semibold text-gray-400 uppercase text-xs">Polifonía</span>
-                                <p>{instrument.specs.polyphony} voces</p>
-                            </div>
-                        )}
-                        {instrument.specs?.oscillators && (
-                            <div>
-                                <span className="font-semibold text-gray-400 uppercase text-xs">Osciladores</span>
-                                <p>{instrument.specs.oscillators}</p>
-                            </div>
-                        )}
-                        <div>
-                            <span className="font-semibold text-gray-400 uppercase text-xs">Secuenciador</span>
-                            <p>{instrument.specs?.sequencer ? 'Sí' : 'No'}</p>
+                    <h3 className="text-xl font-bold mb-6 dark:text-white">Especificaciones Técnicas</h3>
+
+                    {instrument.specs && Array.isArray(instrument.specs) && instrument.specs.length > 0 ? (
+                        <div className="space-y-8">
+                            {/* Group specs by category */}
+                            {(() => {
+                                const grouped: Record<string, any[]> = {};
+                                instrument.specs.forEach((s: any) => {
+                                    if (!grouped[s.category]) grouped[s.category] = [];
+                                    grouped[s.category].push(s);
+                                });
+
+                                return Object.entries(grouped).map(([category, items]) => (
+                                    <div key={category}>
+                                        <h4 className="text-sm uppercase font-bold text-gray-500 dark:text-gray-400 tracking-wider mb-4 border-b dark:border-gray-800 pb-2">{category}</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
+                                            {items.map((item, idx) => (
+                                                <div key={idx} className="flex justify-between md:block">
+                                                    <span className="font-medium text-gray-500 dark:text-gray-400 text-sm block md:mb-1">{item.label}</span>
+                                                    <span className="text-gray-900 dark:text-gray-200">{item.value}</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ));
+                            })()}
                         </div>
-                        <div>
-                            <span className="font-semibold text-gray-400 uppercase text-xs">MIDI</span>
-                            <p>{instrument.specs?.midi ? 'Sí' : 'No'}</p>
-                        </div>
-                        {instrument.specs?.weight && (
-                            <div>
-                                <span className="font-semibold text-gray-400 uppercase text-xs">Peso</span>
-                                <p>{instrument.specs.weight} kg</p>
-                            </div>
-                        )}
-                        {instrument.specs?.dimensions && (
-                            <div>
-                                <span className="font-semibold text-gray-400 uppercase text-xs">Dimensiones</span>
-                                <p>{instrument.specs.dimensions}</p>
-                            </div>
-                        )}
-                    </div>
+                    ) : (
+                        <p className="text-gray-500 italic">No hay especificaciones detalladas disponibles.</p>
+                    )}
                 </div>
+
+                {/* Documentation Section */}
+                {instrument.documents && instrument.documents.length > 0 && (
+                    <div className="p-8 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                        <h3 className="text-xl font-bold mb-6 dark:text-white">Documentación y Archivos</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                            {instrument.documents.map((doc: any, idx: number) => (
+                                <a
+                                    key={idx}
+                                    href={doc.url}
+                                    target="_blank"
+                                    className="flex items-center p-3 bg-white dark:bg-gray-800 rounded border hover:shadow-md transition dark:border-gray-700"
+                                >
+                                    <div className="w-10 h-10 flex-shrink-0 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded flex items-center justify-center font-bold text-xs uppercase mr-3">
+                                        {doc.type?.substring(0, 3) || 'DOC'}
+                                    </div>
+                                    <div className="overflow-hidden">
+                                        <p className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate" title={doc.title}>{doc.title}</p>
+                                        <p className="text-xs text-gray-500 uppercase">{doc.type}</p>
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -26,6 +26,7 @@ export async function uploadImage(formData: FormData) {
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     folder: 'instrument-collector/instruments',
+                    resource_type: 'auto',
                 },
                 (error, result) => {
                     if (error) {

@@ -8,25 +8,22 @@ const InstrumentSchema = new Schema({
     version: { type: String },
     years: [{ type: String }], // Array of strings to support ranges or multiple years
 
-    // Flexible specifications block
-    specs: {
-        polyphony: { type: Number },
-        oscillators: { type: Number },
-        filters: [{
-            type: { type: String }, // e.g., 'LPF', 'HPF'
-            cutoff: { type: Number }
-        }],
-        sequencer: { type: Boolean, default: false },
-        inputs: { type: Number },
-        outputs: { type: Number },
-        midi: { type: Boolean, default: false },
-        dimensions: { type: String },
-        weight: { type: Number },
-        // Allow other arbitrary fields in specs
-    },
+    // Dynamic specifications
+    specs: [{
+        category: { type: String, required: true },
+        label: { type: String, required: true },
+        value: { type: String, required: true }
+    }],
 
     description: { type: String },
     genericImages: [{ type: String }], // URLs to images
+
+    // Documentation
+    documents: [{
+        title: { type: String, required: true },
+        url: { type: String, required: true },
+        type: { type: String } // 'pdf', 'manual', 'patch_list', etc.
+    }],
 
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
 }, {

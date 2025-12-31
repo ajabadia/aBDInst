@@ -80,18 +80,17 @@ export async function getCollectionItemById(id: string) {
         if (!item) return null;
 
         const obj = item.toObject();
+
+        // Deep serialize to handle all nested _id (like in specs, documents)
+        const serialized = JSON.parse(JSON.stringify(obj));
+
         return {
-            ...obj,
-            _id: obj._id.toString(),
-            userId: obj.userId.toString(),
-            instrumentId: {
-                ...obj.instrumentId,
-                _id: obj.instrumentId._id.toString(),
-                // genericImages included in populate
-            },
+            ...serialized,
+            // Ensure dates are strings if stringify didn't handle it the way we want (it usually does ISO)
+            // But we specifically need acquisition.date formatted for input if needed, or just keep as passed.
             acquisition: {
-                ...obj.acquisition,
-                date: obj.acquisition?.date ? obj.acquisition.date.toISOString().split('T')[0] : ''
+                ...serialized.acquisition,
+                date: serialized.acquisition?.date ? serialized.acquisition.date.split('T')[0] : ''
             }
         };
 
