@@ -24,10 +24,10 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '500mb',
     },
-    turbo: {
-      // Empty config to satisfy Turbopack check and proceed
-    },
   },
+  // Silence Turbopack/Webpack conflict error
+  // @ts-ignore - The type definition might not be updated yet for this new property in Next.js 16
+  turbopack: {},
 };
 
 export default withPWA(nextConfig);
