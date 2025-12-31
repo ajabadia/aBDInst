@@ -24,6 +24,9 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: '500mb',
     },
+    turbo: {
+      // Empty config to satisfy Turbopack check and proceed
+    },
   },
 };
 
