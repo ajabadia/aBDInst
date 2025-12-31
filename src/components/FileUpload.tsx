@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 interface FileUploadProps {
     onUpload: (urls: string[]) => void;
@@ -73,7 +74,7 @@ export default function FileUpload({ onUpload, multiple = false, accept = "image
 
             onUpload(urls);
         } catch (error: any) {
-            alert('Error subiendo archivos: ' + error.message);
+            toast.error('Error subiendo archivos: ' + error.message);
         } finally {
             setUploading(false);
             setProgress(0);

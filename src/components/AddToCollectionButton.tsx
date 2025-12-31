@@ -2,6 +2,8 @@
 
 import { addToCollection } from '@/actions/collection';
 import { useFormStatus } from 'react-dom';
+import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -16,14 +18,16 @@ function SubmitButton() {
 }
 
 export default function AddToCollectionButton({ instrumentId }: { instrumentId: string }) {
+    const router = useRouter();
+
     async function action() {
         const res = await addToCollection(instrumentId);
         if (res.success) {
-            alert('Añadido a tu colección!');
-            // Redirect or update UI?
-            window.location.href = '/dashboard';
+            toast.success('Añadido a tu colección!');
+            router.push('/dashboard');
+            router.refresh();
         } else {
-            alert('Error: ' + res.error);
+            toast.error('Error: ' + res.error);
         }
     }
 

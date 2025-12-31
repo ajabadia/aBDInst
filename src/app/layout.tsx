@@ -15,6 +15,7 @@ const geistMono = Geist_Mono({
 import Navbar from "@/components/Navbar";
 import { auth } from "@/auth";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { Toaster } from "@/components/Toaster";
 
 export const metadata: Metadata = {
   title: "Instrument Collector",
@@ -41,9 +42,10 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Navbar session={session} />
-          <main className="pb-16 md:pb-0">
+          <main className="pt-24 pb-16 md:pb-0">
             {children}
           </main>
+          {/* <Toaster /> */}
         </ThemeProvider>
       </body>
     </html>

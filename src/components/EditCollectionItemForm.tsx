@@ -4,6 +4,7 @@ import { updateCollectionItem } from '@/actions/collection';
 import { useFormStatus } from 'react-dom';
 import ImageUpload from '@/components/ImageUpload';
 import { useState } from 'react';
+import { toast } from 'sonner';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -26,9 +27,9 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
     async function action(formData: FormData) {
         const res = await updateCollectionItem(item._id, formData);
         if (res.success) {
-            alert('Datos actualizados!');
+            toast.success('Datos actualizados correctamente');
         } else {
-            alert('Error: ' + res.error);
+            toast.error('Error: ' + res.error);
         }
     }
 

@@ -2,8 +2,13 @@ import { auth } from '@/auth';
 import { getInstrumentById } from '@/actions/instrument';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import InstrumentSpecs from '@/components/InstrumentSpecs';
+import InstrumentHero from '@/components/InstrumentHero';
 import AddToCollectionButton from '@/components/AddToCollectionButton';
 import ImageGallery from '@/components/ImageGallery';
+import QRCodeGenerator from '@/components/QRCodeGenerator';
+import SpecRow from '@/components/SpecRow';
+import { FileText, ArrowLeft, Edit2 } from 'lucide-react';
 
 export default async function InstrumentDetailPage({ params }: { params: { id: string } }) {
     const { id } = await params;
@@ -16,122 +21,138 @@ export default async function InstrumentDetailPage({ params }: { params: { id: s
         notFound();
     }
 
+    // Group specs logic
+    const groupedSpecs: Record<string, any[]> = {};
+    if (instrument.specs && Array.isArray(instrument.specs)) {
+        instrument.specs.forEach((s: any) => {
+            if (!groupedSpecs[s.category]) groupedSpecs[s.category] = [];
+            groupedSpecs[s.category].push(s);
+        });
+    }
+
     return (
-        <div className="container mx-auto p-4 max-w-4xl">
-            <Link href="/instruments" className="text-blue-500 hover:underline mb-4 inline-block">&larr; Volver al catálogo</Link>
-
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-                <div className="md:flex">
-                    <div className="md:w-1/2 p-4">
-                        <ImageGallery images={instrument.genericImages || []} altText={`${instrument.brand} ${instrument.model}`} />
-                    </div>
-                    <div className="p-8 md:w-1/2">
-                        <div className="flex justify-between items-start">
-                            <div>
-                                <h1 className="text-3xl font-bold dark:text-white">{instrument.brand} {instrument.model}</h1>
-                                <p className="text-xl text-gray-600 dark:text-gray-400">{instrument.type} {instrument.subtype && `• ${instrument.subtype}`}</p>
-                            </div>
-                            {canEdit && (
-                                <Link
-                                    href={`/instruments/${id}/edit`}
-                                    className="text-gray-400 hover:text-blue-500 border border-gray-600 px-3 py-1 rounded text-sm transition hover:border-blue-500"
-                                >
-                                    Editar
-                                </Link>
-                            )}
-                        </div>
-
-                        {isLoggedIn && (
-                            <div className="mb-6">
-                                <AddToCollectionButton instrumentId={instrument._id} />
-                            </div>
-                        )}
-
-                        <div className="mt-6 space-y-4">
-                            <div>
-                                <span className="font-semibold text-gray-400 uppercase text-xs">Marca</span>
-                                <p className="text-lg dark:text-white">{instrument.brand}</p>
-                            </div>
-
-                            {instrument.version && (
-                                <div>
-                                    <span className="font-semibold text-gray-400 uppercase text-xs">Versión</span>
-                                    <p>{instrument.version}</p>
-                                </div>
-                            )}
-
-                            {instrument.years && instrument.years.length > 0 && (
-                                <div>
-                                    <span className="font-semibold text-gray-400 uppercase text-xs">Años</span>
-                                    <p>{instrument.years.join(', ')}</p>
-                                </div>
-                            )}
-
-                            <div>
-                                <span className="font-semibold text-gray-400 uppercase text-xs">Descripción</span>
-                                <p className="whitespace-pre-wrap">{instrument.description || 'Sin descripción disponible.'}</p>
-                            </div>
-                        </div>
-                    </div>
+        <div className="max-w-7xl mx-auto px-6 py-12 md:py-20">
+            {/* Header: Clean & Airy */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
+                <div>
+                    <Link href="/instruments" className="inline-flex items-center text-sm text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition mb-4 group">
+                        <ArrowLeft className="w-4 h-4 mr-1 transition-transform group-hover:-translate-x-1" />
+                        Volver al catálogo
+                    </Link>
+                    <p className="text-blue-600 dark:text-blue-400 font-medium text-sm mb-2 uppercase tracking-wider">{instrument.brand}</p>
+                    <h1 className="text-4xl md:text-5xl font-semibold tracking-tight dark:text-white text-gray-900">{instrument.model}</h1>
+                    <p className="text-xl text-gray-500 dark:text-gray-400 mt-2 font-light">{instrument.type} {instrument.subtype && `• ${instrument.subtype}`}</p>
                 </div>
-
-                <div className="p-8 border-t dark:border-gray-700">
-                    <h3 className="text-xl font-bold mb-6 dark:text-white">Especificaciones Técnicas</h3>
-
-                    {instrument.specs && Array.isArray(instrument.specs) && instrument.specs.length > 0 ? (
-                        <div className="space-y-8">
-                            {/* Group specs by category */}
-                            {(() => {
-                                const grouped: Record<string, any[]> = {};
-                                instrument.specs.forEach((s: any) => {
-                                    if (!grouped[s.category]) grouped[s.category] = [];
-                                    grouped[s.category].push(s);
-                                });
-
-                                return Object.entries(grouped).map(([category, items]) => (
-                                    <div key={category}>
-                                        <h4 className="text-sm uppercase font-bold text-gray-500 dark:text-gray-400 tracking-wider mb-4 border-b dark:border-gray-800 pb-2">{category}</h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-y-4 gap-x-8">
-                                            {items.map((item, idx) => (
-                                                <div key={idx} className="flex justify-between md:block">
-                                                    <span className="font-medium text-gray-500 dark:text-gray-400 text-sm block md:mb-1">{item.label}</span>
-                                                    <span className="text-gray-900 dark:text-gray-200">{item.value}</span>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ));
-                            })()}
+                <div className="flex gap-3">
+                    {canEdit && (
+                        <Link
+                            href={`/instruments/${id}/edit`}
+                            className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-5 py-2.5 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition"
+                        >
+                            <Edit2 className="w-4 h-4 mr-2" />
+                            Editar
+                        </Link>
+                    )}
+                    {isLoggedIn && (
+                        <div className="inline-block">
+                            <AddToCollectionButton instrumentId={instrument._id} />
                         </div>
-                    ) : (
-                        <p className="text-gray-500 italic">No hay especificaciones detalladas disponibles.</p>
                     )}
                 </div>
+            </div>
 
-                {/* Documentation Section */}
-                {instrument.documents && instrument.documents.length > 0 && (
-                    <div className="p-8 border-t dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                        <h3 className="text-xl font-bold mb-6 dark:text-white">Documentación y Archivos</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {instrument.documents.map((doc: any, idx: number) => (
-                                <a
-                                    key={idx}
-                                    href={doc.url}
-                                    target="_blank"
-                                    className="flex items-center p-3 bg-white dark:bg-gray-800 rounded border hover:shadow-md transition dark:border-gray-700"
-                                >
-                                    <div className="w-10 h-10 flex-shrink-0 bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-300 rounded flex items-center justify-center font-bold text-xs uppercase mr-3">
-                                        {doc.type?.substring(0, 3) || 'DOC'}
-                                    </div>
-                                    <div className="overflow-hidden">
-                                        <p className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate" title={doc.title}>{doc.title}</p>
-                                        <p className="text-xs text-gray-500 uppercase">{doc.type}</p>
-                                    </div>
-                                </a>
-                            ))}
-                        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
+                {/* Left: Gallery (Big visual impact) */}
+                <div className="lg:col-span-7">
+                    <div className="sticky top-24">
+                        <ImageGallery images={instrument.genericImages || []} altText={`${instrument.brand} ${instrument.model}`} />
                     </div>
-                )}
+                </div>
+
+                {/* Right: Narrative Info */}
+                <div className="lg:col-span-5 space-y-10">
+                    <section>
+                        <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-6">Descripción</h3>
+                        <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed font-light">
+                            {instrument.description || 'Sin descripción disponible.'}
+                        </p>
+                    </section>
+
+                    {instrument.years && instrument.years.length > 0 && (
+                        <section className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-6">
+                            <span className="text-sm font-medium text-gray-500">Años de producción</span>
+                            <span className="text-lg font-semibold text-gray-900 dark:text-white">{instrument.years.join(', ')}</span>
+                        </section>
+                    )}
+
+                    {instrument.version && (
+                        <section className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-6">
+                            <span className="text-sm font-medium text-gray-500">Versión</span>
+                            <span className="text-lg font-semibold text-gray-900 dark:text-white">{instrument.version}</span>
+                        </section>
+                    )}
+
+
+
+
+                </div>
+            </div>
+
+            {/* Bottom: Technical Specs in Columns */}
+            {Object.keys(groupedSpecs).length > 0 && (
+                <div className="mt-24 md:mt-32 border-t border-gray-100 dark:border-gray-800 pt-16">
+                    <h2 className="text-3xl font-semibold tracking-tight mb-16 dark:text-white">Especificaciones Técnicas</h2>
+
+                    <div className="space-y-16">
+                        {Object.entries(groupedSpecs).map(([category, items]) => (
+                            <div key={category} className="grid grid-cols-1 md:grid-cols-4 gap-8">
+                                <div className="md:col-span-1">
+                                    <h3 className="text-lg font-medium text-gray-900 dark:text-white sticky top-24">{category}</h3>
+                                </div>
+                                <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-0">
+                                    {items.map((item, idx) => (
+                                        <SpecRow key={idx} label={item.label} value={item.value} />
+                                    ))}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* Resources & Files moved to bottom */}
+            {instrument.documents && instrument.documents.length > 0 && (
+                <div className="mt-24 border-t border-gray-100 dark:border-gray-800 pt-16">
+                    <h2 className="text-2xl font-semibold tracking-tight mb-8 dark:text-white">Recursos y Documentación</h2>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {instrument.documents.map((doc: any, idx: number) => (
+                            <a
+                                key={idx}
+                                href={doc.url}
+                                target="_blank"
+                                className="flex items-center p-4 rounded-xl bg-gray-50 dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition group border border-gray-100 dark:border-gray-800 hover:border-blue-100 dark:hover:border-blue-800"
+                            >
+                                <div className="p-3 bg-white dark:bg-gray-800 rounded-lg mr-4 shadow-sm text-blue-600 dark:text-blue-400">
+                                    <FileText className="w-5 h-5" />
+                                </div>
+                                <div>
+                                    <p className="font-medium text-gray-900 dark:text-gray-100 text-sm group-hover:text-blue-600 transition-colors">{doc.title}</p>
+                                    <p className="text-xs text-gray-400 uppercase mt-0.5">{doc.type}</p>
+                                </div>
+                            </a>
+                        ))}
+                    </div>
+                </div>
+            )}
+
+            {/* QR Code moved to very bottom */}
+            <div className="mt-24 pt-16 border-t border-gray-100 dark:border-gray-800 flex justify-center">
+                <div className="flex flex-col items-center gap-6">
+                    <p className="text-sm font-medium text-gray-400 uppercase tracking-widest">Ficha Digital</p>
+                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 dark:bg-white/5">
+                        <QRCodeGenerator url={`/instruments/${id}`} label={instrument.model} />
+                    </div>
+                </div>
             </div>
         </div>
     );

@@ -13,6 +13,9 @@ export async function getUserCollection() {
 
         await dbConnect();
 
+        // Force model registration (fix for schema not registered error)
+        await Instrument.init();
+
         // Populate instrument details
         const collection = await UserCollection.find({ userId: (session.user as any).id })
             .populate('instrumentId')
@@ -87,11 +90,14 @@ export async function getCollectionItemById(id: string) {
         return {
             ...serialized,
             // Ensure dates are strings if stringify didn't handle it the way we want (it usually does ISO)
-            // But we specifically need acquisition.date formatted for input if needed, or just keep as passed.
+            // But we specifically need acquisition.date formatted for input if needed, or            ...serialized,
+            // Ensure dates are strings if stringify didn't handle it the way we want
             acquisition: {
                 ...serialized.acquisition,
                 date: serialized.acquisition?.date ? serialized.acquisition.date.split('T')[0] : ''
-            }
+            },
+            // Fallback for missing populated instrument (e.g. if deleted)
+            instrumentId: serialized.instrumentId || { brand: 'Unknown', model: 'Instrument', type: 'Deleted', genericImages: [] }
         };
 
     } catch (error) {
@@ -134,6 +140,38 @@ export async function updateCollectionItem(id: string, formData: FormData) {
         return { success: true };
     } catch (error: any) {
         console.error('Update Collection Item Error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function addMaintenanceRecord(collectionId: string, formData: FormData) {
+    try {
+        const session = await auth();
+        if (!session?.user) throw new Error('Unauthorized');
+
+        await dbConnect();
+
+        const newRecord = {
+            date: new Date(formData.get('date') as string),
+            type: formData.get('type') as string,
+            description: formData.get('description') as string,
+            cost: Number(formData.get('cost')) || 0,
+            technician: formData.get('technician') as string,
+            documents: [] // Handle documents later if needed
+        };
+
+        const updated = await UserCollection.findOneAndUpdate(
+            { _id: collectionId, userId: (session.user as any).id },
+            { $push: { maintenanceHistory: newRecord } },
+            { new: true }
+        );
+
+        if (!updated) throw new Error('Item not found or unauthorized');
+
+        revalidatePath(`/dashboard/collection/${collectionId}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error('Add Maintenance Record Error:', error);
         return { success: false, error: error.message };
     }
 }

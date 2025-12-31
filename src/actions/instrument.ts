@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db';
 import Instrument from '@/models/Instrument';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
+import { InstrumentSchema } from '@/lib/schemas';
 
 // Helper to sanitize Mongoose documents for client
 function sanitize(doc: any) {
@@ -26,15 +27,28 @@ export async function createInstrument(data: FormData) {
             brand: data.get('brand'),
             model: data.get('model'),
             version: data.get('version'),
-            years: data.get('years')?.toString().split(',').map(y => y.trim()),
+            years: data.get('years')?.toString().split(',').map(y => y.trim()).filter(y => y),
             description: data.get('description'),
             specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [],
             genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
+        };
+
+        // Validate with Zod
+        const validatedData = InstrumentSchema.safeParse(rawData);
+
+        if (!validatedData.success) {
+            // Flatten errors to a single string or map
+            const errorMessage = validatedData.error.issues.map(e => e.message).join(', ');
+            return { success: false, error: errorMessage };
+        }
+
+        const instrumentData = {
+            ...validatedData.data,
             createdBy: (session.user as any).id,
         };
 
-        const instrument = await Instrument.create(rawData);
+        const instrument = await Instrument.create(instrumentData);
 
         revalidatePath('/instruments');
         return { success: true, id: instrument._id.toString() };
@@ -93,23 +107,37 @@ export async function updateInstrument(id: string, data: FormData) {
 
         await dbConnect();
 
-        const updateData = {
+        const rawUpdateData = {
             type: data.get('type'),
             subtype: data.get('subtype'),
             brand: data.get('brand'),
             model: data.get('model'),
             version: data.get('version'),
-            years: data.get('years')?.toString().split(',').map(y => y.trim()),
+            years: data.get('years')?.toString().split(',').map(y => y.trim()).filter(y => y),
             description: data.get('description'),
             specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : undefined,
             genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : undefined,
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : undefined,
         };
 
-        // Remove undefined fields
-        Object.keys(updateData).forEach(key => (updateData as any)[key] === undefined && delete (updateData as any)[key]);
+        // Remove undefined fields so we don't validate things we aren't updating (though here we seem to update everything)
+        Object.keys(rawUpdateData).forEach(key => (rawUpdateData as any)[key] === undefined && delete (rawUpdateData as any)[key]);
 
-        await Instrument.findByIdAndUpdate(id, updateData);
+        // Validate with Zod - Use partial() for updates if we were doing partial updates, 
+        // but here the form sends substantial data. However, genericImages/documents might be undefined in rawUpdateData if not present.
+        // InstrumentSchema expects arrays if present.
+        // Let's use InstrumentSchema and allow partials or check logic.
+        // Since the form resubmits everything, full schema validation is safer, but we need to handle "undefined" optional fields correctly if Zod expects them.
+
+        // Actually, looking at the schema: optional fields are optional.
+        const validatedData = InstrumentSchema.partial().safeParse(rawUpdateData);
+
+        if (!validatedData.success) {
+            const errorMessage = validatedData.error.issues.map(e => e.message).join(', ');
+            return { success: false, error: errorMessage };
+        }
+
+        await Instrument.findByIdAndUpdate(id, validatedData.data);
 
         revalidatePath('/instruments');
         revalidatePath(`/instruments/${id}`);

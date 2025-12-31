@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { uploadImage } from '@/actions/upload';
+import { toast } from 'sonner';
 
 interface ImageUploadProps {
     onUpload: (url: string) => void;
@@ -26,7 +27,7 @@ export default function ImageUpload({ onUpload }: ImageUploadProps) {
             setPreview(res.url);
             onUpload(res.url); // Pass URL back to parent form
         } else {
-            alert('Upload failed: ' + res.error);
+            toast.error('Error en la subida: ' + res.error);
         }
         setUploading(false);
     }

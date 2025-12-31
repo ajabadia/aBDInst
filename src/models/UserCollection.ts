@@ -42,6 +42,15 @@ const UserCollectionSchema = new Schema({
     documents: [{
         url: { type: String },
         type: { type: String } // invoice, manual, warranty
+    }],
+
+    maintenanceHistory: [{
+        date: { type: Date, required: true },
+        type: { type: String, required: true }, // 'repair', 'modification', 'cleaning', 'setup'
+        description: { type: String, required: true },
+        cost: { type: Number },
+        technician: { type: String },
+        documents: [{ url: String, title: String }]
     }]
 
 }, { timestamps: true });
