@@ -1,8 +1,9 @@
 import { MongoClient } from "mongodb"
 
+let client;
+let clientPromise: Promise<MongoClient>;
+
 if (!process.env.MONGODB_URI) {
-    // Instead of throwing immediately, we reject the promise. 
-    // This allows the module to be imported during build without crashing.
     clientPromise = Promise.reject(new Error('Invalid/Missing environment variable: "MONGODB_URI"'));
 } else {
     const uri = process.env.MONGODB_URI;
@@ -17,7 +18,7 @@ if (!process.env.MONGODB_URI) {
             client = new MongoClient(uri, options)
             globalWithMongo._mongoClientPromise = client.connect()
         }
-        clientPromise = globalWithMongo._mongoClientPromise
+        clientPromise = globalWithMongo._mongoClientPromise!
     } else {
         client = new MongoClient(uri, options)
         clientPromise = client.connect()
