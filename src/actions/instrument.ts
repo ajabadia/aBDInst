@@ -35,6 +35,7 @@ export async function createInstrument(data: FormData) {
             specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [],
             genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
+            relatedTo: data.get('relatedTo')?.toString() || undefined,
         };
 
         // Validate with Zod
@@ -79,11 +80,7 @@ export async function getInstruments(query?: string, category?: string | null) {
         }
 
         const instruments = await Instrument.find(filter).sort({ brand: 1, model: 1 });
-        return instruments.map(doc => ({
-            ...doc.toObject(),
-            _id: doc._id.toString(),
-            createdBy: doc.createdBy?.toString(),
-        }));
+        return JSON.parse(JSON.stringify(instruments));
     } catch (error) {
         console.error('Get Instruments Error:', error);
         return [];
@@ -93,7 +90,7 @@ export async function getInstruments(query?: string, category?: string | null) {
 export async function getInstrumentById(id: string) {
     try {
         await dbConnect();
-        const instrument = await Instrument.findById(id).lean();
+        const instrument = await Instrument.findById(id).populate('relatedTo', 'brand model').lean();
         if (!instrument) return null;
 
         // Deep sanitize by serializing to JSON
@@ -128,6 +125,7 @@ export async function updateInstrument(id: string, data: FormData) {
             specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [], // Changed from undefined to []
             genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [], // Changed from undefined to []
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [], // Changed from undefined to []
+            relatedTo: data.get('relatedTo')?.toString() || undefined,
         };
 
         // Remove undefined fields so we don't validate things we aren't updating (though here we seem to update everything)
@@ -160,5 +158,16 @@ export async function updateInstrument(id: string, data: FormData) {
     } catch (error: any) {
         console.error('Update Instrument Error:', error);
         return { success: false, error: error.message };
+    }
+}
+
+export async function getRelatedGear(id: string) {
+    try {
+        await dbConnect();
+        const accessories = await Instrument.find({ relatedTo: id }).lean();
+        return JSON.parse(JSON.stringify(accessories));
+    } catch (error) {
+        console.error('Get Related Gear Error:', error);
+        return [];
     }
 }

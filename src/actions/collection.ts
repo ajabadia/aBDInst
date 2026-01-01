@@ -16,7 +16,6 @@ export async function getUserCollection() {
         // Force model registration (fix for schema not registered error)
         await Instrument.init();
 
-        // Populate instrument details
         const collection = await UserCollection.find({
             userId: (session.user as any).id,
             deletedAt: null
@@ -24,23 +23,7 @@ export async function getUserCollection() {
             .populate('instrumentId')
             .sort({ createdAt: -1 });
 
-        return collection.map(doc => {
-            const obj = doc.toObject();
-            return {
-                ...obj,
-                _id: obj._id.toString(),
-                userId: obj.userId.toString(),
-                instrumentId: {
-                    ...obj.instrumentId,
-                    _id: obj.instrumentId._id.toString(),
-                    // sanitize other objectIds in instrument if needed
-                },
-                acquisition: {
-                    ...obj.acquisition,
-                    date: obj.acquisition?.date ? obj.acquisition.date.toISOString() : null
-                }
-            };
-        });
+        return JSON.parse(JSON.stringify(collection));
     } catch (error) {
         console.error('Get Collection Error:', error);
         return [];

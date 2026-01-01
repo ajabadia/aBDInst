@@ -28,31 +28,29 @@ export async function getPublicProfile(userId: string) {
             .lean();
 
         // 3. Sanitize Data
-        const sanitizedCollection = collection.map((doc: any) => ({
-            _id: doc._id.toString(),
-            status: doc.status,
-            condition: doc.condition,
-            // HIDE serialNumber, acquisition, marketValue, location, customNotes
-            instrumentId: {
-                _id: doc.instrumentId._id.toString(),
-                brand: doc.instrumentId.brand,
-                model: doc.instrumentId.model,
-                type: doc.instrumentId.type,
-                genericImages: doc.instrumentId.genericImages || [],
-                specs: doc.instrumentId.specs
-            },
-            // Include loan status? Maybe just generic "Loananed out"
-            loan: doc.loan?.active ? { active: true } : undefined
-        }));
-
-        return {
+        const sanitizedData = {
             user: {
                 name: user.name,
                 image: user.image,
                 id: (user as any)._id.toString()
             },
-            collection: sanitizedCollection
+            collection: collection.map((doc: any) => ({
+                _id: doc._id.toString(),
+                status: doc.status,
+                condition: doc.condition,
+                instrumentId: {
+                    _id: doc.instrumentId._id.toString(),
+                    brand: doc.instrumentId.brand,
+                    model: doc.instrumentId.model,
+                    type: doc.instrumentId.type,
+                    genericImages: doc.instrumentId.genericImages || [],
+                    specs: doc.instrumentId.specs
+                },
+                loan: doc.loan?.active ? { active: true } : undefined
+            }))
         };
+
+        return JSON.parse(JSON.stringify(sanitizedData));
 
     } catch (error) {
         console.error('Get Public Profile Error:', error);

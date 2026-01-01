@@ -165,16 +165,14 @@ export default function Navbar({ session }: { session: any }) {
                                                 </button>
                                             )}
 
-                                            <button
-                                                onClick={() => {
-                                                    setUserMenuOpen(false);
-                                                    setSettingsOpen(true);
-                                                }}
+                                            <Link
+                                                href="/dashboard/settings"
+                                                onClick={() => setUserMenuOpen(false)}
                                                 className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                                             >
                                                 <Settings size={14} />
-                                                Configuración
-                                            </button>
+                                                Ajustes de Perfil
+                                            </Link>
 
                                             <button
                                                 onClick={() => {

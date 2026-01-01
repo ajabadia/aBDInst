@@ -62,7 +62,10 @@ const UserCollectionSchema = new Schema({
     images: [{
         url: { type: String },
         provider: { type: String }, // cloudinary, drive, etc.
-        type: { type: String } // front, back, invoice
+        path: { type: String }, // Internal path in provider
+        type: { type: String }, // front, back, invoice
+        uploadedAt: { type: Date, default: Date.now },
+        isPrimary: { type: Boolean, default: false }
     }],
 
     documents: [{

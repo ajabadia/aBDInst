@@ -74,10 +74,18 @@ export default function RegisterForm() {
                         icon={Lock}
                         required
                     />
+                    <Input
+                        label="Confirmar Contraseña"
+                        name="confirmPassword"
+                        type="password"
+                        placeholder="••••••••"
+                        icon={Lock}
+                        required
+                    />
 
                     <div className="pt-4">
-                        <Button type="submit" isLoading={loading} className="w-full py-4 text-lg">
-                            Registrarse
+                        <Button type="submit" isLoading={loading} className="w-full py-4 text-lg bg-gradient-to-tr from-teal-500 to-green-500 hover:from-teal-600 hover:to-green-600 border-none">
+                            Registrarse ahora
                         </Button>
                     </div>
                 </form>

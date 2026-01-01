@@ -28,7 +28,7 @@ const InstrumentSchema = new Schema({
         url: { type: String, required: true },
         type: { type: String } // 'pdf', 'manual', 'patch_list', etc.
     }],
-
+    relatedTo: { type: Schema.Types.ObjectId, ref: 'Instrument' },
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
 }, {
     timestamps: true,

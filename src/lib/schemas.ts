@@ -29,6 +29,41 @@ export const InstrumentSchema = z.object({
             type: z.string().optional(),
         })
     ).optional(),
+    relatedTo: z.string().optional(),
+});
+
+export const RegisterSchema = z.object({
+    name: z.string().min(2, "El nombre debe tener al menos 2 caracteres"),
+    email: z.string().email("Email inválido").toLowerCase(),
+    password: z.string()
+        .min(8, "La contraseña debe tener al menos 8 caracteres")
+        .regex(/[A-Z]/, "Debe contener al menos una mayúscula")
+        .regex(/[0-9]/, "Debe contener al menos un número"),
+    confirmPassword: z.string().min(1, "Debes confirmar la contraseña"),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Las contraseñas no coinciden",
+    path: ["confirmPassword"],
+});
+
+export const LoginSchema = z.object({
+    email: z.string().email("Email inválido").toLowerCase(),
+    password: z.string().min(1, "La contraseña es obligatoria"),
+});
+
+export const UserProfileSchema = z.object({
+    name: z.string().min(2, "El nombre debe tener al menos 2 caracteres").optional(),
+    bio: z.string().max(500, "La bio no puede exceder los 500 caracteres").optional(),
+    location: z.string().optional(),
+    website: z.string().url("URL inválida").optional().or(z.literal("")),
+    phone: z.string().optional(),
+});
+
+export const ChangePasswordSchema = z.object({
+    currentPassword: z.string().min(1, "La contraseña actual es obligatoria"),
+    newPassword: z.string()
+        .min(8, "La nueva contraseña debe tener al menos 8 caracteres")
+        .regex(/[A-Z]/, "Debe contener al menos una mayúscula")
+        .regex(/[0-9]/, "Debe contener al menos un número"),
 });
 
 export type InstrumentFormData = z.infer<typeof InstrumentSchema>;

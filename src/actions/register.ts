@@ -3,16 +3,27 @@
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import bcrypt from "bcryptjs";
+import { RegisterSchema } from "@/lib/schemas";
 
 export async function registerUser(formData: FormData) {
     try {
-        const name = formData.get('name') as string;
-        const email = (formData.get('email') as string)?.toLowerCase();
-        const password = formData.get('password') as string;
+        const rawData = {
+            name: formData.get('name') as string,
+            email: formData.get('email') as string,
+            password: formData.get('password') as string,
+            confirmPassword: formData.get('confirmPassword') as string,
+        };
 
-        if (!name || !email || !password) {
-            return { success: false, error: 'Todos los campos son obligatorios' };
+        // Validate with Zod
+        const validated = RegisterSchema.safeParse(rawData);
+        if (!validated.success) {
+            return {
+                success: false,
+                error: validated.error.issues.map(i => i.message).join(", ")
+            };
         }
+
+        const { name, email, password } = validated.data;
 
         await dbConnect();
 

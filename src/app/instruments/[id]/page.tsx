@@ -10,7 +10,8 @@ import ImageGallery from '@/components/ImageGallery';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
 import SpecRow from '@/components/SpecRow';
 import PdfPreviewModal from '@/components/PdfPreviewModal';
-import { FileText, ArrowLeft, Edit2, Globe, Star, ExternalLink, ChevronRight } from 'lucide-react';
+import { getRelatedGear } from '@/actions/instrument';
+import { FileText, ArrowLeft, Edit2, Globe, Star, ExternalLink, ChevronRight, Layers, Box } from 'lucide-react';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const { id } = await params;
@@ -39,6 +40,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function InstrumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const instrument = await getInstrumentById(id);
+    const relatedGear = await getRelatedGear(id);
     const session = await auth();
     const isLoggedIn = !!session?.user;
     const canEdit = ['admin', 'editor'].includes((session?.user as any)?.role);
@@ -115,6 +117,48 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                         <section className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-6">
                             <span className="text-sm font-medium text-gray-500">Versión</span>
                             <span className="text-lg font-semibold text-gray-900 dark:text-white">{instrument.version}</span>
+                        </section>
+                    )}
+
+                    {instrument.relatedTo && (
+                        <section className="pt-6 border-t border-gray-100 dark:border-gray-800">
+                            <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Equipo Principal</h4>
+                            <Link
+                                href={`/instruments/${instrument.relatedTo.id || instrument.relatedTo._id || instrument.relatedTo}`}
+                                className="flex items-center gap-3 p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-900/20 group hover:bg-blue-50 transition-colors"
+                            >
+                                <div className="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm text-blue-600">
+                                    <Box size={20} />
+                                </div>
+                                <div>
+                                    <p className="text-xs text-blue-600/60 dark:text-blue-400/60 font-medium">Accesorio para:</p>
+                                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 group-hover:underline">
+                                        {instrument.relatedTo.brand} {instrument.relatedTo.model}
+                                    </p>
+                                </div>
+                                <ChevronRight className="ml-auto w-4 h-4 text-blue-300 group-hover:translate-x-1 transition-transform" />
+                            </Link>
+                        </section>
+                    )}
+
+                    {relatedGear && relatedGear.length > 0 && (
+                        <section className="pt-6 border-t border-gray-100 dark:border-gray-800">
+                            <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Accesorios y Periféricos</h4>
+                            <div className="grid gap-2">
+                                {relatedGear.map((gear: any) => (
+                                    <Link
+                                        key={gear._id}
+                                        href={`/instruments/${gear._id}`}
+                                        className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 transition-colors group"
+                                    >
+                                        <Layers className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-400" />
+                                        <span>{gear.brand} {gear.model}</span>
+                                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 ml-auto group-hover:bg-blue-100 transition-colors">
+                                            {gear.type === 'Accessory' ? 'Accesorio' : gear.type}
+                                        </span>
+                                    </Link>
+                                ))}
+                            </div>
                         </section>
                     )}
 

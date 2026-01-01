@@ -1,10 +1,10 @@
 'use client';
 
-import { createInstrument, updateInstrument } from '@/actions/instrument';
+import { createInstrument, updateInstrument, getInstruments } from '@/actions/instrument';
 import { useFormStatus } from 'react-dom';
 import FileUpload from './FileUpload';
 import { SPEC_CATEGORIES, PREDEFINED_SPECS } from '@/lib/spec-constants';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Tabs, Tab } from '@/components/Tabs';
@@ -37,6 +37,13 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
 
     // Documents state
     const [documents, setDocuments] = useState<{ title: string, url: string, type: string }[]>(initialData?.documents || []);
+
+    // State for all instruments (to populate relatedTo selector)
+    const [allInstruments, setAllInstruments] = useState<any[]>([]);
+
+    useEffect(() => {
+        getInstruments().then(setAllInstruments);
+    }, []);
 
     const addWebsite = () => {
         setWebsites(prev => [...prev, { url: '', isPrimary: prev.length === 0 }]);
@@ -244,6 +251,8 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                                     <option value="Mixer">Mezclador</option>
                                     <option value="Controller">Controlador</option>
                                     <option value="Utility">Utilidad</option>
+                                    <option value="Accessory">Accesorio</option>
+                                    <option value="Gear">Equipo Periférico</option>
                                 </select>
                             </div>
                             <div>
@@ -255,6 +264,21 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                         <div>
                             <label className="apple-label">Versión</label>
                             <input name="version" defaultValue={initialData?.version} className="apple-input" placeholder="Ej. MkII, Rev 3" />
+                        </div>
+
+                        <div>
+                            <label className="apple-label">Equipo Principal (Relacionado con)</label>
+                            <select name="relatedTo" defaultValue={initialData?.relatedTo?._id || initialData?.relatedTo} className="apple-select">
+                                <option value="">-- Ninguno (Equipo Principal) --</option>
+                                {allInstruments.filter(inst => inst._id !== initialData?._id).map(inst => (
+                                    <option key={inst._id} value={inst._id}>
+                                        {inst.brand} {inst.model}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="text-[10px] text-gray-400 mt-1 px-1">
+                                Úsalo para vincular Decksavers, maletas, módulos o expansiones con su equipo principal.
+                            </p>
                         </div>
 
                         <div>
