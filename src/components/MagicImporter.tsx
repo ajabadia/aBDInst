@@ -9,14 +9,16 @@ import { toast } from 'sonner';
 
 interface MagicImporterProps {
     onImport: (data: any) => void;
+    initialSearch?: string;
+    contextUrls?: string[];
 }
 
-export default function MagicImporter({ onImport }: MagicImporterProps) {
+export default function MagicImporter({ onImport, initialSearch, contextUrls }: MagicImporterProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [step, setStep] = useState<'mode' | 'analyzing' | 'review'>('mode');
-    const [mode, setMode] = useState<'photo' | 'text'>('photo');
+    const [mode, setMode] = useState<'photo' | 'text'>(initialSearch ? 'text' : 'photo');
     const [preview, setPreview] = useState<string | null>(null);
-    const [textQuery, setTextQuery] = useState('');
+    const [textQuery, setTextQuery] = useState(initialSearch || '');
     const [results, setResults] = useState<any>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -24,7 +26,8 @@ export default function MagicImporter({ onImport }: MagicImporterProps) {
         setStep('mode');
         setPreview(null);
         setResults(null);
-        setTextQuery('');
+        setTextQuery(initialSearch || '');
+        setMode(initialSearch ? 'text' : 'photo');
     };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -43,7 +46,7 @@ export default function MagicImporter({ onImport }: MagicImporterProps) {
                 formData.append('image', fileInputRef.current.files[0]);
                 res = await analyzeInstrumentImage(formData);
             } else if (mode === 'text' && textQuery) {
-                res = await analyzeInstrumentText(textQuery);
+                res = await analyzeInstrumentText(textQuery, contextUrls);
             }
 
             if (res?.success && res.data) {

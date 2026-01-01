@@ -84,7 +84,7 @@ export async function analyzeInstrumentImage(formData: FormData) {
     }
 }
 
-export async function analyzeInstrumentText(query: string) {
+export async function analyzeInstrumentText(query: string, contextUrls?: string[]) {
     const session = await auth();
     if (!session) return { success: false, error: 'No autorizado' };
 
@@ -112,7 +112,14 @@ export async function analyzeInstrumentText(query: string) {
 
         console.log('--- GEMINI TEXT ANALYSIS START ---');
         console.log('Query:', query);
+        if (contextUrls && contextUrls.length > 0) {
+            console.log('Context URLs:', contextUrls);
+        }
         console.log(`Model: ${modelName}`);
+
+        const contextString = contextUrls && contextUrls.length > 0
+            ? `\n\nReference Sources (Prioritize these links for technical data): \n${contextUrls.join('\n')}`
+            : '';
 
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
             method: 'POST',
@@ -121,7 +128,7 @@ export async function analyzeInstrumentText(query: string) {
                 contents: [{
                     parts: [
                         { text: systemPrompt },
-                        { text: `Target instrument to analyze: ${query}` }
+                        { text: `Target instrument to analyze: ${query}${contextString}` }
                     ]
                 }],
                 generationConfig: { response_mime_type: "application/json" }

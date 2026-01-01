@@ -8,11 +8,12 @@ import { revalidatePath } from 'next/cache';
 const DEFAULT_PROMPT = `As a world-class musical instrument expert and data archivist, analyze the provided input (image or text) to extract an EXHAUSTIVE technical profile.
 
 CRITICAL RULES:
-1. LANGUAGE: All descriptive text fields (subtype, description, label, value) MUST be in Spanish (castellano).
-2. GRANULARITY: Never group physical controls. Each knob, button, slider, and switch must be an individual entry in the "specs" array.
-3. LABELS: Use the exact label found on the hardware if possible (e.g., "Knob CUT OFF FREQ" instead of "Filtro").
-4. WEBSITES: Identify the official manufacturer product page URL. If there are multiple relevant official URLs (support, microsite, global), include all of them in an array of objects: \`[{ "url": "...", "isPrimary": boolean }]\`. Designate the most relevant official product page as \`isPrimary: true\`.
-5. CATEGORIES: Categorize every spec strictly into one of the following:
+1. REFERENCE SOURCES: If "Reference Sources" are provided in the text input, treat them as the PRIMARY and AUTHORITATIVE source of truth. Prioritize data found in those links over general training data.
+2. LANGUAGE: All descriptive text fields (subtype, description, label, value) MUST be in Spanish (castellano).
+3. GRANULARITY: Never group physical controls. Each knob, button, slider, and switch must be an individual entry in the "specs" array.
+4. LABELS: Use the exact label found on the hardware if possible (e.g., "Knob CUT OFF FREQ" instead of "Filtro").
+5. WEBSITES: Identify the official manufacturer product page URL. If there are multiple relevant official URLs (support, microsite, global), include all of them in an array of objects: \`[{ "url": "...", "isPrimary": boolean }]\`. Designate the most relevant official product page as \`isPrimary: true\`.
+6. CATEGORIES: Categorize every spec strictly into one of the following:
    - "Información Básica": Format, version, synthesis type.
    - "Sitio Web Oficial": The primary product URLs. (Note: The URLs must also be present in the root "websites" array).
    - "Arquitectura y Voces": Polyphony, multitimbrality, core engine details.

@@ -149,63 +149,69 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
         <form action={action} className="space-y-6 max-w-4xl mx-auto bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2.5rem] border border-gray-200/50 dark:border-white/10 p-10 shadow-2xl">
 
             <div className="flex justify-end mb-4">
-                <MagicImporter onImport={(data) => {
-                    // Auto-fill logic
-                    const setVal = (name: string, val: string) => {
-                        const el = document.querySelector(`[name="${name}"]`) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-                        if (el && val) el.value = val;
-                    };
+                <MagicImporter
+                    initialSearch={isEditing ? `${initialData?.brand || ''} ${initialData?.model || ''}`.trim() : undefined}
+                    contextUrls={[
+                        ...websites.map(w => w.url),
+                        ...documents.map(d => d.url)
+                    ].filter(url => url.startsWith('http'))}
+                    onImport={(data) => {
+                        // Auto-fill logic
+                        const setVal = (name: string, val: string) => {
+                            const el = document.querySelector(`[name="${name}"]`) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+                            if (el && val) el.value = val;
+                        };
 
-                    if (data.brand) setVal('brand', data.brand);
-                    if (data.model) setVal('model', data.model);
-                    if (data.type) setVal('type', data.type);
-                    if (data.subtype) setVal('subtype', data.subtype);
-                    if (data.description) setVal('description', data.description);
-                    if (data.year) setVal('years', data.year);
+                        if (data.brand) setVal('brand', data.brand);
+                        if (data.model) setVal('model', data.model);
+                        if (data.type) setVal('type', data.type);
+                        if (data.subtype) setVal('subtype', data.subtype);
+                        if (data.description) setVal('description', data.description);
+                        if (data.year) setVal('years', data.year);
 
-                    // Add websites from data if they don't exist
-                    if (data.websites && Array.isArray(data.websites)) {
-                        setWebsites(prev => {
-                            const newWebsites = data.websites.map((w: any) => ({
-                                url: typeof w === 'string' ? w : w.url,
-                                isPrimary: typeof w === 'string' ? false : !!w.isPrimary
-                            }));
+                        // Add websites from data if they don't exist
+                        if (data.websites && Array.isArray(data.websites)) {
+                            setWebsites(prev => {
+                                const newWebsites = data.websites.map((w: any) => ({
+                                    url: typeof w === 'string' ? w : w.url,
+                                    isPrimary: typeof w === 'string' ? false : !!w.isPrimary
+                                }));
 
-                            const combined = [...prev, ...newWebsites];
-                            // Deduplicate by URL
-                            const unique = Array.from(new Map(combined.map(item => [item.url, item])).values());
+                                const combined = [...prev, ...newWebsites];
+                                // Deduplicate by URL
+                                const unique = Array.from(new Map(combined.map(item => [item.url, item])).values());
 
-                            // Ensure only one is primary
-                            if (unique.some(w => w.isPrimary)) {
-                                let foundPrimary = false;
-                                return unique.map(w => {
-                                    if (w.isPrimary && !foundPrimary) {
-                                        foundPrimary = true;
-                                        return w;
-                                    }
-                                    return { ...w, isPrimary: false };
-                                });
-                            }
-                            return unique;
-                        });
-                    } else if (data.website) {
-                        setWebsites(prev => {
-                            if (!prev.find(w => w.url === data.website)) {
-                                return [...prev, { url: data.website, isPrimary: prev.length === 0 }];
-                            }
-                            return prev;
-                        });
-                    }
+                                // Ensure only one is primary
+                                if (unique.some(w => w.isPrimary)) {
+                                    let foundPrimary = false;
+                                    return unique.map(w => {
+                                        if (w.isPrimary && !foundPrimary) {
+                                            foundPrimary = true;
+                                            return w;
+                                        }
+                                        return { ...w, isPrimary: false };
+                                    });
+                                }
+                                return unique;
+                            });
+                        } else if (data.website) {
+                            setWebsites(prev => {
+                                if (!prev.find(w => w.url === data.website)) {
+                                    return [...prev, { url: data.website, isPrimary: prev.length === 0 }];
+                                }
+                                return prev;
+                            });
+                        }
 
-                    if (data.specs && Array.isArray(data.specs)) {
-                        setSpecs(prev => {
-                            // Basic deduplication by label within the same category
-                            const existingLabels = new Set(prev.map(s => `${s.category}:${s.label}`));
-                            const newSpecs = data.specs.filter((s: any) => !existingLabels.has(`${s.category}:${s.label}`));
-                            return [...prev, ...newSpecs];
-                        });
-                    }
-                }} />
+                        if (data.specs && Array.isArray(data.specs)) {
+                            setSpecs(prev => {
+                                // Basic deduplication by label within the same category
+                                const existingLabels = new Set(prev.map(s => `${s.category}:${s.label}`));
+                                const newSpecs = data.specs.filter((s: any) => !existingLabels.has(`${s.category}:${s.label}`));
+                                return [...prev, ...newSpecs];
+                            });
+                        }
+                    }} />
             </div>
 
             <Tabs>
