@@ -17,7 +17,10 @@ export async function getUserCollection() {
         await Instrument.init();
 
         // Populate instrument details
-        const collection = await UserCollection.find({ userId: (session.user as any).id })
+        const collection = await UserCollection.find({
+            userId: (session.user as any).id,
+            deletedAt: null
+        })
             .populate('instrumentId')
             .sort({ createdAt: -1 });
 
@@ -113,7 +116,7 @@ export async function updateCollectionItem(id: string, formData: FormData) {
 
         await dbConnect();
 
-        const data = {
+        const data: any = {
             status: formData.get('status'),
             condition: formData.get('condition'),
             serialNumber: formData.get('serialNumber'),
@@ -125,11 +128,29 @@ export async function updateCollectionItem(id: string, formData: FormData) {
                 source: formData.get('acquisition.source'),
             },
             customNotes: formData.get('customNotes'),
+            location: formData.get('location'),
         };
+
+        const marketVal = formData.get('marketValue.current');
+        const updateOps: any = { $set: data };
+
+        if (marketVal) {
+            const val = Number(marketVal);
+            if (!isNaN(val)) {
+                updateOps.$set['marketValue.current'] = val;
+                updateOps.$set['marketValue.lastUpdated'] = new Date();
+                updateOps.$push = {
+                    'marketValue.history': {
+                        date: new Date(),
+                        value: val
+                    }
+                };
+            }
+        }
 
         const updated = await UserCollection.findOneAndUpdate(
             { _id: id, userId: (session.user as any).id },
-            { $set: data },
+            updateOps,
             { new: true }
         );
 
@@ -172,6 +193,56 @@ export async function addMaintenanceRecord(collectionId: string, formData: FormD
         return { success: true };
     } catch (error: any) {
         console.error('Add Maintenance Record Error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deleteCollectionItem(id: string) {
+    try {
+        const session = await auth();
+        if (!session?.user) throw new Error('Unauthorized');
+
+        await dbConnect();
+
+        // Soft delete
+        await UserCollection.findOneAndUpdate(
+            { _id: id, userId: (session.user as any).id },
+            { deletedAt: new Date(), status: 'archived' }
+        );
+
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function restoreCollectionItem(id: string) {
+    try {
+        const session = await auth();
+        if (!session?.user) throw new Error('Unauthorized');
+
+        await dbConnect();
+
+        await UserCollection.findOneAndUpdate(
+            { _id: id, userId: (session.user as any).id },
+            {
+                deletedAt: null,
+                status: 'active',
+                $push: {
+                    events: {
+                        type: 'note',
+                        date: new Date(),
+                        title: 'Restaurado',
+                        description: 'Recuperado de la papelera (Undo)'
+                    }
+                }
+            }
+        );
+
+        revalidatePath('/dashboard');
+        return { success: true };
+    } catch (error: any) {
         return { success: false, error: error.message };
     }
 }

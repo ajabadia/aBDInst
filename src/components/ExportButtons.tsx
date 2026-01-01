@@ -2,7 +2,7 @@
 
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
-import { FileText, Table } from 'lucide-react';
+import { FileText, Table, Braces } from 'lucide-react';
 
 interface CollectionItem {
     instrumentId: {
@@ -37,8 +37,39 @@ export default function ExportButtons({ data }: ExportButtonsProps) {
         toast.success('Iniciando descarga PDF...');
     };
 
+    const handleJSON = async () => {
+        const loadingToast = toast.loading('Generando JSON...');
+        const { getExportData } = await import('@/actions/export');
+        const data = await getExportData();
+
+        if (data) {
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `instrument-collection-export-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            toast.dismiss(loadingToast);
+            toast.success('Descarga JSON iniciada');
+        } else {
+            toast.dismiss(loadingToast);
+            toast.error('Error al exportar');
+        }
+    };
+
     return (
         <div className="flex gap-2">
+            <Button
+                onClick={handleJSON}
+                variant="secondary"
+                className="h-9 px-4 text-xs font-semibold uppercase tracking-wide bg-gray-100 dark:bg-gray-800 hover:bg-yellow-50 hover:text-yellow-600 dark:hover:bg-yellow-900/20 dark:hover:text-yellow-400"
+                icon={Braces}
+            >
+                JSON
+            </Button>
             <Button
                 onClick={exportCSV}
                 variant="secondary"

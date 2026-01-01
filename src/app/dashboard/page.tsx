@@ -5,9 +5,10 @@ import CollectionStats from '@/components/CollectionStats';
 import CollectionItemCard from '@/components/CollectionItemCard';
 import ExportButtons from '@/components/ExportButtons';
 import { Button } from '@/components/ui/Button';
-import { Plus } from 'lucide-react';
+import { Plus, Music } from 'lucide-react';
 import Link from 'next/link';
 import EmptyState from '@/components/EmptyState';
+import StudioCollection from '@/components/StudioCollection';
 
 import { cleanData } from '@/lib/utils'; // Make sure to import this
 
@@ -39,18 +40,9 @@ export default async function DashboardPage() {
             {/* ESTADÍSTICAS */}
             {collection.length > 0 && <CollectionStats collection={collection} />}
 
-            {/* LISTADO DE ITEMS */}
+            {/* LISTADO INTERACTIVO POR UBICACIONES */}
             {collection.length > 0 && (
-                <div className="space-y-6">
-                    <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 ml-4 mb-4">
-                        Inventario Personal ({collection.length})
-                    </h2>
-                    <div className="grid grid-cols-1 gap-6">
-                        {collection.map((item: any) => (
-                            <CollectionItemCard key={item._id} item={item} />
-                        ))}
-                    </div>
-                </div>
+                <StudioCollection collection={collection} />
             )}
 
             {/* EMPTY STATE MEJORADO */}
@@ -61,7 +53,7 @@ export default async function DashboardPage() {
                         description="Empieza a construir tu legado musical añadiendo tu primera pieza."
                         actionLabel="Explorar Catálogo"
                         actionHref="/instruments"
-                        icon="🎹"
+                        icon={<Music size={64} className="text-gray-300 mx-auto" />}
                     />
                 </div>
             )}

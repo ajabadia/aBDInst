@@ -15,6 +15,10 @@ export const InstrumentSchema = z.object({
     subtype: z.string().optional(),
     version: z.string().optional(),
     description: z.string().optional(),
+    websites: z.array(z.object({
+        url: z.string().min(1, "La URL es obligatoria"),
+        isPrimary: z.boolean().default(false)
+    })).optional(),
     years: z.array(z.string()).optional(),
     specs: z.array(SpecItemSchema).optional(),
     genericImages: z.array(z.string().url("URL de imagen inválida")).optional(),

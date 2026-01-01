@@ -2,6 +2,8 @@ import { auth } from '@/auth';
 import { getInstruments } from '@/actions/instrument';
 import Link from 'next/link';
 import Search from '@/components/Search';
+import InstrumentFilter from '@/components/InstrumentFilter';
+import InstrumentGrid from '@/components/InstrumentGrid';
 import EmptyState from '@/components/EmptyState';
 import InstrumentCard from '@/components/InstrumentCard';
 import { Plus } from 'lucide-react';
@@ -12,13 +14,15 @@ import { cleanData } from '@/lib/utils';
 export default async function InstrumentsPage(props: {
     searchParams?: Promise<{
         query?: string;
+        category?: string;
     }>;
 }) {
     const searchParams = await props.searchParams;
     const query = searchParams?.query || '';
+    const category = searchParams?.category || null;
 
     const session = await auth();
-    const rawInstruments = await getInstruments(query);
+    const rawInstruments = await getInstruments(query, category);
     const instruments = cleanData(rawInstruments);
     const role = (session?.user as any)?.role;
     const canEdit = ['admin', 'editor'].includes(role);
@@ -41,28 +45,14 @@ export default async function InstrumentsPage(props: {
                 )}
             </div>
 
-            <div className="mb-10">
+            <div className="mb-10 space-y-6">
                 <Search placeholder="Buscar por marca, modelo o tipo..." />
+                <InstrumentFilter />
             </div>
 
             {/* GRID: Gap grande para que cada tarjeta respire */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-                {instruments.map((inst: any) => (
-                    <InstrumentCard key={inst._id} inst={inst} />
-                ))}
-
-                {instruments.length === 0 && (
-                    <div className="col-span-full">
-                        <EmptyState
-                            title="No se encontraron instrumentos"
-                            description="Prueba con otros términos de búsqueda o añade una nueva joya a tu catálogo."
-                            actionLabel="Añadir Instrumento"
-                            actionHref="/instruments/new"
-                            icon="🎸"
-                        />
-                    </div>
-                )}
-            </div>
+            {/* Client-side Grid for animations */}
+            <InstrumentGrid instruments={instruments} />
         </div>
     );
 }

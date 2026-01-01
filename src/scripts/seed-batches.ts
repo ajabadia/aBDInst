@@ -139,7 +139,8 @@ const instruments = [
     {
         brand: 'Behringer',
         model: 'ABACUS',
-        type: 'Utility',
+        model: 'ABACUS',
+        type: 'Eurorack Module',
         subtype: 'Math Processor',
         version: 'Standard',
         description: 'Procesador matemático analógico (clon de Make Noise Maths) para generar funciones complejas, LFOs, envolturas y procesamiento de señales CV.',

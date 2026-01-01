@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 export async function registerUser(formData: FormData) {
     try {
         const name = formData.get('name') as string;
-        const email = formData.get('email') as string;
+        const email = (formData.get('email') as string)?.toLowerCase();
         const password = formData.get('password') as string;
 
         if (!name || !email || !password) {
@@ -30,13 +30,13 @@ export async function registerUser(formData: FormData) {
             name,
             email,
             password: hashedPassword,
-            role: 'user', // Default role
+            role: 'normal',
         });
 
         return { success: true };
 
     } catch (error: any) {
         console.error('Registration error:', error);
-        return { success: false, error: 'Error al registrar usuario' };
+        return { success: false, error: error.message || 'Error al registrar usuario' };
     }
 }

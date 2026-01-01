@@ -16,6 +16,10 @@ const InstrumentSchema = new Schema({
     }],
 
     description: { type: String },
+    websites: [{
+        url: { type: String, required: true },
+        isPrimary: { type: Boolean, default: false }
+    }],
     genericImages: [{ type: String }], // URLs to images
 
     // Documentation
@@ -34,6 +38,12 @@ const InstrumentSchema = new Schema({
 
 // Compound index for uniqueness
 InstrumentSchema.index({ brand: 1, model: 1, version: 1 }, { unique: true });
+
+// Hotfix for Next.js dev mode: reload model if schema changed
+if (models.Instrument && !models.Instrument.schema.paths.websites) {
+    console.log('Detected outdated Instrument model (missing websites). Clearing cache...');
+    delete (models as any).Instrument;
+}
 
 const Instrument = models?.Instrument || model('Instrument', InstrumentSchema);
 

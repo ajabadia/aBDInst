@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Tabs, Tab } from '@/components/Tabs';
 import { Button } from './ui/Button';
-import { Save, X } from 'lucide-react';
+import { Save, X, Star, StarOff, Globe } from 'lucide-react';
+import MagicImporter from './MagicImporter';
 
 
 
@@ -28,9 +29,44 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
     // For now assuming array or empty.
     const [specs, setSpecs] = useState<SpecItem[]>(Array.isArray(initialData?.specs) ? initialData.specs : []);
     const [images, setImages] = useState<string[]>(initialData?.genericImages || []);
+    const [websites, setWebsites] = useState<{ url: string, isPrimary: boolean }[]>(
+        Array.isArray(initialData?.websites)
+            ? initialData.websites
+            : (initialData?.website ? [{ url: initialData.website, isPrimary: true }] : [])
+    );
 
     // Documents state
     const [documents, setDocuments] = useState<{ title: string, url: string, type: string }[]>(initialData?.documents || []);
+
+    const addWebsite = () => {
+        setWebsites(prev => [...prev, { url: '', isPrimary: prev.length === 0 }]);
+    };
+
+    const removeWebsite = (index: number) => {
+        setWebsites(prev => {
+            const next = prev.filter((_, i) => i !== index);
+            // If we removed the primary, make the first one primary
+            if (prev[index].isPrimary && next.length > 0) {
+                next[0].isPrimary = true;
+            }
+            return next;
+        });
+    };
+
+    const updateWebsite = (index: number, val: string) => {
+        setWebsites(prev => {
+            const next = [...prev];
+            next[index] = { ...next[index], url: val };
+            return next;
+        });
+    };
+
+    const togglePrimaryWebsite = (index: number) => {
+        setWebsites(prev => prev.map((ws, i) => ({
+            ...ws,
+            isPrimary: i === index
+        })));
+    };
 
     const addImage = (url: string) => {
         setImages(prev => [...prev, url]);
@@ -93,27 +129,17 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
     const router = useRouter();
 
     async function action(formData: FormData) {
-        // Serialize specs array to JSON
-        formData.append('specs', JSON.stringify(specs));
-
-        let res;
+        let serverActionResult;
         if (isEditing && instrumentId) {
-            res = await updateInstrument(instrumentId, formData);
+            serverActionResult = await updateInstrument(instrumentId, formData);
         } else {
-            res = await createInstrument(formData);
+            serverActionResult = await createInstrument(formData);
         }
 
-        if (res.error) {
-            toast.error('Error: ' + res.error);
+        if (serverActionResult.error) {
+            toast.error('Error: ' + serverActionResult.error);
         } else {
-            const debugMsg = (res as any).debug ? ` (Imgs: ${Array.isArray((res as any).debug.receivedImages) ? (res as any).debug.receivedImages.length : 0})` : '';
-            toast.success((isEditing ? 'Instrumento actualizado correctamente' : 'Instrumento creado correctamente') + debugMsg);
-
-            // Debug alert for user to see exactly what server got
-            if ((res as any).debug) {
-                console.log('Server Debug:', (res as any).debug);
-            }
-
+            toast.success(isEditing ? 'Instrumento actualizado correctamente' : 'Instrumento creado correctamente');
             router.push(isEditing ? `/instruments/${instrumentId}` : '/instruments');
             router.refresh(); // Ensure data is fresh
         }
@@ -121,6 +147,67 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
 
     return (
         <form action={action} className="space-y-6 max-w-4xl mx-auto bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2.5rem] border border-gray-200/50 dark:border-white/10 p-10 shadow-2xl">
+
+            <div className="flex justify-end mb-4">
+                <MagicImporter onImport={(data) => {
+                    // Auto-fill logic
+                    const setVal = (name: string, val: string) => {
+                        const el = document.querySelector(`[name="${name}"]`) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
+                        if (el && val) el.value = val;
+                    };
+
+                    if (data.brand) setVal('brand', data.brand);
+                    if (data.model) setVal('model', data.model);
+                    if (data.type) setVal('type', data.type);
+                    if (data.subtype) setVal('subtype', data.subtype);
+                    if (data.description) setVal('description', data.description);
+                    if (data.year) setVal('years', data.year);
+
+                    // Add websites from data if they don't exist
+                    if (data.websites && Array.isArray(data.websites)) {
+                        setWebsites(prev => {
+                            const newWebsites = data.websites.map((w: any) => ({
+                                url: typeof w === 'string' ? w : w.url,
+                                isPrimary: typeof w === 'string' ? false : !!w.isPrimary
+                            }));
+
+                            const combined = [...prev, ...newWebsites];
+                            // Deduplicate by URL
+                            const unique = Array.from(new Map(combined.map(item => [item.url, item])).values());
+
+                            // Ensure only one is primary
+                            if (unique.some(w => w.isPrimary)) {
+                                let foundPrimary = false;
+                                return unique.map(w => {
+                                    if (w.isPrimary && !foundPrimary) {
+                                        foundPrimary = true;
+                                        return w;
+                                    }
+                                    return { ...w, isPrimary: false };
+                                });
+                            }
+                            return unique;
+                        });
+                    } else if (data.website) {
+                        setWebsites(prev => {
+                            if (!prev.find(w => w.url === data.website)) {
+                                return [...prev, { url: data.website, isPrimary: prev.length === 0 }];
+                            }
+                            return prev;
+                        });
+                    }
+
+                    if (data.specs && Array.isArray(data.specs)) {
+                        setSpecs(prev => {
+                            // Basic deduplication by label within the same category
+                            const existingLabels = new Set(prev.map(s => `${s.category}:${s.label}`));
+                            const newSpecs = data.specs.filter((s: any) => !existingLabels.has(`${s.category}:${s.label}`));
+                            return [...prev, ...newSpecs];
+                        });
+                    }
+                }} />
+            </div>
+
             <Tabs>
                 <Tab label="Información General">
                     <div className="space-y-6 pt-4">
@@ -139,14 +226,18 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                             <div>
                                 <label className="apple-label">Tipo *</label>
                                 <select name="type" required defaultValue={initialData?.type} className="apple-select">
-                                    <option value="synthesizer">Sintetizador</option>
-                                    <option value="drum_machine">Caja de Ritmos</option>
-                                    <option value="guitar">Guitarra</option>
-                                    <option value="modular">Modular</option>
-                                    <option value="software">Software</option>
-                                    <option value="eurorack_module">Módulo Eurorack</option>
-                                    <option value="groovebox">Groovebox</option>
-                                    <option value="workstation">Workstation</option>
+                                    <option value="Synthesizer">Sintetizador</option>
+                                    <option value="Drum Machine">Caja de Ritmos</option>
+                                    <option value="Guitar">Guitarra</option>
+                                    <option value="Modular">Modular</option>
+                                    <option value="Software">Software</option>
+                                    <option value="Eurorack Module">Módulo Eurorack</option>
+                                    <option value="Groovebox">Groovebox</option>
+                                    <option value="Workstation">Workstation</option>
+                                    <option value="Effect">Efecto / Pedal</option>
+                                    <option value="Mixer">Mezclador</option>
+                                    <option value="Controller">Controlador</option>
+                                    <option value="Utility">Utilidad</option>
                                 </select>
                             </div>
                             <div>
@@ -163,6 +254,55 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                         <div>
                             <label className="apple-label">Años de Fabricación</label>
                             <input name="years" defaultValue={initialData?.years?.join(', ')} className="apple-input" placeholder="1984, 1985" />
+                        </div>
+
+                        <div>
+                            <div className="flex justify-between items-center mb-2">
+                                <label className="apple-label mb-0">Sitios Web Oficiales</label>
+                                <button
+                                    type="button"
+                                    onClick={addWebsite}
+                                    className="text-xs text-blue-600 hover:underline font-medium"
+                                >
+                                    + Añadir otro sitio
+                                </button>
+                            </div>
+                            <div className="space-y-3">
+                                {websites.map((ws, idx) => (
+                                    <div key={idx} className="flex gap-2 group items-center">
+                                        <div className="relative flex-1">
+                                            <input
+                                                type="url"
+                                                value={ws.url}
+                                                onChange={(e) => updateWebsite(idx, e.target.value)}
+                                                className={`apple-input pr-10 ${ws.isPrimary ? 'border-blue-500 ring-1 ring-blue-500/20' : ''}`}
+                                                placeholder="https://www.fabricante.com/producto"
+                                            />
+                                            <Globe className={`absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 ${ws.isPrimary ? 'text-blue-500' : 'text-gray-400'}`} />
+                                        </div>
+
+                                        <button
+                                            type="button"
+                                            onClick={() => togglePrimaryWebsite(idx)}
+                                            className={`p-2 rounded-lg transition-colors ${ws.isPrimary ? 'text-blue-600 bg-blue-50 dark:bg-blue-900/20' : 'text-gray-400 hover:text-blue-400'}`}
+                                            title={ws.isPrimary ? 'Sitio Oficial (Principal)' : 'Marcar como Oficial'}
+                                        >
+                                            {ws.isPrimary ? <Star className="w-5 h-5 fill-current" /> : <StarOff className="w-5 h-5" />}
+                                        </button>
+
+                                        {websites.length > 1 && (
+                                            <button
+                                                type="button"
+                                                onClick={() => removeWebsite(idx)}
+                                                className="p-2 text-gray-400 hover:text-red-500 transition-colors"
+                                                title="Eliminar este sitio"
+                                            >
+                                                <X size={18} />
+                                            </button>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
                         </div>
 
                         <div>
@@ -415,6 +555,8 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
             </div>
 
             {/* Hidden Inputs moved outside Tabs to persist data on submit */}
+            <input type="hidden" name="specs" value={JSON.stringify(specs)} />
+            <input type="hidden" name="websites" value={JSON.stringify(websites.filter(w => w.url.trim()))} />
             <input type="hidden" name="genericImages" value={JSON.stringify(images)} />
             <input type="hidden" name="documents" value={JSON.stringify(documents)} />
         </form >

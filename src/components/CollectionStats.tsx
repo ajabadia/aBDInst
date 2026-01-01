@@ -1,7 +1,11 @@
+'use client';
+
 // src/components/CollectionStats.tsx
 import { Wallet, ShieldCheck, Gauge } from 'lucide-react';
+import { useVaultMode } from '@/context/VaultModeContext';
 
 export default function CollectionStats({ collection }: { collection: any[] }) {
+    const { isVaultMode } = useVaultMode();
     const totalInvestment = collection.reduce((acc, item) => acc + (item.acquisition?.price || 0), 0);
     const itemsInRepair = collection.filter(item => item.status === 'repair').length;
 
@@ -16,7 +20,10 @@ export default function CollectionStats({ collection }: { collection: any[] }) {
                     <span className="text-xs font-bold uppercase tracking-widest text-gray-400">Inversión Total</span>
                 </div>
                 <p className="text-4xl font-semibold tracking-tighter text-gray-900 dark:text-white">
-                    {totalInvestment.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                    {isVaultMode
+                        ? <span className="blur-md select-none opacity-50">•••••••</span>
+                        : totalInvestment.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })
+                    }
                 </p>
             </div>
 

@@ -1,10 +1,13 @@
 'use client';
 
-import { updateCollectionItem } from '@/actions/collection';
+import { updateCollectionItem, deleteCollectionItem, restoreCollectionItem, toggleLoan } from '@/actions/collection';
 import { useFormStatus } from 'react-dom';
 import ImageUpload from '@/components/ImageUpload';
+import ActivityTimeline from '@/components/ActivityTimeline';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
+import { Trash2, UserMinus, UserPlus, Handshake } from 'lucide-react';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -12,7 +15,8 @@ function SubmitButton() {
         <button
             type="submit"
             disabled={pending}
-            className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition disabled:opacity-50"
+            disabled={pending}
+            className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-2.5 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
         >
             {pending ? 'Guardando...' : 'Guardar Cambios'}
         </button>
@@ -24,6 +28,8 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
     // For images, we might want state to show added images immediately? 
     // Simplify for now: Just standard form inputs + image upload
 
+    const router = useRouter();
+
     async function action(formData: FormData) {
         const res = await updateCollectionItem(item._id, formData);
         if (res.success) {
@@ -32,6 +38,28 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
             toast.error('Error: ' + res.error);
         }
     }
+
+    const handleDelete = async () => {
+        // No confirm modal. Just do it. Apple Style.
+        const promise = deleteCollectionItem(item._id);
+
+        toast.promise(promise, {
+            loading: 'Eliminando...',
+            success: () => {
+                router.push('/dashboard');
+                return 'Instrumento eliminado de tu colección';
+            },
+            error: 'Error al eliminar',
+            action: {
+                label: 'Deshacer',
+                onClick: async () => {
+                    await restoreCollectionItem(item._id);
+                    toast.success('Instrumento recuperado');
+                    router.refresh();
+                },
+            },
+        });
+    };
 
     return (
         <form action={action} className="space-y-6 bg-white dark:bg-gray-800 p-6 rounded shadow">
@@ -60,8 +88,35 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
             </div>
 
             <div>
-                <label className="block text-sm font-medium mb-1">Número de Serie</label>
-                <input name="serialNumber" defaultValue={item.serialNumber} className="w-full text-black p-2 border rounded" />
+                <label className="block text-sm font-bold mb-1 text-blue-600 dark:text-blue-400">
+                    Valor de Mercado Estimado (Seguimiento)
+                </label>
+                <div className="flex gap-2">
+                    <input
+                        name="marketValue.current"
+                        type="number"
+                        defaultValue={item.marketValue?.current}
+                        className="w-full text-black p-2 border rounded border-blue-200 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                        placeholder="Valor de mercado actual..."
+                    />
+                    <div className="flex items-center text-sm text-gray-500 px-3 bg-gray-50 dark:bg-gray-600 dark:text-gray-300 rounded border dark:border-gray-500">
+                        EUR
+                    </div>
+                </div>
+                <p className="text-xs text-gray-400 mt-1">
+                    Cada vez que actualices este valor, se guardará un punto en el historial para generar tu gráfica de inversión.
+                </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block text-sm font-medium mb-1">Número de Serie</label>
+                    <input name="serialNumber" defaultValue={item.serialNumber} className="w-full text-black p-2 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600" />
+                </div>
+                <div>
+                    <label className="block text-sm font-medium mb-1">Ubicación / Estudio</label>
+                    <input name="location" defaultValue={item.location} className="w-full text-black p-2 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="Ej. Home Studio, Rack B..." />
+                </div>
             </div>
 
             <div className="border-t pt-4 dark:border-gray-700">
@@ -97,7 +152,100 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
                 <textarea name="customNotes" defaultValue={item.customNotes} rows={3} className="w-full text-black p-2 border rounded"></textarea>
             </div>
 
-            <SubmitButton />
+            {/* LOAN TRACKER SECTION */}
+            <div className="border-t pt-8 dark:border-gray-700">
+                <h3 className="font-semibold text-lg mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                    <Handshake className="text-blue-500" size={20} /> Préstamos y Cesiones
+                </h3>
+
+                {item.loan?.active ? (
+                    <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-6">
+                        <div className="flex items-start justify-between">
+                            <div>
+                                <p className="text-sm text-blue-600 dark:text-blue-400 font-semibold uppercase tracking-wider mb-1">Estado: Prestado</p>
+                                <h4 className="text-xl font-bold text-gray-900 dark:text-white">{item.loan.loanee}</h4>
+                                <p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+                                    Prestado el {item.loan.date ? new Date(item.loan.date).toLocaleDateString() : 'N/A'}
+                                </p>
+                            </div>
+                            <UserMinus size={32} className="text-blue-300" />
+                        </div>
+                        <div className="mt-6">
+                            <button
+                                type="button"
+                                onClick={async () => {
+                                    const fd = new FormData();
+                                    fd.append('action', 'return');
+                                    const res = await toggleLoan(item._id, fd);
+                                    if (res.success) toast.success('Instrumento devuelto');
+                                    else toast.error('Error');
+                                }}
+                                className="w-full bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-700 text-blue-600 dark:text-blue-400 py-2 rounded-lg font-medium hover:bg-blue-50 transition"
+                            >
+                                Registrar Devolución
+                            </button>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-6 border border-dashed border-gray-200 dark:border-gray-700">
+                        <details className="group">
+                            <summary className="flex items-center justify-between cursor-pointer list-none">
+                                <div className="flex items-center gap-3">
+                                    <div className="bg-white dark:bg-gray-700 p-2 rounded-full shadow-sm">
+                                        <UserPlus size={20} className="text-gray-400" />
+                                    </div>
+                                    <span className="font-medium text-gray-600 dark:text-gray-300">Prestar este instrumento...</span>
+                                </div>
+                                <span className="text-blue-600 text-sm group-open:hidden">Desplegar</span>
+                            </summary>
+
+                            <div className="mt-6 pt-6 border-t dark:border-gray-700">
+                                <div className="space-y-4">
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Persona / Entidad</label>
+                                        <input id="loanee-input" className="w-full text-black p-2 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="Ej. Juan Pérez" />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium mb-1">Notas</label>
+                                        <input id="loan-notes" className="w-full text-black p-2 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="Condiciones, fecha prevista..." />
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={async () => {
+                                            const name = (document.getElementById('loanee-input') as HTMLInputElement).value;
+                                            const notes = (document.getElementById('loan-notes') as HTMLInputElement).value;
+                                            if (!name) return toast.error('Indica quién se lo lleva');
+
+                                            const fd = new FormData();
+                                            fd.append('action', 'loan');
+                                            fd.append('loanee', name);
+                                            fd.append('notes', notes);
+
+                                            const res = await toggleLoan(item._id, fd);
+                                            if (res.success) toast.success('Préstamo registrado');
+                                            else toast.error(res.error || 'Error');
+                                        }}
+                                        className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-2 rounded-lg font-medium"
+                                    >
+                                        Confirmar Préstamo
+                                    </button>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                )}
+            </div>
+
+            <div className="border-t pt-8 dark:border-gray-700">
+                <h3 className="font-semibold text-lg mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                    Cronología de Vida
+                </h3>
+                <ActivityTimeline events={item.events} acquisition={item.acquisition} />
+            </div>
+
+            <div className="pt-4 sticky bottom-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur pb-2 border-t dark:border-gray-700 -mx-6 px-6">
+                <SubmitButton />
+            </div>
         </form>
     );
 }

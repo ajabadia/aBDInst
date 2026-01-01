@@ -28,7 +28,10 @@ export async function createInstrument(data: FormData) {
             model: data.get('model'),
             version: data.get('version'),
             years: data.get('years')?.toString().split(',').map(y => y.trim()).filter(y => y),
-            description: data.get('description'),
+            description: data.get('description')?.toString(),
+            websites: data.get('websites')
+                ? Array.from(new Map((JSON.parse(data.get('websites') as string) as any[]).map(w => [w.url, w])).values())
+                : [],
             specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [],
             genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
@@ -58,18 +61,22 @@ export async function createInstrument(data: FormData) {
     }
 }
 
-export async function getInstruments(query?: string) {
+export async function getInstruments(query?: string, category?: string | null) {
     try {
         await dbConnect();
 
-        const filter = query
-            ? {
-                $or: [
-                    { brand: { $regex: query, $options: 'i' } },
-                    { model: { $regex: query, $options: 'i' } }
-                ]
-            }
-            : {};
+        const filter: any = {};
+
+        if (query) {
+            filter.$or = [
+                { brand: { $regex: query, $options: 'i' } },
+                { model: { $regex: query, $options: 'i' } }
+            ];
+        }
+
+        if (category) {
+            filter.type = { $regex: new RegExp(`^${category}$`, 'i') };
+        }
 
         const instruments = await Instrument.find(filter).sort({ brand: 1, model: 1 });
         return instruments.map(doc => ({
@@ -114,10 +121,13 @@ export async function updateInstrument(id: string, data: FormData) {
             model: data.get('model'),
             version: data.get('version'),
             years: data.get('years')?.toString().split(',').map(y => y.trim()).filter(y => y),
-            description: data.get('description'),
-            specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : undefined,
-            genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : undefined,
-            documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : undefined,
+            description: data.get('description')?.toString(),
+            websites: data.get('websites')
+                ? Array.from(new Map((JSON.parse(data.get('websites') as string) as any[]).map(w => [w.url, w])).values())
+                : [], // Changed from undefined to []
+            specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [], // Changed from undefined to []
+            genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [], // Changed from undefined to []
+            documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [], // Changed from undefined to []
         };
 
         // Remove undefined fields so we don't validate things we aren't updating (though here we seem to update everything)
@@ -137,23 +147,16 @@ export async function updateInstrument(id: string, data: FormData) {
             return { success: false, error: errorMessage };
         }
 
-        const validKeys = Object.keys(validatedData.data);
-        console.log('Valid keys to update:', validKeys);
-
-        await Instrument.findByIdAndUpdate(id, validatedData.data);
+        await Instrument.findByIdAndUpdate(
+            id,
+            { $set: validatedData.data },
+            { runValidators: true, new: true }
+        );
 
         revalidatePath('/instruments');
         revalidatePath(`/instruments/${id}`);
 
-        return {
-            success: true,
-            debug: {
-                receivedImages: rawUpdateData.genericImages,
-                receivedDocs: rawUpdateData.documents,
-                validKeys: validKeys,
-                validationError: !validatedData.success ? validatedData.error : null
-            }
-        };
+        return { success: true };
     } catch (error: any) {
         console.error('Update Instrument Error:', error);
         return { success: false, error: error.message };

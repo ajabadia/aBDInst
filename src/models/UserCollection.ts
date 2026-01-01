@@ -30,8 +30,34 @@ const UserCollectionSchema = new Schema({
         buyer: { type: String }
     },
 
-    customNotes: { type: String },
+    marketValue: {
+        current: { type: Number },
+        currency: { type: String, default: 'EUR' },
+        lastUpdated: { type: Date, default: Date.now },
+        history: [{
+            date: { type: Date, required: true },
+            value: { type: Number, required: true }
+        }]
+    },
 
+    // Timeline / Activity Feed
+    events: [{
+        date: { type: Date, default: Date.now },
+        type: { type: String, enum: ['acquisition', 'maintenance', 'status_change', 'market_value', 'performance', 'note'], required: true },
+        title: { type: String, required: true },
+        description: { type: String }
+    }],
+
+    deletedAt: { type: Date },
+
+    // Loan Tracker
+    loan: {
+        active: { type: Boolean, default: false },
+        loanee: { type: String },
+        date: { type: Date },
+        expectedReturn: { type: Date },
+        notes: { type: String }
+    },
     // Personal images/docs separate from the master instrument images
     images: [{
         url: { type: String },

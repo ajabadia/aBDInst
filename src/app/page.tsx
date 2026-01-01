@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { auth } from '@/auth';
+import { Music, Package, Smartphone } from 'lucide-react';
 
 export default async function Home() {
   const session = await auth();
@@ -47,7 +48,7 @@ export default async function Home() {
           <div className="grid md:grid-cols-3 gap-8 text-center md:text-left">
             <div className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-900 border dark:border-gray-800">
               <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-xl flex items-center justify-center mb-4 text-2xl mx-auto md:mx-0">
-                🎸
+                <Music className="w-6 h-6 text-blue-600 dark:text-blue-400" />
               </div>
               <h3 className="text-xl font-bold mb-2">Catálogo Maestro</h3>
               <p className="text-gray-600 dark:text-gray-400">
@@ -56,7 +57,7 @@ export default async function Home() {
             </div>
             <div className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-900 border dark:border-gray-800">
               <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-xl flex items-center justify-center mb-4 text-2xl mx-auto md:mx-0">
-                📦
+                <Package className="w-6 h-6 text-purple-600 dark:text-purple-400" />
               </div>
               <h3 className="text-xl font-bold mb-2">Inventario Personal</h3>
               <p className="text-gray-600 dark:text-gray-400">
@@ -65,7 +66,7 @@ export default async function Home() {
             </div>
             <div className="p-6 rounded-2xl bg-gray-50 dark:bg-gray-900 border dark:border-gray-800">
               <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-xl flex items-center justify-center mb-4 text-2xl mx-auto md:mx-0">
-                📱
+                <Smartphone className="w-6 h-6 text-green-600 dark:text-green-400" />
               </div>
               <h3 className="text-xl font-bold mb-2">Mobile First & PWA</h3>
               <p className="text-gray-600 dark:text-gray-400">

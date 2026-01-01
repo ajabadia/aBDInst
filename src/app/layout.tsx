@@ -16,11 +16,22 @@ import Navbar from "@/components/Navbar";
 import { auth } from "@/auth";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Toaster } from "@/components/Toaster";
+import { VaultModeProvider } from '@/context/VaultModeContext';
+import { CommandPaletteProvider } from '@/context/CommandPaletteContext';
+import CommandPalette from '@/components/CommandPalette';
 
 export const metadata: Metadata = {
   title: "Instrument Collector",
   description: "Gestiona tu colección de instrumentos musicales",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Instrument Collector",
+  },
+  formatDetection: {
+    telephone: false,
+  },
 };
 
 export default async function RootLayout({
@@ -41,11 +52,16 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <Navbar session={session} />
-          <main className="pt-24 pb-16 md:pb-0">
-            {children}
-          </main>
-          {/* <Toaster /> */}
+          <VaultModeProvider>
+            <CommandPaletteProvider>
+              <CommandPalette />
+              <Navbar session={session} />
+              <main className="pt-24 pb-16 md:pb-0">
+                {children}
+              </main>
+              <Toaster position="top-center" />
+            </CommandPaletteProvider>
+          </VaultModeProvider>
         </ThemeProvider>
       </body>
     </html>

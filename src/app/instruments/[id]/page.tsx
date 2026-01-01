@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import { auth } from '@/auth';
 import { getInstrumentById } from '@/actions/instrument';
 import Link from 'next/link';
@@ -8,9 +9,34 @@ import AddToCollectionButton from '@/components/AddToCollectionButton';
 import ImageGallery from '@/components/ImageGallery';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
 import SpecRow from '@/components/SpecRow';
-import { FileText, ArrowLeft, Edit2 } from 'lucide-react';
+import PdfPreviewModal from '@/components/PdfPreviewModal';
+import { FileText, ArrowLeft, Edit2, Globe, Star, ExternalLink, ChevronRight } from 'lucide-react';
 
-export default async function InstrumentDetailPage({ params }: { params: { id: string } }) {
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+    const { id } = await params;
+    const instrument = await getInstrumentById(id);
+
+    if (!instrument) {
+        return {
+            title: 'Instrumento no encontrado',
+        };
+    }
+
+    const title = `${instrument.model} - ${instrument.brand}`;
+    const description = instrument.description?.substring(0, 160) || `Especificaciones y detalles técnicos de ${instrument.brand} ${instrument.model}.`;
+
+    return {
+        title: `${title} | Instrument Collector`,
+        description,
+        openGraph: {
+            title,
+            description,
+            images: instrument.genericImages?.[0] ? [{ url: instrument.genericImages[0] }] : [],
+        },
+    };
+}
+
+export default async function InstrumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const instrument = await getInstrumentById(id);
     const session = await auth();
@@ -93,8 +119,50 @@ export default async function InstrumentDetailPage({ params }: { params: { id: s
                     )}
 
 
+                    {instrument.websites && instrument.websites.length > 0 && (
+                        <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+                            {/* Primary Website Highlight */}
+                            {instrument.websites.find((w: any) => w.isPrimary) && (
+                                <section>
+                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Sitio Oficial</h4>
+                                    <a
+                                        href={(() => {
+                                            const url = instrument.websites.find((w: any) => w.isPrimary).url;
+                                            return url.startsWith('http') ? url : `https://${url}`;
+                                        })()}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
+                                    >
+                                        <Globe className="w-4 h-4 transition-transform group-hover:rotate-12" />
+                                        Visitar sitio oficial
+                                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
+                                    </a>
+                                </section>
+                            )}
 
-
+                            {/* Secondary Websites List */}
+                            {instrument.websites.filter((w: any) => !w.isPrimary).length > 0 && (
+                                <section>
+                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Enlaces Relacionados</h4>
+                                    <div className="space-y-2">
+                                        {instrument.websites.filter((w: any) => !w.isPrimary).map((ws: any, idx: number) => (
+                                            <a
+                                                key={idx}
+                                                href={ws.url.startsWith('http') ? ws.url : `https://${ws.url}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="flex items-center gap-2 text-xs text-gray-500 hover:text-blue-600 transition-colors group"
+                                            >
+                                                <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-blue-400 transition-colors" />
+                                                <span className="truncate max-w-[200px]">{ws.url.replace(/^https?:\/\//, '')}</span>
+                                            </a>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -125,22 +193,31 @@ export default async function InstrumentDetailPage({ params }: { params: { id: s
                 <div className="mt-24 border-t border-gray-100 dark:border-gray-800 pt-16">
                     <h2 className="text-2xl font-semibold tracking-tight mb-8 dark:text-white">Recursos y Documentación</h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {instrument.documents.map((doc: any, idx: number) => (
-                            <a
-                                key={idx}
-                                href={doc.url}
-                                target="_blank"
-                                className="flex items-center p-4 rounded-xl bg-gray-50 dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition group border border-gray-100 dark:border-gray-800 hover:border-blue-100 dark:hover:border-blue-800"
-                            >
-                                <div className="p-3 bg-white dark:bg-gray-800 rounded-lg mr-4 shadow-sm text-blue-600 dark:text-blue-400">
-                                    <FileText className="w-5 h-5" />
+                        {instrument.documents.map((doc: any, idx: number) => {
+                            const isPdf = doc.type?.toLowerCase() === 'pdf' || doc.type?.toLowerCase() === 'manual' || doc.url?.toLowerCase().endsWith('.pdf');
+
+                            const CardContent = (
+                                <div className="flex items-center p-4 rounded-xl bg-gray-50 dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition group border border-gray-100 dark:border-gray-800 hover:border-blue-100 dark:hover:border-blue-800 h-full">
+                                    <div className="p-3 bg-white dark:bg-gray-800 rounded-lg mr-4 shadow-sm text-blue-600 dark:text-blue-400">
+                                        <FileText className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm group-hover:text-blue-600 transition-colors">{doc.title}</p>
+                                        <p className="text-xs text-gray-400 uppercase mt-0.5">{doc.type}</p>
+                                    </div>
                                 </div>
-                                <div>
-                                    <p className="font-medium text-gray-900 dark:text-gray-100 text-sm group-hover:text-blue-600 transition-colors">{doc.title}</p>
-                                    <p className="text-xs text-gray-400 uppercase mt-0.5">{doc.type}</p>
-                                </div>
-                            </a>
-                        ))}
+                            );
+
+                            return isPdf ? (
+                                <PdfPreviewModal key={idx} url={doc.url} title={doc.title}>
+                                    {CardContent}
+                                </PdfPreviewModal>
+                            ) : (
+                                <a key={idx} href={doc.url} target="_blank" className="block h-full">
+                                    {CardContent}
+                                </a>
+                            );
+                        })}
                     </div>
                 </div>
             )}

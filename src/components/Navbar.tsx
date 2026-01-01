@@ -1,16 +1,26 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
-import { ModeToggle } from './ModeToggle';
-import { Music, LayoutDashboard, Search, Menu, X, User, LogOut } from 'lucide-react';
+
+import SettingsModal from './SettingsModal';
+import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, ChevronDown } from 'lucide-react';
+
+import { Shield } from 'lucide-react';
+import { useVaultMode } from '@/context/VaultModeContext';
+import { useCommandPalette } from '@/context/CommandPaletteContext';
 
 export default function Navbar({ session }: { session: any }) {
+    const router = useRouter();
+    const { isVaultMode } = useVaultMode();
+    const { toggle: toggleCommandPalette } = useCommandPalette();
+    // ...
     const pathname = usePathname();
     const [isOpen, setIsOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
 
     // Efecto para cambiar el estilo al hacer scroll
@@ -66,25 +76,53 @@ export default function Navbar({ session }: { session: any }) {
                     <div className="h-4 w-[1px] bg-gray-200 dark:bg-gray-800" />
 
                     <div className="flex items-center gap-4">
-                        <ModeToggle />
+                        {isVaultMode && (
+                            <div title="Modo Bóveda: Precios Ocultos" className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-500 rounded-full text-xs font-bold border border-amber-200 dark:border-amber-800 animate-in fade-in">
+                                <Shield size={14} />
+                            </div>
+                        )}
+
+                        {/* COMMAND PALETTE TRIGGER */}
+                        <button
+                            onClick={toggleCommandPalette}
+                            className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-md transition-colors mr-2 border border-gray-200 dark:border-white/5"
+                            title="Abrir Comandos (Cmd+K)"
+                        >
+                            <Command size={14} />
+                            <span>Buscar</span>
+                            <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-1.5 font-mono text-[10px] font-medium text-gray-500 dark:text-gray-400">
+                                <span className="text-xs">⌘</span>K
+                            </kbd>
+                        </button>
+
+                        {/* MOBILE TRIGGER */}
+                        <button
+                            onClick={toggleCommandPalette}
+                            className="md:hidden p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
+                        >
+                            <Command size={20} />
+                        </button>
+
+
 
                         {session ? (
                             <div className="relative pointer-events-auto">
                                 <button
                                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                    className="flex items-center gap-2 pl-2 group outline-none"
+                                    className="flex items-center gap-3 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group"
+                                    aria-expanded={userMenuOpen}
+                                    aria-haspopup="true"
+                                    aria-label="Menú de usuario"
                                 >
-                                    <div className="text-right hidden lg:block">
-                                        <p className="text-[10px] uppercase tracking-widest text-gray-400 font-bold leading-none mb-1">Usuario</p>
-                                        <p className="text-xs font-semibold text-gray-900 dark:text-gray-100 leading-none">
-                                            {session.user?.name?.split(' ')[0]}
-                                        </p>
+                                    <div className="text-right hidden sm:block">
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Usuario</p>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">{session.user.name}</p>
                                     </div>
-                                    <div className={`w-9 h-9 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center overflow-hidden transition-all ${userMenuOpen ? 'ring-2 ring-blue-500 border-transparent' : 'group-hover:border-blue-500'}`}>
-                                        {session.user?.image ? (
-                                            <img src={session.user.image} className="w-full h-full object-cover" />
+                                    <div className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-800 shadow-sm overflow-hidden bg-gray-100 flex items-center justify-center group-hover:border-blue-500 transition-all">
+                                        {session.user.image ? (
+                                            <img src={session.user.image} alt="" className="w-full h-full object-cover" />
                                         ) : (
-                                            <User className="w-5 h-5 text-gray-400" />
+                                            <User size={20} className="text-gray-400" />
                                         )}
                                     </div>
                                 </button>
@@ -112,7 +150,31 @@ export default function Navbar({ session }: { session: any }) {
                                             </Link>
 
                                             {/* Link to profile if it existed, otherwise just dashboard or disabled for now */}
-                                            {/* <Link href="/profile" ... > <User ... /> Mi Perfil </Link> */}
+                                            <hr className="border-gray-50 dark:border-gray-800 my-1" />
+
+                                            {(session.user as any).role === 'admin' && (
+                                                <button
+                                                    onClick={() => {
+                                                        setUserMenuOpen(false);
+                                                        router.push('/dashboard/admin/settings');
+                                                    }}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                                                >
+                                                    <Shield size={14} />
+                                                    Panel Admin
+                                                </button>
+                                            )}
+
+                                            <button
+                                                onClick={() => {
+                                                    setUserMenuOpen(false);
+                                                    setSettingsOpen(true);
+                                                }}
+                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                            >
+                                                <Settings size={14} />
+                                                Configuración
+                                            </button>
 
                                             <button
                                                 onClick={() => {
@@ -146,12 +208,13 @@ export default function Navbar({ session }: { session: any }) {
 
                 {/* MOBILE MENU BUTTON */}
                 <div className="md:hidden flex items-center gap-4">
-                    <ModeToggle />
                     <button
                         onClick={() => setIsOpen(!isOpen)}
                         className="p-2 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
+                        aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
+                        aria-expanded={isOpen}
                     >
-                        {isOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+                        {isOpen ? <X size={24} /> : <Menu size={24} />}
                     </button>
                 </div>
             </div>
@@ -185,6 +248,8 @@ export default function Navbar({ session }: { session: any }) {
                     </div>
                 </div>
             )}
+
+            <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
         </nav>
     );
 }
