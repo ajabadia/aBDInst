@@ -4,16 +4,19 @@ import { addToCollection } from '@/actions/collection';
 import { useFormStatus } from 'react-dom';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
+import { Plus } from 'lucide-react';
 
 function SubmitButton() {
     const { pending } = useFormStatus();
     return (
-        <button
-            disabled={pending}
-            className="w-full bg-green-600 text-white py-2 rounded hover:bg-green-700 transition disabled:opacity-50"
+        <Button
+            isLoading={pending}
+            icon={Plus}
+            className="w-full shadow-lg shadow-blue-500/20 h-10 text-sm px-6" // Specific sizing for header
         >
             {pending ? 'Añadiendo...' : 'Añadir a mi Colección'}
-        </button>
+        </Button>
     );
 }
 
@@ -32,7 +35,7 @@ export default function AddToCollectionButton({ instrumentId }: { instrumentId: 
     }
 
     return (
-        <form action={action} className="mt-4">
+        <form action={action}>
             <SubmitButton />
         </form>
     );

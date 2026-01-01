@@ -8,6 +8,7 @@ import Link from 'next/link';
 import { addToCollection } from '@/actions/collection';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import { Button } from '@/components/ui/Button';
 
 interface InstrumentHeroProps {
     instrument: any;
@@ -102,22 +103,23 @@ export default function InstrumentHero({ instrument, canEdit, isLoggedIn }: Inst
                         {/* ACTION CARD */}
                         <div className="p-8 rounded-[2rem] bg-gray-50 dark:bg-gray-900/40 border border-gray-100 dark:border-gray-800 shadow-sm backdrop-blur-sm">
                             <div className="flex flex-col gap-4">
-                                <button
+                                <Button
                                     onClick={handleAddToCollection}
-                                    disabled={isPending}
-                                    className="w-full py-4 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-semibold text-lg transition-all hover:scale-[1.02] active:scale-[0.98] shadow-xl shadow-blue-600/20 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    isLoading={isPending}
+                                    icon={Plus}
+                                    className="w-full text-lg h-14 shadow-xl shadow-blue-500/20"
                                 >
-                                    <Plus className="w-5 h-5" />
                                     {isPending ? 'Añadiendo...' : 'Añadir a mi colección'}
-                                </button>
+                                </Button>
 
-                                <button
+                                <Button
+                                    variant="secondary"
                                     onClick={() => setShowQR(!showQR)}
-                                    className="w-full py-4 rounded-full bg-white dark:bg-gray-800 text-gray-900 dark:text-white font-semibold text-lg border border-gray-200 dark:border-gray-700 transition-all flex items-center justify-center gap-2 hover:bg-gray-50 dark:hover:bg-gray-700 hover:border-gray-300 dark:hover:border-gray-600"
+                                    icon={QrCode}
+                                    className="w-full text-lg h-14 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 hover:bg-gray-50"
                                 >
-                                    <QrCode className="w-5 h-5 text-gray-500" />
                                     Identificador de unidad
-                                </button>
+                                </Button>
                             </div>
 
                             {showQR && (
