@@ -5,6 +5,7 @@ import EditCollectionItemForm from '@/components/EditCollectionItemForm';
 import MaintenanceHistory from '@/components/MaintenanceHistory';
 import { Tabs, Tab } from '@/components/Tabs';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
+import PersonalGallerySection from '@/components/gallery/PersonalGallerySection';
 
 export default async function EditItemPage({ params }: { params: { id: string } }) {
     const { id } = await params;
@@ -28,9 +29,12 @@ export default async function EditItemPage({ params }: { params: { id: string } 
                             <img src={item.instrumentId.genericImages[0]} className="w-full h-full object-cover" />
                         )}
                     </div>
-                    {/* Here we could add "Personal Images" upload later */}
-                    <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-lg text-sm text-gray-500 mb-6 border border-gray-100 dark:border-gray-800">
-                        <p>Subir fotos reales de tu unidad (Próximamente)</p>
+                    {/* Personal Gallery */}
+                    <div className="mb-6">
+                        <PersonalGallerySection
+                            collectionId={item._id}
+                            images={item.images || []}
+                        />
                     </div>
 
                     <div className="border-t pt-6 dark:border-gray-800">
