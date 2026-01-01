@@ -33,20 +33,20 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
     const [documents, setDocuments] = useState<{ title: string, url: string, type: string }[]>(initialData?.documents || []);
 
     const addImage = (url: string) => {
-        setImages([...images, url]);
+        setImages(prev => [...prev, url]);
     };
 
     const removeImage = (index: number) => {
-        const newImages = [...images];
-        newImages.splice(index, 1);
-        setImages(newImages);
+        setImages(prev => prev.filter((_, i) => i !== index));
     };
 
     const makeMainImage = (index: number) => {
-        const newImages = [...images];
-        const [selected] = newImages.splice(index, 1);
-        newImages.unshift(selected); // Move to start
-        setImages(newImages);
+        setImages(prev => {
+            const newImages = [...prev];
+            const [selected] = newImages.splice(index, 1);
+            newImages.unshift(selected);
+            return newImages;
+        });
     };
 
     // Document Helpers
@@ -56,7 +56,7 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
             url: url,
             type: url.split('.').pop() || 'file'
         }));
-        setDocuments([...documents, ...newDocs]);
+        setDocuments(prev => [...prev, ...newDocs]);
     };
 
     const removeDocument = (index: number) => {
@@ -235,7 +235,7 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                                 </div>
                             </div>
 
-                            <input type="hidden" name="genericImages" value={JSON.stringify(images)} />
+
                         </div>
 
                         <hr className="border-gray-200 dark:border-gray-700" />
@@ -320,7 +320,7 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                                 </div>
                             </div>
 
-                            <input type="hidden" name="documents" value={JSON.stringify(documents)} />
+
                         </div>
                     </div>
                 </Tab>
@@ -406,6 +406,10 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
 
                 <SubmitButton isEditing={isEditing} />
             </div>
+
+            {/* Hidden Inputs moved outside Tabs to persist data on submit */}
+            <input type="hidden" name="genericImages" value={JSON.stringify(images)} />
+            <input type="hidden" name="documents" value={JSON.stringify(documents)} />
         </form >
     );
 }

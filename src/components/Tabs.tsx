@@ -38,7 +38,11 @@ export function Tabs({ children, defaultTab = 0 }: TabsProps) {
                 ))}
             </div>
             <div className="flex-1">
-                {tabs[activeTab]}
+                {tabs.map((tab, index) => (
+                    <div key={index} className={activeTab === index ? 'block' : 'hidden'}>
+                        {tab}
+                    </div>
+                ))}
             </div>
         </div>
     );
