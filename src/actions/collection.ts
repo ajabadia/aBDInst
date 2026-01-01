@@ -229,3 +229,70 @@ export async function restoreCollectionItem(id: string) {
         return { success: false, error: error.message };
     }
 }
+
+export async function toggleLoan(collectionId: string, formData: FormData) {
+    try {
+        const session = await auth();
+        if (!session?.user?.id) throw new Error('No autorizado');
+
+        await dbConnect();
+
+        const action = formData.get('action'); // 'lend' or 'return'
+        const item = await UserCollection.findOne({
+            _id: collectionId,
+            userId: session.user.id
+        });
+
+        if (!item) {
+            return { success: false, error: 'Item not found' };
+        }
+
+        if (action === 'lend') {
+            // Start loan
+            const loanee = formData.get('loanee') as string;
+            const expectedReturn = formData.get('expectedReturn') as string;
+            const notes = formData.get('notes') as string;
+
+            item.loan = {
+                active: true,
+                loanee,
+                date: new Date(),
+                expectedReturn: expectedReturn ? new Date(expectedReturn) : undefined,
+                notes
+            };
+
+            // Add event
+            item.events.push({
+                date: new Date(),
+                type: 'status_change',
+                title: `Prestado a ${loanee}`,
+                description: notes || `Instrumento prestado a ${loanee}`
+            });
+        } else if (action === 'return') {
+            // End loan
+            if (item.loan?.loanee) {
+                item.events.push({
+                    date: new Date(),
+                    type: 'status_change',
+                    title: `Devuelto por ${item.loan.loanee}`,
+                    description: 'Instrumento devuelto'
+                });
+            }
+
+            item.loan = {
+                active: false,
+                loanee: undefined,
+                date: undefined,
+                expectedReturn: undefined,
+                notes: undefined
+            };
+        }
+
+        await item.save();
+        revalidatePath(`/dashboard/collection/${collectionId}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error('Toggle loan error:', error);
+        return { success: false, error: error.message };
+    }
+}
