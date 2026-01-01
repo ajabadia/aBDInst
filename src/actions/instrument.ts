@@ -137,11 +137,23 @@ export async function updateInstrument(id: string, data: FormData) {
             return { success: false, error: errorMessage };
         }
 
+        const validKeys = Object.keys(validatedData.data);
+        console.log('Valid keys to update:', validKeys);
+
         await Instrument.findByIdAndUpdate(id, validatedData.data);
 
         revalidatePath('/instruments');
         revalidatePath(`/instruments/${id}`);
-        return { success: true };
+
+        return {
+            success: true,
+            debug: {
+                receivedImages: rawUpdateData.genericImages,
+                receivedDocs: rawUpdateData.documents,
+                validKeys: validKeys,
+                validationError: !validatedData.success ? validatedData.error : null
+            }
+        };
     } catch (error: any) {
         console.error('Update Instrument Error:', error);
         return { success: false, error: error.message };

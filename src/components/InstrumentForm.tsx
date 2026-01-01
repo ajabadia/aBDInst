@@ -106,7 +106,14 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
         if (res.error) {
             toast.error('Error: ' + res.error);
         } else {
-            toast.success(isEditing ? 'Instrumento actualizado correctamente' : 'Instrumento creado correctamente');
+            const debugMsg = (res as any).debug ? ` (Imgs: ${Array.isArray((res as any).debug.receivedImages) ? (res as any).debug.receivedImages.length : 0})` : '';
+            toast.success((isEditing ? 'Instrumento actualizado correctamente' : 'Instrumento creado correctamente') + debugMsg);
+
+            // Debug alert for user to see exactly what server got
+            if ((res as any).debug) {
+                console.log('Server Debug:', (res as any).debug);
+            }
+
             router.push(isEditing ? `/instruments/${instrumentId}` : '/instruments');
             router.refresh(); // Ensure data is fresh
         }
