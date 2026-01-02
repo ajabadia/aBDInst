@@ -5,6 +5,9 @@ import User from '@/models/User';
 import UserCollection from '@/models/UserCollection';
 import { decryptCredentials } from '@/lib/encryption';
 import { CloudinaryProvider } from '@/lib/storage-providers/cloudinary';
+import { GoogleDriveProvider } from '@/lib/storage-providers/google-drive';
+import { DropboxProvider } from '@/lib/storage-providers/dropbox';
+import { TeraboxProvider } from '@/lib/storage-providers/terabox';
 
 export async function POST(request: NextRequest) {
     try {
@@ -50,6 +53,12 @@ export async function POST(request: NextRequest) {
         let provider;
         if (user.storageProvider.type === 'cloudinary') {
             provider = new CloudinaryProvider(credentials);
+        } else if (user.storageProvider.type === 'google-drive') {
+            provider = new GoogleDriveProvider(credentials);
+        } else if (user.storageProvider.type === 'dropbox') {
+            provider = new DropboxProvider(credentials);
+        } else if (user.storageProvider.type === 'terabox') {
+            provider = new TeraboxProvider(credentials);
         } else {
             return NextResponse.json({ error: 'Provider not supported' }, { status: 400 });
         }

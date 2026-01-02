@@ -15,6 +15,12 @@ const UserSchema = new Schema({
         enum: ['admin', 'editor', 'normal'],
         default: 'normal'
     },
+    isBanned: {
+        type: Boolean,
+        default: false
+    },
+    followers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
+    following: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     storageProvider: {
         type: {
             type: String,

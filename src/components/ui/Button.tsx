@@ -35,7 +35,7 @@ export function Button({
             {isLoading ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-                Icon && <Icon size={18} />
+                Icon && <Icon size={20} className="stroke-[2.5px]" /> // Thicker stroke for Apple-like clarity at 20px
             )}
             <span>{children}</span>
         </button>

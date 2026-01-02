@@ -30,6 +30,30 @@ export const InstrumentSchema = z.object({
         })
     ).optional(),
     relatedTo: z.string().optional(),
+    marketValue: z.object({
+        original: z.object({
+            price: z.number().optional(),
+            currency: z.string().optional(),
+            year: z.number().optional(),
+        }).optional(),
+        current: z.object({
+            value: z.number().optional(),
+            min: z.number().optional(),
+            max: z.number().optional(),
+            currency: z.string().optional(),
+            lastUpdated: z.union([z.date(), z.string()]).optional(),
+            source: z.string().optional(),
+        }).optional(),
+        history: z.array(z.object({
+            date: z.union([z.date(), z.string()]),
+            value: z.number(),
+            min: z.number().optional(),
+            max: z.number().optional(),
+            currency: z.string().optional(),
+            source: z.string().optional(),
+            notes: z.string().optional(),
+        })).optional()
+    }).optional(),
 });
 
 export const RegisterSchema = z.object({

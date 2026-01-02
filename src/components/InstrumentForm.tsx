@@ -38,6 +38,9 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
     // Documents state
     const [documents, setDocuments] = useState<{ title: string, url: string, type: string }[]>(initialData?.documents || []);
 
+    // Market Value State (Centralized)
+    const [marketValue, setMarketValue] = useState(initialData?.marketValue || { original: {}, current: {}, history: [] });
+
     // State for all instruments (to populate relatedTo selector)
     const [allInstruments, setAllInstruments] = useState<any[]>([]);
 
@@ -176,6 +179,33 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                         if (data.description) setVal('description', data.description);
                         if (data.year) setVal('years', data.year);
 
+                        // Prices & Value
+                        if (data.originalPrice) {
+                            setMarketValue((prev: any) => ({
+                                ...prev,
+                                original: {
+                                    price: data.originalPrice.price,
+                                    currency: data.originalPrice.currency,
+                                    year: data.originalPrice.year
+                                }
+                            }));
+                        }
+
+                        if (data.marketValue) {
+                            // Update State directly instead of DOM
+                            setMarketValue((prev: any) => ({
+                                ...prev,
+                                current: {
+                                    value: data.marketValue.estimatedPrice,
+                                    currency: data.marketValue.currency,
+                                    min: data.marketValue.priceRange?.min,
+                                    max: data.marketValue.priceRange?.max,
+                                    lastUpdated: new Date(),
+                                    source: 'AI (Gemini)'
+                                }
+                            }));
+                        }
+
                         // Add websites from data if they don't exist
                         if (data.websites && Array.isArray(data.websites)) {
                             setWebsites(prev => {
@@ -286,6 +316,7 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                             <input name="years" defaultValue={initialData?.years?.join(', ')} className="apple-input" placeholder="1984, 1985" />
                         </div>
 
+                        {/* Original Price Section moved here */}
                         <div>
                             <div className="flex justify-between items-center mb-2">
                                 <label className="apple-label mb-0">Sitios Web Oficiales</label>
@@ -338,6 +369,48 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                         <div>
                             <label className="apple-label">Descripción General</label>
                             <textarea name="description" rows={4} defaultValue={initialData?.description} className="apple-input min-h-[120px]" placeholder="Breve historia, características sonoras..."></textarea>
+                        </div>
+
+                        {/* Original Price Section moved here */}
+                        <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/50">
+                            <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-sm uppercase tracking-wide">Precio Original</h3>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="apple-label">Precio Lanzamiento</label>
+                                    <div className="flex gap-2">
+                                        <input
+                                            type="number"
+                                            step="0.01"
+                                            value={marketValue.original?.price || ''}
+                                            onChange={(e) => setMarketValue({ ...marketValue, original: { ...marketValue.original, price: parseFloat(e.target.value) } })}
+                                            className="apple-input flex-1"
+                                            placeholder="999.00"
+                                        />
+                                        <select
+                                            value={marketValue.original?.currency || 'USD'}
+                                            onChange={(e) => setMarketValue({ ...marketValue, original: { ...marketValue.original, currency: e.target.value } })}
+                                            className="apple-select w-24"
+                                        >
+                                            <option value="USD">USD</option>
+                                            <option value="EUR">EUR</option>
+                                            <option value="GBP">GBP</option>
+                                            <option value="JPY">JPY</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="apple-label">Año</label>
+                                    <input
+                                        type="number"
+                                        min="1900"
+                                        max={new Date().getFullYear()}
+                                        value={marketValue.original?.year || ''}
+                                        onChange={(e) => setMarketValue({ ...marketValue, original: { ...marketValue.original, year: parseInt(e.target.value) } })}
+                                        className="apple-input"
+                                        placeholder="1984"
+                                    />
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </Tab>
@@ -585,10 +658,14 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
             </div>
 
             {/* Hidden Inputs moved outside Tabs to persist data on submit */}
+            {/* Hidden Inputs moved outside Tabs to persist data on submit */}
             <input type="hidden" name="specs" value={JSON.stringify(specs)} />
             <input type="hidden" name="websites" value={JSON.stringify(websites.filter(w => w.url.trim()))} />
             <input type="hidden" name="genericImages" value={JSON.stringify(images)} />
             <input type="hidden" name="documents" value={JSON.stringify(documents)} />
+
+            {/* Unified Market Value Object from STATE */}
+            <input type="hidden" name="marketValue" value={JSON.stringify(marketValue)} />
         </form >
     );
 }

@@ -39,7 +39,13 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const session = await auth();
+  let session;
+  try {
+    session = await auth();
+  } catch (e) {
+    console.error("Auth error in RootLayout:", e);
+    session = null;
+  }
 
   return (
     <html lang="es" suppressHydrationWarning>

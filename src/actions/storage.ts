@@ -5,6 +5,9 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { encryptCredentials, decryptCredentials } from '@/lib/encryption';
 import { CloudinaryProvider } from '@/lib/storage-providers/cloudinary';
+import { GoogleDriveProvider } from '@/lib/storage-providers/google-drive';
+import { DropboxProvider } from '@/lib/storage-providers/dropbox';
+import { TeraboxProvider } from '@/lib/storage-providers/terabox';
 import { revalidatePath } from 'next/cache';
 
 export async function configureStorageProvider(provider: string, credentials: any) {
@@ -19,6 +22,15 @@ export async function configureStorageProvider(provider: string, credentials: an
         if (provider === 'cloudinary') {
             const cloudinaryProvider = new CloudinaryProvider(credentials);
             testResult = await cloudinaryProvider.testConnection(credentials);
+        } else if (provider === 'google-drive') {
+            const googleDriveProvider = new GoogleDriveProvider(credentials);
+            testResult = await googleDriveProvider.testConnection(credentials);
+        } else if (provider === 'dropbox') {
+            const dropboxProvider = new DropboxProvider(credentials);
+            testResult = await dropboxProvider.testConnection(credentials);
+        } else if (provider === 'terabox') {
+            const teraboxProvider = new TeraboxProvider(credentials);
+            testResult = await teraboxProvider.testConnection(credentials);
         } else {
             throw new Error('Provider not supported yet');
         }
@@ -31,9 +43,16 @@ export async function configureStorageProvider(provider: string, credentials: an
         const encryptedCreds = encryptCredentials(credentials, session.user.id);
 
         // Extract public config (non-sensitive data)
-        const publicConfig = provider === 'cloudinary'
-            ? { cloudName: credentials.cloudName }
-            : {};
+        let publicConfig = {};
+        if (provider === 'cloudinary') {
+            publicConfig = { cloudName: credentials.cloudName };
+        } else if (provider === 'google-drive') {
+            publicConfig = { email: credentials.email };
+        } else if (provider === 'dropbox') {
+            publicConfig = { email: credentials.email };
+        } else if (provider === 'terabox') {
+            publicConfig = {};
+        }
 
         // Update user
         await User.findByIdAndUpdate(session.user.id, {
@@ -97,6 +116,15 @@ export async function testStorageConnection() {
         let testResult;
         if (user.storageProvider.type === 'cloudinary') {
             const provider = new CloudinaryProvider(credentials);
+            testResult = await provider.testConnection(credentials);
+        } else if (user.storageProvider.type === 'google-drive') {
+            const provider = new GoogleDriveProvider(credentials);
+            testResult = await provider.testConnection(credentials);
+        } else if (user.storageProvider.type === 'dropbox') {
+            const provider = new DropboxProvider(credentials);
+            testResult = await provider.testConnection(credentials);
+        } else if (user.storageProvider.type === 'terabox') {
+            const provider = new TeraboxProvider(credentials);
             testResult = await provider.testConnection(credentials);
         } else {
             throw new Error('Provider not supported');

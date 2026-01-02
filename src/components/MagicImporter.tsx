@@ -208,6 +208,28 @@ export default function MagicImporter({ onImport, initialSearch, contextUrls }: 
                                                     <p className="font-bold">{results.year || '-'}</p>
                                                 </div>
                                             </div>
+                                            {(results.originalPrice || results.marketValue) && (
+                                                <div className="border-b border-gray-100 dark:border-gray-700 pb-4">
+                                                    <p className="text-[10px] uppercase font-black text-gray-400 mb-2">Precios y Valor</p>
+                                                    <div className="grid grid-cols-2 gap-4">
+                                                        {results.originalPrice && (
+                                                            <div>
+                                                                <p className="text-xs text-gray-500">Original ({results.originalPrice.year})</p>
+                                                                <p className="font-bold">{results.originalPrice.price} {results.originalPrice.currency}</p>
+                                                            </div>
+                                                        )}
+                                                        {results.marketValue && (
+                                                            <div>
+                                                                <p className="text-xs text-gray-500">Mercado (Est.)</p>
+                                                                <p className="font-bold">{results.marketValue.estimatedPrice} {results.marketValue.currency}</p>
+                                                                {results.marketValue.priceRange && (
+                                                                    <p className="text-[10px] text-gray-400">{results.marketValue.priceRange.min} - {results.marketValue.priceRange.max}</p>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div>
                                                 <p className="text-[10px] uppercase font-black text-gray-400 mb-1">Specs encontradas</p>
                                                 <div className="flex flex-wrap gap-2">

@@ -80,7 +80,15 @@ const UserCollectionSchema = new Schema({
         cost: { type: Number },
         technician: { type: String },
         documents: [{ url: String, title: String }]
-    }]
+    }],
+
+    // Proactive Maintenance
+    nextMaintenanceDate: { type: Date },
+    maintenanceInterval: { type: String }, // e.g., '3m', '6m', '1y'
+    maintenanceNotes: { type: String },
+
+    // Custom tags for flexible organization
+    tags: [{ type: String, trim: true, lowercase: true }]
 
 }, { timestamps: true });
 

@@ -2,10 +2,11 @@
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Settings, Wrench, PenTool, Plus } from 'lucide-react';
+import { Settings, Wrench, PenTool, Plus, CalendarClock } from 'lucide-react';
 import { Button } from './ui/Button';
 import { useState } from 'react';
 import MaintenanceModal from './MaintenanceModal';
+import ScheduleMaintenanceModal from './maintenance/ScheduleMaintenanceModal';
 
 interface MaintenanceRecord {
     _id: string; // Ensure ID matches what comes from DB
@@ -19,10 +20,17 @@ interface MaintenanceRecord {
 interface MaintenanceHistoryProps {
     collectionId: string;
     history: MaintenanceRecord[];
+    nextMaintenanceDate?: string;
+    maintenanceInterval?: string;
+    maintenanceNotes?: string;
+    instrumentName: string;
 }
 
-export default function MaintenanceHistory({ collectionId, history }: MaintenanceHistoryProps) {
-    const [isModalOpen, setIsModalOpen] = useState(false);
+export default function MaintenanceHistory({
+    collectionId, history, nextMaintenanceDate, maintenanceInterval, maintenanceNotes, instrumentName
+}: MaintenanceHistoryProps) {
+    const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+    const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
 
     const getIcon = (type: string) => {
         switch (type) {
@@ -55,12 +63,36 @@ export default function MaintenanceHistory({ collectionId, history }: Maintenanc
                 </div>
             )}
 
+            {/* Next Maintenance Banner */}
+            <div className="mb-8 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-800 rounded-xl flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-500 rounded-lg">
+                        <CalendarClock size={20} />
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-amber-600 dark:text-amber-500 uppercase tracking-wide">Próximo Servicio</p>
+                        <p className="font-semibold text-gray-900 dark:text-white">
+                            {nextMaintenanceDate
+                                ? format(new Date(nextMaintenanceDate), 'dd MMMM yyyy', { locale: es })
+                                : "No programado"}
+                        </p>
+                    </div>
+                </div>
+                <Button
+                    variant="outline"
+                    onClick={() => setIsScheduleModalOpen(true)}
+                    className="text-amber-700 border-amber-200 hover:bg-amber-100 dark:border-amber-800 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                >
+                    {nextMaintenanceDate ? 'Reprogramar' : 'Programar'}
+                </Button>
+            </div>
+
             <div className="flex justify-between items-center mb-6">
                 <h3 className="font-semibold text-lg text-gray-900 dark:text-gray-100">Historial de Intervenciones</h3>
                 <Button
                     variant="secondary"
                     icon={Plus}
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => setIsLogModalOpen(true)}
                     className="!py-2 !px-4 text-xs"
                 >
                     Añadir Registro
@@ -77,8 +109,8 @@ export default function MaintenanceHistory({ collectionId, history }: Maintenanc
                         <div key={index} className="flex gap-4 p-4 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:border-blue-100 transition-colors">
                             <div className="mt-1">
                                 <div className={`w-8 h-8 rounded-full flex items-center justify-center ${record.type === 'repair' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' :
-                                        record.type === 'modification' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
-                                            'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                    record.type === 'modification' ? 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400' :
+                                        'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                     }`}>
                                     {getIcon(record.type)}
                                 </div>
@@ -103,11 +135,23 @@ export default function MaintenanceHistory({ collectionId, history }: Maintenanc
                 )}
             </div>
 
-            {/* Conditionally Rendered Modal - Prevents global overlay issues */}
-            {isModalOpen && (
+            {/* Modals */}
+            {isLogModalOpen && (
                 <MaintenanceModal
                     collectionId={collectionId}
-                    onClose={() => setIsModalOpen(false)}
+                    onClose={() => setIsLogModalOpen(false)}
+                />
+            )}
+
+            {isScheduleModalOpen && (
+                <ScheduleMaintenanceModal
+                    isOpen={isScheduleModalOpen}
+                    onClose={() => setIsScheduleModalOpen(false)}
+                    collectionId={collectionId}
+                    currentNextDate={nextMaintenanceDate}
+                    currentInterval={maintenanceInterval}
+                    currentNotes={maintenanceNotes}
+                    instrumentName={instrumentName}
                 />
             )}
         </div>

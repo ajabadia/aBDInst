@@ -8,10 +8,12 @@ import { cn } from '@/lib/utils';
 
 interface StudioCollectionProps {
     collection: any[];
+    allTags?: string[];
 }
 
-export default function StudioCollection({ collection }: StudioCollectionProps) {
+export default function StudioCollection({ collection, allTags = [] }: StudioCollectionProps) {
     const [filter, setFilter] = useState('All');
+    const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
     // Extract unique locations and sort them
     const locations = useMemo(() => {
@@ -20,9 +22,22 @@ export default function StudioCollection({ collection }: StudioCollectionProps) 
     }, [collection]);
 
     const filteredItems = useMemo(() => {
-        if (filter === 'All') return collection;
-        return collection.filter(item => (item.location || 'Sin Ubicación') === filter);
-    }, [collection, filter]);
+        let items = collection;
+
+        // Filter by location
+        if (filter !== 'All') {
+            items = items.filter(item => (item.location || 'Sin Ubicación') === filter);
+        }
+
+        // Filter by tags
+        if (selectedTags.length > 0) {
+            items = items.filter(item =>
+                item.tags && item.tags.some((tag: string) => selectedTags.includes(tag))
+            );
+        }
+
+        return items;
+    }, [collection, filter, selectedTags]);
 
     return (
         <div className="space-y-8">

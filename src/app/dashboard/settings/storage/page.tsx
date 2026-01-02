@@ -17,7 +17,7 @@ export default async function StorageSettingsPage() {
             id: 'cloudinary',
             name: 'Cloudinary',
             description: 'CDN global con transformaciones automáticas. Free tier: 25GB almacenamiento.',
-            icon: Cloud,
+            icon: 'Cloud',
             available: true,
             configured: storageStatus?.type === 'cloudinary',
             status: storageStatus?.type === 'cloudinary' ? storageStatus.status : 'not_configured'
@@ -26,28 +26,28 @@ export default async function StorageSettingsPage() {
             id: 'google-drive',
             name: 'Google Drive',
             description: 'Almacenamiento en tu cuenta de Google. Free tier: 15GB.',
-            icon: HardDrive,
-            available: false, // Phase 2
-            configured: false,
-            status: 'not_configured'
+            icon: 'HardDrive',
+            available: true,
+            configured: storageStatus?.type === 'google-drive',
+            status: storageStatus?.type === 'google-drive' ? storageStatus.status : 'not_configured'
         },
         {
             id: 'dropbox',
             name: 'Dropbox',
             description: 'Sincronización automática con tu Dropbox. Free tier: 2GB.',
-            icon: HardDrive,
-            available: false, // Phase 2
-            configured: false,
-            status: 'not_configured'
+            icon: 'HardDrive',
+            available: true,
+            configured: storageStatus?.type === 'dropbox',
+            status: storageStatus?.type === 'dropbox' ? storageStatus.status : 'not_configured'
         },
         {
             id: 'terabox',
             name: 'TeraBox',
             description: 'Almacenamiento masivo. Free tier: 1TB.',
-            icon: HardDrive,
-            available: false, // Phase 3
-            configured: false,
-            status: 'not_configured'
+            icon: 'HardDrive',
+            available: true,
+            configured: storageStatus?.type === 'terabox',
+            status: storageStatus?.type === 'terabox' ? storageStatus.status : 'not_configured'
         }
     ];
 

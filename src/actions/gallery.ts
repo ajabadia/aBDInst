@@ -6,6 +6,9 @@ import User from '@/models/User';
 import UserCollection from '@/models/UserCollection';
 import { decryptCredentials } from '@/lib/encryption';
 import { CloudinaryProvider } from '@/lib/storage-providers/cloudinary';
+import { GoogleDriveProvider } from '@/lib/storage-providers/google-drive';
+import { DropboxProvider } from '@/lib/storage-providers/dropbox';
+import { TeraboxProvider } from '@/lib/storage-providers/terabox';
 import { revalidatePath } from 'next/cache';
 
 export async function deleteCollectionImage(collectionId: string, imageId: string) {
@@ -40,6 +43,15 @@ export async function deleteCollectionImage(collectionId: string, imageId: strin
 
             if (user.storageProvider.type === 'cloudinary') {
                 const provider = new CloudinaryProvider(credentials);
+                await provider.delete(image.url, session.user.id);
+            } else if (user.storageProvider.type === 'google-drive') {
+                const provider = new GoogleDriveProvider(credentials);
+                await provider.delete(image.url, session.user.id);
+            } else if (user.storageProvider.type === 'dropbox') {
+                const provider = new DropboxProvider(credentials);
+                await provider.delete(image.url, session.user.id);
+            } else if (user.storageProvider.type === 'terabox') {
+                const provider = new TeraboxProvider(credentials);
                 await provider.delete(image.url, session.user.id);
             }
         }

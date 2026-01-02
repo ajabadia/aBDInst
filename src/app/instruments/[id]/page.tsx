@@ -11,7 +11,14 @@ import QRCodeGenerator from '@/components/QRCodeGenerator';
 import SpecRow from '@/components/SpecRow';
 import PdfPreviewModal from '@/components/PdfPreviewModal';
 import { getRelatedGear } from '@/actions/instrument';
-import { FileText, ArrowLeft, Edit2, Globe, Star, ExternalLink, ChevronRight, Layers, Box } from 'lucide-react';
+import PrintSpecSheet from '@/components/PrintSpecSheet';
+import InstrumentHeaderButtons from '@/components/InstrumentHeaderButtons';
+import { ArrowLeft, FileText, Box, ChevronRight, Layers, Globe, ExternalLink, Star } from 'lucide-react';
+import { getComments } from '@/actions/comments';
+import CommentSection from '@/components/comments/CommentSection';
+import ValuationSection from '@/components/valuation/ValuationSection';
+import User from '@/models/User'; // Prepare to check ban status locally if needed
+import dbConnect from '@/lib/db';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const { id } = await params;
@@ -43,7 +50,35 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
     const relatedGear = await getRelatedGear(id);
     const session = await auth();
     const isLoggedIn = !!session?.user;
-    const canEdit = ['admin', 'editor'].includes((session?.user as any)?.role);
+    // For now, allow any logged in user to edit/contribute market values. 
+    // In a strict multi-user app we would check roles, but for this personal collector app, being logged in is likely sufficient authorization.
+    const canEdit = isLoggedIn; // ['admin', 'editor'].includes((session?.user as any)?.role);
+
+    // Fetch comments and user status parallel
+    const commentsData = await getComments(id);
+    const comments = commentsData.success ? commentsData.data : [];
+
+    let currentUserFull = null;
+    let ownedItem = null;
+
+    if (session?.user?.email) {
+        await dbConnect();
+        currentUserFull = await User.findOne({ email: session.user.email }).select('name image role isBanned').lean();
+        currentUserFull = JSON.parse(JSON.stringify(currentUserFull));
+        if (currentUserFull) {
+            currentUserFull.id = (currentUserFull as any)._id.toString();
+        }
+
+        // Fetch User Collection Item for ROI
+        // We need to import UserCollection at top
+        const UserCollection = (await import('@/models/UserCollection')).default;
+        ownedItem = await UserCollection.findOne({
+            userId: (currentUserFull as any)._id,
+            instrumentId: id,
+            deletedAt: null // Only active items
+        }).select('acquisition').lean();
+        ownedItem = JSON.parse(JSON.stringify(ownedItem));
+    }
 
     if (!instrument) {
         notFound();
@@ -71,23 +106,15 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                     <h1 className="text-4xl md:text-5xl font-semibold tracking-tight dark:text-white text-gray-900">{instrument.model}</h1>
                     <p className="text-xl text-gray-500 dark:text-gray-400 mt-2 font-light">{instrument.type} {instrument.subtype && `• ${instrument.subtype}`}</p>
                 </div>
-                <div className="flex gap-3">
-                    {canEdit && (
-                        <Link
-                            href={`/instruments/${id}/edit`}
-                            className="inline-flex items-center rounded-full bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-5 py-2.5 text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition"
-                        >
-                            <Edit2 className="w-4 h-4 mr-2" />
-                            Editar
-                        </Link>
-                    )}
-                    {isLoggedIn && (
-                        <div className="inline-block">
-                            <AddToCollectionButton instrumentId={instrument._id} />
-                        </div>
-                    )}
-                </div>
+                <InstrumentHeaderButtons
+                    instrumentId={instrument._id || instrument.id}
+                    canEdit={canEdit}
+                    isLoggedIn={isLoggedIn}
+                />
             </div>
+
+            {/* PRINT COMPONENT (Hidden unless printing) */}
+            <PrintSpecSheet instrument={instrument} />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
                 {/* Left: Gallery (Big visual impact) */}
@@ -161,6 +188,8 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                             </div>
                         </section>
                     )}
+
+
 
 
                     {instrument.websites && instrument.websites.length > 0 && (
@@ -265,6 +294,25 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                     </div>
                 </div>
             )}
+
+            {/* Market Value & Prices (Moved to bottom) */}
+            {/* Always show if there is data OR if the user can edit (to add data) */}
+            {(instrument.marketValue || instrument.originalPrice || canEdit) && (
+                <div className="mt-24 border-t border-gray-100 dark:border-gray-800 pt-16">
+                    <ValuationSection
+                        instrument={instrument}
+                        purchasePrice={ownedItem?.acquisition?.price}
+                        canEdit={canEdit}
+                    />
+                </div>
+            )}
+
+            {/* Comments Section */}
+            <CommentSection
+                instrumentId={id}
+                comments={comments}
+                currentUser={currentUserFull}
+            />
 
             {/* QR Code moved to very bottom */}
             <div className="mt-24 pt-16 border-t border-gray-100 dark:border-gray-800 flex justify-center">

@@ -30,6 +30,11 @@ CRITICAL RULES:
    - "Efectos y Conectividad": Audio I/O, MIDI, USB, storage.
    - "Alimentación y Energía": Battery type, current draw, power requirements.
    - "Especificaciones Técnicas": Weight, dimensions, release year.
+   - "Precios y Valor": Original launch price, current estimated market value (EUR/USD).
+
+7. PRICES:
+    - Original Price: Find the original launch price and year (MSRP).
+    - Market Value: Estimate the current used market value (average) in EUR. Provide a min/max range based on condition.
 
 Format output as a single JSON object:
 {
@@ -40,12 +45,33 @@ Format output as a single JSON object:
     "description": "Rich professional description in Spanish (2-3 sentences)",
     "websites": [{ "url": "string", "isPrimary": boolean }],
     "year": "YYYY or YYYY-YYYY",
+    "originalPrice": {
+        "price": number,
+        "currency": "USD | EUR | GBP | JPY",
+        "year": number
+    },
+    "marketValue": {
+        "current": {
+             "value": number,
+             "min": number,
+             "max": number,
+             "currency": "EUR"
+        }
+    },
     "specs": [
         { "category": "Category Name", "label": "Technical Label in Spanish", "value": "Detailed Value in Spanish" }
     ]
 }`;
 
 const DEFAULT_MODEL = 'gemini-3-flash-preview';
+
+export async function getDefaultConfig() {
+    console.log('getDefaultConfig called - serving V2 prompt with prices');
+    return {
+        prompt: DEFAULT_PROMPT,
+        model: DEFAULT_MODEL
+    };
+}
 
 export async function getSystemConfig(key: string) {
     try {

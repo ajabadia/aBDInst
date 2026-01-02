@@ -55,7 +55,14 @@ export default async function EditItemPage({ params }: { params: { id: string } 
                         </Tab>
                         <Tab label="Mantenimiento / Logs">
                             <div className="pt-4">
-                                <MaintenanceHistory collectionId={item._id} history={item.maintenanceHistory || []} />
+                                <MaintenanceHistory
+                                    collectionId={item._id}
+                                    history={item.maintenanceHistory || []}
+                                    nextMaintenanceDate={item.nextMaintenanceDate}
+                                    maintenanceInterval={item.maintenanceInterval}
+                                    maintenanceNotes={item.maintenanceNotes}
+                                    instrumentName={`${item.instrumentId.brand} ${item.instrumentId.model}`}
+                                />
                             </div>
                         </Tab>
                     </Tabs>

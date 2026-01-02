@@ -6,7 +6,7 @@ import InstrumentFilter from '@/components/InstrumentFilter';
 import InstrumentGrid from '@/components/InstrumentGrid';
 import EmptyState from '@/components/EmptyState';
 import InstrumentCard from '@/components/InstrumentCard';
-import { Plus } from 'lucide-react';
+import { Plus, GitCompare } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 import { cleanData } from '@/lib/utils';
@@ -38,11 +38,16 @@ export default async function InstrumentsPage(props: {
                         Explora la base de datos curada de instrumentos.
                     </p>
                 </div>
-                {canEdit && (
-                    <Link href="/instruments/new">
-                        <Button icon={Plus}>Añadir nuevo</Button>
+                <div className="flex gap-3">
+                    <Link href="/instruments/compare">
+                        <Button variant="secondary" icon={GitCompare}>Comparar</Button>
                     </Link>
-                )}
+                    {canEdit && (
+                        <Link href="/instruments/new">
+                            <Button icon={Plus}>Añadir nuevo</Button>
+                        </Link>
+                    )}
+                </div>
             </div>
 
             <div className="mb-10 space-y-6">

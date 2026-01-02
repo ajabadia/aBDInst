@@ -5,6 +5,7 @@ import UserCollection from '@/models/UserCollection';
 import Instrument from '@/models/Instrument';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
+import { logActivity } from './social';
 
 export async function getUserCollection() {
     try {
@@ -46,7 +47,23 @@ export async function addToCollection(instrumentId: string) {
             acquisition: { date: new Date() } // Default to now
         });
 
+
+
+        // ... existing imports
+
+        // ... inside addToCollection
+        // ...
         revalidatePath('/dashboard');
+
+        // Log activity
+        const instrument = await Instrument.findById(instrumentId).select('brand model');
+        if (instrument) {
+            await logActivity('add_collection', {
+                instrumentId,
+                instrumentName: `${instrument.brand} ${instrument.model}`
+            });
+        }
+
         return { success: true, id: newItem._id.toString() };
     } catch (error: any) {
         console.error('Add to Collection Error:', error);

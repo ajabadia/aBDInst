@@ -1,14 +1,18 @@
 import { auth } from '@/auth';
 import { getUserCollection } from '@/actions/collection';
+import { getAllUserTags } from '@/actions/tags';
 import { redirect } from 'next/navigation';
-import CollectionStats from '@/components/CollectionStats';
+import EnhancedStats from '@/components/EnhancedStats';
+import ValueEvolutionChart from '@/components/ValueEvolutionChart';
+import DistributionCharts from '@/components/DistributionCharts';
 import CollectionItemCard from '@/components/CollectionItemCard';
-import ExportButtons from '@/components/ExportButtons';
+import ExportCollectionButton from '@/components/ExportCollectionButton';
 import { Button } from '@/components/ui/Button';
-import { Plus, Music } from 'lucide-react';
+import { Plus, Music, Settings, GitCompare } from 'lucide-react';
 import Link from 'next/link';
 import EmptyState from '@/components/EmptyState';
 import StudioCollection from '@/components/StudioCollection';
+import TagFilter from '@/components/TagFilter';
 
 import { cleanData } from '@/lib/utils'; // Make sure to import this
 
@@ -18,6 +22,7 @@ export default async function DashboardPage() {
 
     const rawCollection = await getUserCollection();
     const collection = cleanData(rawCollection);
+    const allTags = await getAllUserTags();
 
     return (
         <div className="container mx-auto px-6 py-12 max-w-6xl">
@@ -30,19 +35,42 @@ export default async function DashboardPage() {
                     </h1>
                 </div>
                 <div className="flex items-center gap-3">
-                    <ExportButtons data={collection} />
+                    <Link href="/dashboard/settings">
+                        <Button variant="secondary" icon={Settings}>Ajustes</Button>
+                    </Link>
+                    <Link href="/dashboard/compare">
+                        <Button variant="secondary" icon={GitCompare}>Comparar</Button>
+                    </Link>
+                    <ExportCollectionButton />
                     <Link href="/instruments">
                         <Button icon={Plus} className="shadow-2xl">Añadir Unidad</Button>
                     </Link>
                 </div>
             </div>
 
-            {/* ESTADÍSTICAS */}
-            {collection.length > 0 && <CollectionStats collection={collection} />}
+            {/* ESTADÍSTICAS AVANZADAS */}
+            {collection.length > 0 && <EnhancedStats collection={collection} />}
+
+            {/* EVOLUCIÓN DE VALOR */}
+            {collection.length > 0 && <ValueEvolutionChart collection={collection} />}
+
+            {/* GRÁFICOS DE DISTRIBUCIÓN */}
+            {collection.length > 0 && <DistributionCharts collection={collection} />}
+
+            {/* FILTRO DE ETIQUETAS */}
+            {collection.length > 0 && allTags.length > 0 && (
+                <div className="mb-8">
+                    <TagFilter
+                        allTags={allTags}
+                        selectedTags={[]}
+                        onTagsChange={() => { }}
+                    />
+                </div>
+            )}
 
             {/* LISTADO INTERACTIVO POR UBICACIONES */}
             {collection.length > 0 && (
-                <StudioCollection collection={collection} />
+                <StudioCollection collection={collection} allTags={allTags} />
             )}
 
             {/* EMPTY STATE MEJORADO */}

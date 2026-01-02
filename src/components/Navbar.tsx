@@ -6,8 +6,8 @@ import { signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import SettingsModal from './SettingsModal';
-import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, ChevronDown } from 'lucide-react';
-
+import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, ChevronDown, Heart, Activity, Wrench } from 'lucide-react';
+import NotificationBell from './notifications/NotificationBell';
 import { Shield } from 'lucide-react';
 import { useVaultMode } from '@/context/VaultModeContext';
 import { useCommandPalette } from '@/context/CommandPaletteContext';
@@ -33,6 +33,9 @@ export default function Navbar({ session }: { session: any }) {
     const navLinks = [
         { name: 'Catálogo', href: '/instruments', icon: Music },
         { name: 'Mi Colección', href: '/dashboard', icon: LayoutDashboard, authRequired: true },
+        { name: 'Wishlist', href: '/dashboard/wishlist', icon: Heart, authRequired: true },
+        { name: 'Feed', href: '/dashboard/feed', icon: Activity, authRequired: true },
+        { name: 'Mantenimiento', href: '/dashboard/maintenance', icon: Wrench, authRequired: true },
     ];
 
     return (
@@ -76,11 +79,16 @@ export default function Navbar({ session }: { session: any }) {
                     <div className="h-4 w-[1px] bg-gray-200 dark:bg-gray-800" />
 
                     <div className="flex items-center gap-4">
+
+
+
                         {isVaultMode && (
                             <div title="Modo Bóveda: Precios Ocultos" className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-500 rounded-full text-xs font-bold border border-amber-200 dark:border-amber-800 animate-in fade-in">
                                 <Shield size={14} />
                             </div>
                         )}
+
+                        {session && <NotificationBell />}
 
                         {/* COMMAND PALETTE TRIGGER */}
                         <button
@@ -136,9 +144,17 @@ export default function Navbar({ session }: { session: any }) {
                                         />
                                         <div className="absolute right-0 top-full mt-3 w-64 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
                                             <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 mb-2">
-                                                <p className="text-sm font-semibold text-gray-900 dark:text-gray-100">{session.user?.name}</p>
                                                 <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session.user?.email}</p>
                                             </div>
+
+                                            <Link
+                                                href={`/profile/${(session.user as any).id}`}
+                                                onClick={() => setUserMenuOpen(false)}
+                                                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors font-bold"
+                                            >
+                                                <User size={14} />
+                                                Mi Perfil Público
+                                            </Link>
 
                                             <Link
                                                 href="/dashboard"
@@ -162,6 +178,19 @@ export default function Navbar({ session }: { session: any }) {
                                                 >
                                                     <Shield size={14} />
                                                     Panel Admin
+                                                </button>
+                                            )}
+
+                                            {(session.user as any).role === 'admin' && (
+                                                <button
+                                                    onClick={() => {
+                                                        setUserMenuOpen(false);
+                                                        router.push('/dashboard/admin/moderation');
+                                                    }}
+                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                                >
+                                                    <Shield size={14} />
+                                                    Moderación
                                                 </button>
                                             )}
 

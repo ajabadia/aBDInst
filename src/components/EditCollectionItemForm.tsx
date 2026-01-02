@@ -1,10 +1,12 @@
 'use client';
 
 import { updateCollectionItem, deleteCollectionItem, restoreCollectionItem, toggleLoan } from '@/actions/collection';
+import { updateCollectionTags, getAllUserTags } from '@/actions/tags';
 import { useFormStatus } from 'react-dom';
 import ImageUpload from '@/components/ImageUpload';
 import ActivityTimeline from '@/components/ActivityTimeline';
-import { useState } from 'react';
+import TagInput from '@/components/ui/TagInput';
+import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Trash2, UserMinus, UserPlus, Handshake } from 'lucide-react';
@@ -29,6 +31,22 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
     // Simplify for now: Just standard form inputs + image upload
 
     const router = useRouter();
+    const [tags, setTags] = useState<string[]>(item.tags || []);
+    const [allUserTags, setAllUserTags] = useState<string[]>([]);
+
+    useEffect(() => {
+        getAllUserTags().then(setAllUserTags);
+    }, []);
+
+    const handleTagsChange = async (newTags: string[]) => {
+        setTags(newTags);
+        const result = await updateCollectionTags(item._id, newTags);
+        if (result.success) {
+            toast.success('Etiquetas actualizadas');
+        } else {
+            toast.error('Error al actualizar etiquetas');
+        }
+    };
 
     async function action(formData: FormData) {
         const res = await updateCollectionItem(item._id, formData);
@@ -150,6 +168,20 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
             <div className="border-t pt-4 dark:border-gray-700">
                 <label className="block text-sm font-medium mb-1">Notas Privadas</label>
                 <textarea name="customNotes" defaultValue={item.customNotes} rows={3} className="w-full text-black p-2 border rounded"></textarea>
+            </div>
+
+            {/* TAGS SECTION */}
+            <div className="border-t pt-4 dark:border-gray-700">
+                <h3 className="font-semibold text-lg mb-4 text-gray-900 dark:text-white">Etiquetas Personalizadas</h3>
+                <TagInput
+                    tags={tags}
+                    onChange={handleTagsChange}
+                    suggestions={allUserTags}
+                    placeholder="Añadir etiqueta (ej: vintage, favorito, estudio-a)..."
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                    Usa etiquetas para organizar tu colección de forma flexible. Presiona Enter para añadir.
+                </p>
             </div>
 
             {/* LOAN TRACKER SECTION */}
