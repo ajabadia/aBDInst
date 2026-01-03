@@ -5,6 +5,7 @@ import PriceAlert from '@/models/PriceAlert';
 import ScrapedListing from '@/models/ScrapedListing';
 import { auth } from '@/auth';
 import { ReverbScraper } from '@/lib/scrapers/ReverbScraper';
+import { WallapopScraper } from '@/lib/scrapers/WallapopScraper';
 import { revalidatePath } from 'next/cache';
 
 export async function createPriceAlert(data: { query: string; targetPrice?: number; instrumentId?: string }) {
@@ -73,8 +74,30 @@ export async function runScraperForAlert(alertId: string) {
         const alert = await PriceAlert.findById(alertId);
         if (!alert) throw new Error('Alert not found');
 
-        const scraper = new ReverbScraper();
-        const results = await scraper.search(alert.query);
+        // Initialize enabled scrapers
+        // In the future, we could check alert.sources to filter
+        const scrapers = [
+            new ReverbScraper(),
+            new WallapopScraper()
+        ];
+
+        // Use configured sources if they exist, otherwise default to all
+        const sourcesToRun = alert.sources && alert.sources.length > 0
+            ? scrapers.filter(s => alert.sources.includes(s.name))
+            : scrapers;
+
+        console.log(`Running scrapers for: ${alert.query} [${sourcesToRun.map(s => s.name).join(', ')}]`);
+
+        // Run in parallel
+        const resultsArrays = await Promise.all(
+            sourcesToRun.map(scraper => scraper.search(alert.query).catch(e => {
+                console.error(`Scraper ${scraper.name} failed:`, e);
+                return [];
+            }))
+        );
+
+        // Flatten results
+        const results = resultsArrays.flat();
 
         // Filter by target price if set
         const deals = results.filter(item => {
@@ -83,18 +106,26 @@ export async function runScraperForAlert(alertId: string) {
         });
 
         // Save scraped listings to cache
-        for (const item of results) {
-            await ScrapedListing.updateOne(
-                { source: 'reverb', externalId: item.id },
-                {
-                    ...item,
-                    location: item.location || 'Online', // Ensure fields match schema
-                    externalId: item.id,
-                    query: alert.query,
-                    isSold: false
+        // Use bulkWrite for performance if many results
+        const bulkOps = results.map(item => ({
+            updateOne: {
+                filter: { source: item.source, externalId: item.id },
+                update: {
+                    $set: {
+                        ...item,
+                        location: item.location || 'Online',
+                        externalId: item.id,
+                        query: alert.query,
+                        isSold: false,
+                        updatedAt: new Date()
+                    }
                 },
-                { upsert: true }
-            );
+                upsert: true
+            }
+        }));
+
+        if (bulkOps.length > 0) {
+            await ScrapedListing.bulkWrite(bulkOps);
         }
 
         // Update alert stats
