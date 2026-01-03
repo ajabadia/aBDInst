@@ -3,9 +3,52 @@
 import { auth } from "@/auth";
 import dbConnect from "@/lib/db";
 import Notification from "@/models/Notification";
+import Reminder from "@/models/Reminder";
 import { revalidatePath } from "next/cache";
 
 // --- INTERNAL HELPERS (Called by other actions) ---
+
+async function checkDueReminders(userId: string) {
+    try {
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        // Find due reminders
+        const dueReminders = await Reminder.find({
+            userId,
+            isCompleted: false,
+            dueDate: { $lte: now }
+        });
+
+        for (const reminder of dueReminders) {
+            // Check if we already notified about this specific reminder recently (e.g., today)
+            // Or simple logic: check if there is a 'maintenance' notification for this instrument/reminder that is unread?
+            // Better: Checks if we have created a notification for this reminder ID ever.
+
+            const alreadyNotified = await Notification.exists({
+                userId,
+                type: 'maintenance',
+                'data.reminderId': reminder._id
+            });
+
+            if (!alreadyNotified) {
+                await Notification.create({
+                    userId,
+                    type: 'maintenance',
+                    data: {
+                        reminderId: reminder._id,
+                        instrumentId: reminder.instrumentId,
+                        title: reminder.title,
+                        description: reminder.description
+                    },
+                    read: false
+                });
+            }
+        }
+    } catch (error) {
+        console.error("Error checking reminders:", error);
+    }
+}
 
 export async function createNotification(userId: string, type: string, data: any) {
     try {
@@ -31,6 +74,10 @@ export async function getUnreadNotificationsCount() {
         if (!session?.user) return 0;
 
         await dbConnect();
+
+        // Lazy check: process reminders whenever the user checks notifications
+        await checkDueReminders((session.user as any).id);
+
         const count = await Notification.countDocuments({
             userId: (session.user as any).id,
             read: false

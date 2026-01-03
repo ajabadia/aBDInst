@@ -13,6 +13,10 @@ import Link from 'next/link';
 import EmptyState from '@/components/EmptyState';
 import StudioCollection from '@/components/StudioCollection';
 import TagFilter from '@/components/TagFilter';
+import { getUserFeed } from '@/actions/social';
+import ActivityFeed from '@/components/social/ActivityFeed';
+import { getFinanceDashboardData } from '@/actions/finance';
+import FinanceOverview from '@/components/finance/FinanceOverview';
 
 import { cleanData } from '@/lib/utils'; // Make sure to import this
 
@@ -23,6 +27,8 @@ export default async function DashboardPage() {
     const rawCollection = await getUserCollection();
     const collection = cleanData(rawCollection);
     const allTags = await getAllUserTags();
+    const feed = await getUserFeed();
+    const financeData = await getFinanceDashboardData();
 
     return (
         <div className="container mx-auto px-6 py-12 max-w-6xl">
@@ -50,6 +56,13 @@ export default async function DashboardPage() {
 
             {/* ESTADÍSTICAS AVANZADAS */}
             {collection.length > 0 && <EnhancedStats collection={collection} />}
+
+            {/* RESUMEN FINANCIERO */}
+            {financeData.success && financeData.data && (
+                <div className="mb-8 mt-8">
+                    <FinanceOverview data={financeData.data} />
+                </div>
+            )}
 
             {/* EVOLUCIÓN DE VALOR */}
             {collection.length > 0 && <ValueEvolutionChart collection={collection} />}
@@ -85,6 +98,14 @@ export default async function DashboardPage() {
                     />
                 </div>
             )}
+            {/* SECCIÓN DE ACTIVIDAD (FEED) */}
+            <div className="mt-20 pt-12 border-t border-gray-100 dark:border-gray-800">
+                <h2 className="text-2xl font-bold mb-8 text-gray-900 dark:text-white flex items-center gap-2">
+                    Actividad Reciente
+                    <span className="text-xs font-normal text-gray-500 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-full">De gente que sigues</span>
+                </h2>
+                <ActivityFeed activities={feed.success ? feed.data : []} />
+            </div>
         </div>
     );
 }

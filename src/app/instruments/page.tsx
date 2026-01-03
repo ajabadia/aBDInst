@@ -8,6 +8,7 @@ import EmptyState from '@/components/EmptyState';
 import InstrumentCard from '@/components/InstrumentCard';
 import { Plus, GitCompare } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import BulkImporter from '@/components/BulkImporter';
 
 import { cleanData } from '@/lib/utils';
 
@@ -43,9 +44,12 @@ export default async function InstrumentsPage(props: {
                         <Button variant="secondary" icon={GitCompare}>Comparar</Button>
                     </Link>
                     {canEdit && (
-                        <Link href="/instruments/new">
-                            <Button icon={Plus}>Añadir nuevo</Button>
-                        </Link>
+                        <>
+                            <BulkImporter />
+                            <Link href="/instruments/new">
+                                <Button icon={Plus}>Añadir nuevo</Button>
+                            </Link>
+                        </>
                     )}
                 </div>
             </div>

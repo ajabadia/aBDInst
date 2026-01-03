@@ -41,8 +41,8 @@ export async function analyzeInstrumentImage(formData: FormData) {
 
     try {
         const { getSystemConfig } = await import('./admin');
-        const systemPrompt = await getSystemConfig('ai_system_prompt');
-        const modelName = await getSystemConfig('ai_model_name') || 'gemini-1.5-flash';
+        const systemPrompt = await getSystemConfig('ai_system_prompt') || "You are an expert instrument appraiser. Analyze the provided image/text and return a JSON object with brand, model, type, year, description, specs (array of category/label/value), originalPrice (price/currency/year), and marketValue (estimatedPrice/currency/priceRange)."; // Fallback
+        const modelName = await getSystemConfig('ai_model_name') || 'gemini-2.0-flash-exp';
 
         console.log('--- GEMINI IMAGE ANALYSIS START ---');
         console.log(`Model: ${modelName}`);
@@ -107,8 +107,8 @@ export async function analyzeInstrumentText(query: string, contextUrls?: string[
 
     try {
         const { getSystemConfig } = await import('./admin');
-        const systemPrompt = await getSystemConfig('ai_system_prompt');
-        const modelName = await getSystemConfig('ai_model_name') || 'gemini-1.5-flash';
+        const systemPrompt = await getSystemConfig('ai_system_prompt') || "You are an expert instrument appraiser. Analyze the provided image/text and return a JSON object with brand, model, type, year, description, specs (array of category/label/value), originalPrice (price/currency/year), and marketValue (estimatedPrice/currency/priceRange).";
+        const modelName = await getSystemConfig('ai_model_name') || 'gemini-2.0-flash-exp';
 
         console.log('--- GEMINI TEXT ANALYSIS START ---');
         console.log('Query:', query);
@@ -154,6 +154,64 @@ export async function analyzeInstrumentText(query: string, contextUrls?: string[
         return { success: true, data: JSON.parse(textContent) };
     } catch (error: any) {
         console.error('Gemini Text Analysis Error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function analyzeBulkList(textList: string) {
+    const session = await auth();
+    if (!session) return { success: false, error: 'No autorizado' };
+
+    const apiKey = process.env.GEMINI_API_KEY;
+
+    if (!apiKey) {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        // Mock response for quick dev without API key cost/latency
+        return {
+            success: true,
+            data: [
+                { brand: 'Fender', model: 'Stratocaster', year: '1954', type: 'Electric Guitar' },
+                { brand: 'Gibson', model: 'Les Paul Standard', year: '1959', type: 'Electric Guitar' },
+                { brand: 'Roland', model: 'Jupiter-8', year: '1981', type: 'Synthesizer' }
+            ]
+        };
+    }
+
+    try {
+        const { getSystemConfig } = await import('./admin');
+        const modelName = await getSystemConfig('ai_model_name') || 'gemini-2.0-flash-exp';
+        const bulkPrompt = await getSystemConfig('ai_bulk_prompt');
+
+        const prompt = bulkPrompt ? `${bulkPrompt}\n\nRAW LIST:\n${textList}` : `
+        You are an expert instrument appraiser. I will give you a raw list of instruments. 
+        Please parse them into a JSON ARRAY of objects.
+        Each object must have: brand, model, type, year (if estimable), and valid description.
+        If a line is garbage, ignore it.
+        
+        RAW LIST:
+        ${textList}
+        `;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [{ text: prompt }]
+                }],
+                generationConfig: { response_mime_type: "application/json" }
+            })
+        });
+
+        if (!response.ok) throw new Error(`Gemini API Error: ${response.status}`);
+
+        const json = await response.json();
+        const textContent = json.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!textContent) throw new Error('No content');
+
+        return { success: true, data: JSON.parse(textContent) };
+    } catch (error: any) {
+        console.error('Gemini Bulk Analysis Error:', error);
         return { success: false, error: error.message };
     }
 }

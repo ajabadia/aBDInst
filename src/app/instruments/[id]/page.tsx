@@ -17,6 +17,9 @@ import { ArrowLeft, FileText, Box, ChevronRight, Layers, Globe, ExternalLink, St
 import { getComments } from '@/actions/comments';
 import CommentSection from '@/components/comments/CommentSection';
 import ValuationSection from '@/components/valuation/ValuationSection';
+import InstrumentFinanceSection from '@/components/finance/InstrumentFinanceSection';
+import PersonalInventoryManager from '@/components/inventory/PersonalInventoryManager';
+import UserUnitDetails from '@/components/inventory/UserUnitDetails';
 import User from '@/models/User'; // Prepare to check ban status locally if needed
 import dbConnect from '@/lib/db';
 
@@ -59,7 +62,7 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
     const comments = commentsData.success ? commentsData.data : [];
 
     let currentUserFull = null;
-    let ownedItem = null;
+    let ownedItems: any[] = [];
 
     if (session?.user?.email) {
         await dbConnect();
@@ -72,12 +75,13 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
         // Fetch User Collection Item for ROI
         // We need to import UserCollection at top
         const UserCollection = (await import('@/models/UserCollection')).default;
-        ownedItem = await UserCollection.findOne({
+        // Fetch ALL instances of this instrument owned by user
+        ownedItems = await UserCollection.find({
             userId: (currentUserFull as any)._id,
             instrumentId: id,
             deletedAt: null // Only active items
-        }).select('acquisition').lean();
-        ownedItem = JSON.parse(JSON.stringify(ownedItem));
+        }).select('acquisition inventorySerial condition status images').lean(); // Added images
+        ownedItems = JSON.parse(JSON.stringify(ownedItems));
     }
 
     if (!instrument) {
@@ -297,14 +301,32 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
 
             {/* Market Value & Prices (Moved to bottom) */}
             {/* Always show if there is data OR if the user can edit (to add data) */}
-            {(instrument.marketValue || instrument.originalPrice || canEdit) && (
+            {/* Market Value & User Inventory */}
+            {ownedItems.length > 0 ? (
                 <div className="mt-24 border-t border-gray-100 dark:border-gray-800 pt-16">
-                    <ValuationSection
-                        instrument={instrument}
-                        purchasePrice={ownedItem?.acquisition?.price}
-                        canEdit={canEdit}
-                    />
+                    <h2 className="text-2xl font-semibold tracking-tight mb-8 dark:text-white">Mi Colección</h2>
+                    <PersonalInventoryManager items={ownedItems}>
+                        {ownedItems.map((unit: any) => (
+                            <UserUnitDetails
+                                key={unit._id}
+                                unit={unit}
+                                instrument={instrument}
+                                canEdit={canEdit}
+                            />
+                        ))}
+                    </PersonalInventoryManager>
                 </div>
+            ) : (
+                /* Global Valuation for Non-Owners */
+                (instrument.marketValue || instrument.originalPrice || canEdit) && (
+                    <div className="mt-24 border-t border-gray-100 dark:border-gray-800 pt-16">
+                        <ValuationSection
+                            instrument={instrument}
+                            purchasePrice={undefined}
+                            canEdit={canEdit}
+                        />
+                    </div>
+                )
             )}
 
             {/* Comments Section */}

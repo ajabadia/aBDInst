@@ -23,10 +23,10 @@ export async function createInstrument(data: FormData) {
 
         const rawData = {
             type: data.get('type'),
-            subtype: data.get('subtype'),
+            subtype: data.get('subtype')?.toString() || undefined,
             brand: data.get('brand'),
             model: data.get('model'),
-            version: data.get('version'),
+            version: data.get('version')?.toString() || undefined,
             years: data.get('years')?.toString().split(',').map(y => y.trim()).filter(y => y),
             description: data.get('description')?.toString(),
             websites: data.get('websites')
@@ -113,10 +113,10 @@ export async function updateInstrument(id: string, data: FormData) {
 
         const rawUpdateData = {
             type: data.get('type'),
-            subtype: data.get('subtype'),
+            subtype: data.get('subtype')?.toString() || undefined,
             brand: data.get('brand'),
             model: data.get('model'),
-            version: data.get('version'),
+            version: data.get('version')?.toString() || undefined,
             years: data.get('years')?.toString().split(',').map(y => y.trim()).filter(y => y),
             description: data.get('description')?.toString(),
             websites: data.get('websites')

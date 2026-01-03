@@ -21,8 +21,18 @@ const UserCollectionSchema = new Schema({
         price: { type: Number },
         currency: { type: String, default: 'EUR' },
         seller: { type: String },
-        source: { type: String } // e.g. Reverb, eBay
+        source: { type: String }, // e.g. Reverb, eBay
+        isOriginalOwner: { type: Boolean, default: false },
+        provenance: { type: String } // Notes on previous owners
     },
+
+    inventorySerial: { type: String }, // Internal ID/SKU e.g. "STRAT-01"
+
+    ownershipHistory: [{
+        ownerName: { type: String },
+        period: { type: String },
+        notes: { type: String }
+    }],
 
     sale: {
         date: { type: Date },

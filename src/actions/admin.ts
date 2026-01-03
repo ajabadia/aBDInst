@@ -1,120 +1,169 @@
 'use server';
 
-import dbConnect from '@/lib/db';
-import Config from '@/models/Config';
-import { auth } from '@/auth';
-import { revalidatePath } from 'next/cache';
+import { auth } from "@/auth";
+import dbConnect from "@/lib/db";
+import User from "@/models/User";
+import Comment from "@/models/Comment";
+import Instrument from "@/models/Instrument";
+import SystemConfig from "@/models/SystemConfig";
+import { revalidatePath } from "next/cache";
 
-const DEFAULT_PROMPT = `As a world-class musical instrument expert and data archivist, analyze the provided input (image or text) to extract an EXHAUSTIVE technical profile.
-
-CRITICAL RULES:
-1. REFERENCE SOURCES: If "Reference Sources" are provided in the text input, treat them as the PRIMARY and AUTHORITATIVE source of truth. Prioritize data found in those links over general training data.
-2. LANGUAGE: All descriptive text fields (subtype, description, label, value) MUST be in Spanish (castellano).
-3. GRANULARITY: Never group physical controls. Each knob, button, slider, and switch must be an individual entry in the "specs" array.
-4. LABELS: Use the exact label found on the hardware if possible (e.g., "Knob CUT OFF FREQ" instead of "Filtro").
-5. WEBSITES: Identify the official manufacturer product page URL. If there are multiple relevant official URLs (support, microsite, global), include all of them in an array of objects: \`[{ "url": "...", "isPrimary": boolean }]\`. Designate the most relevant official product page as \`isPrimary: true\`.
-6. CATEGORIES: Categorize every spec strictly into one of the following:
-   - "Información Básica": Format, version, synthesis type.
-   - "Sitio Web Oficial": The primary product URLs. (Note: The URLs must also be present in the root "websites" array).
-   - "Arquitectura y Voces": Polyphony, multitimbrality, core engine details.
-   - "Sección de Osciladores": Waveforms, tuning, sync, FM.
-   - "Sección de Percusión / Voces": Drum-specific parameters and engines.
-   - "Filtros y Amplificador": Filter types, resonance, VCA, drive.
-   - "Envolturas y Modulación": ADSR, LFOs, mod matrix.
-   - "Parámetros de Efectos": Reverb, delay, chorus, distortion settings.
-   - "Secuenciador y Memoria": Patterns, steps, memory slots, tracks.
-   - "Controles de Panel (Knobs/Faders)": Every physical pot, slider, and selector.
-   - "Botones de Sistema / Funciones": Function buttons, keyboard buttons, mode selectors.
-   - "CV / Gate y Sincronización": Voltages, triggers, clock I/O.
-   - "Pantalla e Indicadores": Display type, status LEDs, meters.
-   - "Efectos y Conectividad": Audio I/O, MIDI, USB, storage.
-   - "Alimentación y Energía": Battery type, current draw, power requirements.
-   - "Especificaciones Técnicas": Weight, dimensions, release year.
-   - "Precios y Valor": Original launch price, current estimated market value (EUR/USD).
-
-7. PRICES:
-    - Original Price: Find the original launch price and year (MSRP).
-    - Market Value: Estimate the current used market value (average) in EUR. Provide a min/max range based on condition.
-
-Format output as a single JSON object:
-{
-    "brand": "string",
-    "model": "string",
-    "type": "Synthesizer | Drum Machine | Guitar | Modular | Eurorack Module | Groovebox | Effect | Mixer | Drum Kit | Workstation | Controller",
-    "subtype": "Detailed subtype in Spanish",
-    "description": "Rich professional description in Spanish (2-3 sentences)",
-    "websites": [{ "url": "string", "isPrimary": boolean }],
-    "year": "YYYY or YYYY-YYYY",
-    "originalPrice": {
-        "price": number,
-        "currency": "USD | EUR | GBP | JPY",
-        "year": number
-    },
-    "marketValue": {
-        "current": {
-             "value": number,
-             "min": number,
-             "max": number,
-             "currency": "EUR"
-        }
-    },
-    "specs": [
-        { "category": "Category Name", "label": "Technical Label in Spanish", "value": "Detailed Value in Spanish" }
-    ]
-}`;
-
-const DEFAULT_MODEL = 'gemini-3-flash-preview';
-
-export async function getDefaultConfig() {
-    console.log('getDefaultConfig called - serving V2 prompt with prices');
-    return {
-        prompt: DEFAULT_PROMPT,
-        model: DEFAULT_MODEL
-    };
+// --- MIDDLEWARE ---
+async function requireAdmin() {
+    const session = await auth();
+    if ((session?.user as any)?.role !== 'admin') {
+        throw new Error("Acceso denegado: Se requieren permisos de administrador.");
+    }
+    await dbConnect();
+    return session;
 }
+
+// --- DASHBOARD DATA ---
+
+export async function getAdminStats() {
+    try {
+        await requireAdmin();
+
+        const pendingReports = await Comment.countDocuments({ reportCount: { $gt: 0 } });
+        const bannedUsers = await User.countDocuments({ isBanned: true });
+        const totalUsers = await User.countDocuments();
+        const totalInstruments = await Instrument.countDocuments();
+
+        return {
+            success: true,
+            data: {
+                pendingReports,
+                bannedUsers,
+                totalUsers,
+                totalInstruments
+            }
+        };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+// --- MODERATION QUEUE ---
+
+export async function getModerationQueue() {
+    try {
+        await requireAdmin();
+
+        // Get comments with reports
+        const reportedComments = await Comment.find({ reportCount: { $gt: 0 } })
+            .populate('userId', 'name email image strikes isBanned')
+            .sort({ reportCount: -1, updatedAt: -1 }) // Prioritize most reported
+            .lean();
+
+        // Ensure serialization
+        return { success: true, data: JSON.parse(JSON.stringify(reportedComments)) };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+// --- ACTIONS ---
+
+export async function manageReport(commentId: string, action: 'dismiss' | 'delete' | 'warning') {
+    try {
+        await requireAdmin();
+
+        const comment = await Comment.findById(commentId);
+        if (!comment) throw new Error("Comentario no encontrado");
+
+        if (action === 'dismiss') {
+            // Clear reports
+            comment.reports = [];
+            comment.reportCount = 0;
+            await comment.save();
+        } else if (action === 'delete') {
+            // Delete comment (or soft delete)
+            await Comment.findByIdAndDelete(commentId);
+            revalidatePath(`/instruments/${comment.instrumentId}`);
+        }
+
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function punishUser(userId: string, type: 'strike' | 'ban' | 'unban') {
+    try {
+        await requireAdmin();
+
+        const user = await User.findById(userId);
+        if (!user) throw new Error("Usuario no encontrado");
+
+        if (type === 'strike') {
+            user.strikes = (user.strikes || 0) + 1;
+
+            // Auto-ban logic: 3 strikes = ban
+            if (user.strikes >= 3) {
+                user.isBanned = true;
+            }
+            await user.save();
+            return { success: true, message: `Strike añadido. Total: ${user.strikes}` };
+        }
+
+        if (type === 'ban') {
+            user.isBanned = true;
+            await user.save();
+            // Optional: Hide all content
+            await Comment.updateMany({ userId: user._id }, { status: 'hidden' });
+            return { success: true, message: "Usuario baneado permanentemente." };
+        }
+
+        if (type === 'unban') {
+            user.isBanned = false;
+            user.strikes = 0; // Reset strikes?
+            await user.save();
+            return { success: true, message: "Usuario reactivado." };
+        }
+
+        return { success: false, error: "Acción desconocida" };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+
+// --- SYSTEM CONFIG ---
 
 export async function getSystemConfig(key: string) {
     try {
-        const session = await auth();
-        if (!session || (session.user as any).role !== 'admin') {
-            throw new Error('Unauthorized');
-        }
-
         await dbConnect();
-        const config = await Config.findOne({ key });
-
-        if (!config) {
-            if (key === 'ai_system_prompt') return DEFAULT_PROMPT;
-            if (key === 'ai_model_name') return DEFAULT_MODEL;
-            return null;
-        }
-
-        return config.value;
+        const config = await SystemConfig.findOne({ key });
+        return config ? config.value : null;
     } catch (error) {
-        console.error('Get Config Error:', error);
+        console.error(`Error fetching config ${key}:`, error);
         return null;
     }
 }
 
-export async function updateSystemConfig(key: string, value: any) {
+export async function setSystemConfig(key: string, value: any) {
     try {
-        const session = await auth();
-        if (!session || (session.user as any).role !== 'admin') {
-            throw new Error('Unauthorized');
-        }
+        await requireAdmin();
 
-        await dbConnect();
-
-        await Config.findOneAndUpdate(
+        await SystemConfig.findOneAndUpdate(
             { key },
-            { value },
+            { key, value },
             { upsert: true, new: true }
         );
 
-        revalidatePath('/dashboard/admin/settings');
+        revalidatePath('/admin');
         return { success: true };
     } catch (error: any) {
-        console.error('Update Config Error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function getAllSystemConfigs() {
+    try {
+        await requireAdmin();
+        const configs = await SystemConfig.find({}).lean();
+        return { success: true, data: JSON.parse(JSON.stringify(configs)) };
+    } catch (error: any) {
         return { success: false, error: error.message };
     }
 }

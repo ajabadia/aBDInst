@@ -128,10 +128,14 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">Número de Serie</label>
+                    <label className="block text-sm font-medium mb-1">Número de Serie (Fabricante)</label>
                     <input name="serialNumber" defaultValue={item.serialNumber} className="w-full text-black p-2 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600" />
                 </div>
                 <div>
+                    <label className="block text-sm font-medium mb-1">N/S Inventario (Interno)</label>
+                    <input name="inventorySerial" defaultValue={item.inventorySerial} className="w-full text-black p-2 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="Ej. KEY-001" />
+                </div>
+                <div className="md:col-span-2">
                     <label className="block text-sm font-medium mb-1">Ubicación / Estudio</label>
                     <input name="location" defaultValue={item.location} className="w-full text-black p-2 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="Ej. Home Studio, Rack B..." />
                 </div>
@@ -161,6 +165,28 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
                     <div>
                         <label className="block text-sm font-medium mb-1">Fuente (Reverb, Wallapop...)</label>
                         <input name="acquisition.source" defaultValue={item.acquisition?.source} className="w-full text-black p-2 border rounded" />
+                    </div>
+                    <div className="flex items-center gap-2 mt-4">
+                        <input
+                            type="checkbox"
+                            name="acquisition.isOriginalOwner"
+                            value="true"
+                            defaultChecked={item.acquisition?.isOriginalOwner}
+                            className="w-4 h-4 text-blue-600 rounded"
+                        />
+                        <label className="text-sm font-medium">Soy el primer dueño (Original Owner)</label>
+                    </div>
+                    <div></div> {/* Spacer */}
+
+                    <div className="col-span-2">
+                        <label className="block text-sm font-medium mb-1">Procedencia / Historia (Provenance)</label>
+                        <textarea
+                            name="acquisition.provenance"
+                            defaultValue={item.acquisition?.provenance}
+                            rows={2}
+                            className="w-full text-black p-2 border rounded text-sm placeholder:text-gray-400"
+                            placeholder="Historia del instrumento, propietarios anteriores importantes, giras..."
+                        ></textarea>
                     </div>
                 </div>
             </div>

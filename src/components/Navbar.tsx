@@ -172,25 +172,12 @@ export default function Navbar({ session }: { session: any }) {
                                                 <button
                                                     onClick={() => {
                                                         setUserMenuOpen(false);
-                                                        router.push('/dashboard/admin/settings');
-                                                    }}
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
-                                                >
-                                                    <Shield size={14} />
-                                                    Panel Admin
-                                                </button>
-                                            )}
-
-                                            {(session.user as any).role === 'admin' && (
-                                                <button
-                                                    onClick={() => {
-                                                        setUserMenuOpen(false);
-                                                        router.push('/dashboard/admin/moderation');
+                                                        router.push('/admin');
                                                     }}
                                                     className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
                                                 >
                                                     <Shield size={14} />
-                                                    Moderación
+                                                    Administración (IA & Config)
                                                 </button>
                                             )}
 

@@ -32,7 +32,10 @@ const nextConfig: NextConfig = {
   experimental: {
     serverActions: {
       bodySizeLimit: '500mb',
+      allowedOrigins: ['localhost:3000', '192.168.56.1:3000', '192.168.1.135:3000'],
     },
+    // For older Next.js versions or specific flags
+    // allowedDevOrigins: ['localhost:3000', '192.168.56.1:3000'], 
   },
   // Silence Turbopack/Webpack conflict error
   // @ts-ignore - The type definition might not be updated yet for this new property in Next.js 16

@@ -5,6 +5,7 @@ import { Bell } from 'lucide-react';
 import { getUnreadNotificationsCount, getNotifications, markAllAsRead } from '@/actions/notifications';
 import NotificationList from './NotificationList';
 import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 
 export default function NotificationBell() {
     const [isOpen, setIsOpen] = useState(false);
@@ -90,7 +91,14 @@ export default function NotificationBell() {
                         {loading ? (
                             <div className="p-4 text-center text-gray-400 text-sm">Cargando...</div>
                         ) : (
-                            <NotificationList notifications={notifications} onClose={() => setIsOpen(false)} />
+                            <>
+                                <NotificationList notifications={notifications} onClose={() => setIsOpen(false)} />
+                                <div className="border-t border-gray-100 dark:border-gray-800 p-2 text-center">
+                                    <Link href="/dashboard/notifications" onClick={() => setIsOpen(false)} className="text-xs font-semibold text-gray-500 hover:text-blue-600 block w-full py-1">
+                                        Ver historial completo
+                                    </Link>
+                                </div>
+                            </>
                         )}
                     </div>
                 </div>

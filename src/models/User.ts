@@ -19,6 +19,10 @@ const UserSchema = new Schema({
         type: Boolean,
         default: false
     },
+    strikes: {
+        type: Number,
+        default: 0
+    },
     followers: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     following: [{ type: Schema.Types.ObjectId, ref: 'User' }],
     storageProvider: {
