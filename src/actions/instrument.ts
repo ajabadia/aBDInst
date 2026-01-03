@@ -174,3 +174,20 @@ export async function getRelatedGear(id: string) {
         return [];
     }
 }
+
+export async function deleteInstruments(ids: string[]) {
+    try {
+        const session = await auth();
+        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
+            throw new Error('Unauthorized');
+        }
+
+        await dbConnect();
+        await Instrument.deleteMany({ _id: { $in: ids } });
+
+        revalidatePath('/instruments');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
