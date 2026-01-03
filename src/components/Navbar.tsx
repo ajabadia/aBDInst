@@ -6,11 +6,12 @@ import { signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import SettingsModal from './SettingsModal';
-import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, ChevronDown, Heart, Activity, Wrench } from 'lucide-react';
+import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, ChevronDown, Heart, Activity, Wrench, Bell } from 'lucide-react';
 import NotificationBell from './notifications/NotificationBell';
 import { Shield } from 'lucide-react';
 import { useVaultMode } from '@/context/VaultModeContext';
 import { useCommandPalette } from '@/context/CommandPaletteContext';
+import UserAvatar from './UserAvatar';
 
 export default function Navbar({ session }: { session: any }) {
     const router = useRouter();
@@ -33,6 +34,7 @@ export default function Navbar({ session }: { session: any }) {
     const navLinks = [
         { name: 'Catálogo', href: '/instruments', icon: Music },
         { name: 'Mi Colección', href: '/dashboard', icon: LayoutDashboard, authRequired: true },
+        { name: 'Alertas', href: '/dashboard/alerts', icon: Bell, authRequired: true },
         { name: 'Wishlist', href: '/dashboard/wishlist', icon: Heart, authRequired: true },
         { name: 'Feed', href: '/dashboard/feed', icon: Activity, authRequired: true },
         { name: 'Mantenimiento', href: '/dashboard/maintenance', icon: Wrench, authRequired: true },
@@ -126,13 +128,7 @@ export default function Navbar({ session }: { session: any }) {
                                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Usuario</p>
                                         <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">{session.user.name}</p>
                                     </div>
-                                    <div className="w-10 h-10 rounded-full border-2 border-white dark:border-gray-800 shadow-sm overflow-hidden bg-gray-100 flex items-center justify-center group-hover:border-blue-500 transition-all">
-                                        {session.user.image ? (
-                                            <img src={session.user.image} alt="" className="w-full h-full object-cover" />
-                                        ) : (
-                                            <User size={20} className="text-gray-400" />
-                                        )}
-                                    </div>
+                                    <UserAvatar user={session.user} size={40} className="w-10 h-10 border-2 border-white dark:border-gray-800 group-hover:border-blue-500 transition-all" />
                                 </button>
 
                                 {/* Dropdown Menu */}

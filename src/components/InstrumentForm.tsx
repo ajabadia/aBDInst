@@ -9,7 +9,8 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Tabs, Tab } from '@/components/Tabs';
 import { Button } from './ui/Button';
-import { Save, X, Star, StarOff, Globe } from 'lucide-react';
+import { Save, X, Star, StarOff, Globe, Link as LinkIcon, FileText, Plus } from 'lucide-react';
+import ResourceSection from './resources/ResourceSection';
 import MagicImporter from './MagicImporter';
 
 
@@ -17,12 +18,13 @@ import MagicImporter from './MagicImporter';
 interface InstrumentFormProps {
     initialData?: any;
     instrumentId?: string;
+    resources?: any[];
 }
 
 // Simplified internal types for the form state
 type SpecItem = { category: string; label: string; value: string };
 
-export default function InstrumentForm({ initialData, instrumentId }: InstrumentFormProps) {
+export default function InstrumentForm({ initialData, instrumentId, resources = [] }: InstrumentFormProps) {
     const isEditing = !!instrumentId;
     // Initialize specs from initialData or empty array
     // initialData.specs might be an array (new format) or object (old format - we should probably ignore old format or migrate manually)
@@ -156,7 +158,7 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
     }
 
     return (
-        <form action={action} className="space-y-6 max-w-4xl mx-auto bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2.5rem] border border-gray-200/50 dark:border-white/10 p-10 shadow-2xl">
+        <form action={action} className="space-y-6 max-w-7xl mx-auto apple-card p-8 md:p-12 shadow-2xl">
 
             <div className="flex justify-end mb-4">
                 <MagicImporter
@@ -419,13 +421,13 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                     <div className="space-y-6 pt-4">
                         {/* Image Upload */}
                         <div>
-                            <label className="block text-sm font-medium mb-1">Imágenes</label>
+                            <label className="apple-label">Imágenes</label>
                             <div className="mb-4 space-y-2">
                                 {images.map((img, idx) => (
                                     <div key={img} className="flex items-center gap-4 bg-gray-50 dark:bg-gray-700 p-2 rounded">
                                         <img src={img} alt={`Preview ${idx}`} className="w-16 h-16 object-cover rounded" />
                                         <div className="flex-1">
-                                            {idx === 0 && <span className="text-xs font-bold text-green-600 uppercase bg-green-100 px-2 py-1 rounded">Principal</span>}
+                                            {idx === 0 && <span className="text-[10px] font-bold text-white uppercase bg-green-500 px-2 py-0.5 rounded-full tracking-wide">Principal</span>}
                                         </div>
                                         <div className="flex gap-2">
                                             {idx > 0 && (
@@ -463,7 +465,8 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                                         type="text"
                                         id="img-url-input"
                                         placeholder="O pegar URL de imagen..."
-                                        className="flex-1 text-sm p-2 border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                                        placeholder="O pegar URL de imagen..."
+                                        className="apple-input flex-1"
                                         onKeyDown={(e) => {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
@@ -478,7 +481,7 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                                             const input = document.getElementById('img-url-input') as HTMLInputElement;
                                             if (input && input.value) { addImage(input.value); input.value = ''; }
                                         }}
-                                        className="bg-gray-200 dark:bg-gray-600 px-3 py-2 rounded text-sm hover:bg-gray-300 dark:hover:bg-gray-500"
+                                        className="apple-button-secondary py-2.5 px-4 h-full"
                                     >
                                         Añadir URL
                                     </button>
@@ -492,7 +495,7 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
 
                         {/* Documents Section */}
                         <div>
-                            <label className="block text-sm font-medium mb-1">Documentación / Archivos</label>
+                            <label className="apple-label">Documentación / Archivos</label>
                             <div className="mb-4 space-y-2">
                                 {documents.map((doc, idx) => (
                                     <div key={idx} className="flex items-center gap-4 bg-gray-50 dark:bg-gray-700 p-2 rounded">
@@ -505,7 +508,7 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                                                 value={doc.title}
                                                 onChange={(e) => updateDocumentTitle(idx, e.target.value)}
                                                 placeholder="Título del documento"
-                                                className="w-full text-sm p-1 border-b bg-transparent border-gray-300 dark:border-gray-500 focus:outline-none focus:border-blue-500"
+                                                className="w-full text-sm p-1 border-b bg-transparent border-gray-200 dark:border-gray-700 focus:outline-none focus:border-ios-blue transition-colors placeholder:text-gray-400"
                                             />
                                             <a href={doc.url} target="_blank" className="text-xs text-blue-500 hover:underline truncate block max-w-xs">{doc.url}</a>
                                         </div>
@@ -529,20 +532,25 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                                 />
 
                                 {/* Manual Document URL Input */}
-                                <div className="flex flex-col md:flex-row gap-2 items-start md:items-center bg-gray-50 dark:bg-gray-800 p-3 rounded border dark:border-gray-700">
-                                    <span className="text-sm font-medium whitespace-nowrap">Añadir enlace externo:</span>
-                                    <input
-                                        type="text"
-                                        id="doc-title-input"
-                                        placeholder="Título (ej. Manual PDF)"
-                                        className="w-full md:w-1/3 text-sm p-2 border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                                    />
-                                    <input
-                                        type="text"
-                                        id="doc-url-input"
-                                        placeholder="URL (https://...)"
-                                        className="flex-1 w-full text-sm p-2 border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600"
-                                    />
+                                <div className="flex flex-col md:flex-row gap-3 items-center apple-card p-4 bg-gray-50/50 dark:bg-white/5">
+                                    <div className="relative w-full md:w-1/3">
+                                        <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            id="doc-title-input"
+                                            placeholder="Título del Enlace"
+                                            className="apple-input w-full pl-10"
+                                        />
+                                    </div>
+                                    <div className="relative flex-1 w-full">
+                                        <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                                        <input
+                                            type="text"
+                                            id="doc-url-input"
+                                            placeholder="https://..."
+                                            className="apple-input w-full pl-10"
+                                        />
+                                    </div>
                                     <button
                                         type="button"
                                         onClick={() => {
@@ -563,7 +571,7 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                                                 toast.warning('Por favor introduce al menos una URL');
                                             }
                                         }}
-                                        className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-4 py-2 rounded text-sm hover:bg-blue-200 whitespace-nowrap"
+                                        className="apple-button-secondary py-2 px-4 whitespace-nowrap h-[42px]"
                                     >
                                         + Añadir Link
                                     </button>
@@ -571,6 +579,27 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                             </div>
 
 
+                        </div>
+
+                        <hr className="border-gray-200 dark:border-gray-700" />
+
+                        {/* Resource Section for Patches, Manuals, Videos */}
+                        <div className="pt-4">
+                            {instrumentId ? (
+                                <ResourceSection
+                                    instrumentId={instrumentId}
+                                    resources={resources}
+                                    canEdit={true}
+                                    defaultVisibility="public"
+                                />
+                            ) : (
+                                <div className="p-6 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+                                    <p className="text-gray-500">
+                                        Para subir archivos (Manuales, Patches, Videos), primero debes
+                                        <span className="font-bold"> guardar el instrumento</span>.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </Tab>
@@ -586,13 +615,13 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                             const categorySpecs = specs.map((spec, index) => ({ ...spec, index })).filter(s => s.category === category);
 
                             return (
-                                <div key={category} className="mb-6 p-4 border rounded-lg dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
+                                <div key={category} className="mb-6 apple-card p-5 bg-white/50 dark:bg-white/5">
                                     <div className="flex justify-between items-center mb-3">
                                         <h4 className="font-semibold text-blue-600 dark:text-blue-400">{category}</h4>
                                         <button
                                             type="button"
                                             onClick={() => addSpec(category)}
-                                            className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 px-2 py-1 rounded hover:bg-blue-200 dark:hover:bg-blue-800 transition"
+                                            className="text-xs bg-blue-50 dark:bg-blue-900/30 text-ios-blue font-medium px-2.5 py-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800 transition"
                                         >
                                             + Añadir Dato
                                         </button>
@@ -607,7 +636,7 @@ export default function InstrumentForm({ initialData, instrumentId }: Instrument
                                                         placeholder="Propiedad"
                                                         value={spec.label}
                                                         onChange={(e) => updateSpec(spec.index, 'label', e.target.value)}
-                                                        className="w-full text-sm p-2 border rounded bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white"
+                                                        className="apple-input"
                                                     />
                                                     <datalist id={`suggestions-${category.replace(/\s/g, '-')}`}>
                                                         {PREDEFINED_SPECS[category]?.map(opt => (

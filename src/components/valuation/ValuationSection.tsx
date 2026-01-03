@@ -1,15 +1,65 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import InstrumentValueChart from './InstrumentValueChart';
 import ValuationModal from './ValuationModal';
 import ValuationHistoryModal from './ValuationHistoryModal';
 import { Button } from '@/components/ui/Button';
-import { TrendingUp, Plus, List } from 'lucide-react';
+import { TrendingUp, Plus, List, Bell } from 'lucide-react';
+import { createPriceAlert, checkIsTracked, deletePriceAlert } from '@/actions/scraping';
+import { toast } from 'sonner';
 
 export default function ValuationSection({ instrument, purchasePrice, canEdit }: { instrument: any, purchasePrice?: number, canEdit: boolean }) {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+    const [isTracking, setIsTracking] = useState(false);
+    const [trackedAlertId, setTrackedAlertId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const checkStatus = async () => {
+            if (canEdit) {
+                const id = instrument._id || instrument.id;
+                if (id) {
+                    const res = await checkIsTracked(id);
+                    if (res.isTracked) setTrackedAlertId(res.alertId);
+                }
+            }
+        };
+        checkStatus();
+    }, [canEdit, instrument]);
+
+    const handleToggleTrack = async () => {
+        setIsTracking(true);
+        try {
+            if (trackedAlertId) {
+                // Stop monitoring
+                const res = await deletePriceAlert(trackedAlertId);
+                if (res.success) {
+                    setTrackedAlertId(null);
+                    toast.success('Rastreo detenido');
+                } else {
+                    toast.error('Error al detener');
+                }
+            } else {
+                // Start monitoring
+                const query = `${instrument.brand} ${instrument.model}`;
+                const res = await createPriceAlert({
+                    query,
+                    instrumentId: instrument._id || instrument.id
+                });
+                if (res.success) {
+                    setTrackedAlertId(res.id);
+                    toast.success('Monitorizando mercado', { description: query });
+                } else {
+                    toast.error(res.error || 'Error al activar');
+                }
+            }
+        } catch (e) {
+            toast.error('Error de conexión');
+        } finally {
+            setIsTracking(false);
+        }
+    };
 
     return (
         <div>
@@ -31,6 +81,21 @@ export default function ValuationSection({ instrument, purchasePrice, canEdit }:
                         >
                             <List className="w-4 h-4" />
                         </Button>
+
+                        <Button
+                            variant="secondary"
+                            onClick={handleToggleTrack}
+                            disabled={isTracking}
+                            className={`${trackedAlertId
+                                ? 'bg-green-100 text-green-700 hover:bg-red-100 hover:text-red-700 border-green-200 dark:bg-green-900/30 dark:text-green-400'
+                                : 'bg-amber-100 hover:bg-amber-200 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300'
+                                } border-transparent shadow-sm transition-all`}
+                            title={trackedAlertId ? "Click para detener rastreo" : "Crear alerta automática"}
+                        >
+                            <Bell className={`w-4 h-4 mr-2 ${trackedAlertId ? 'fill-current' : ''}`} />
+                            {isTracking ? '...' : (trackedAlertId ? 'Monitorizando' : 'Monitorizar')}
+                        </Button>
+
                         <Button
                             variant="primary" // Assuming primary maps to blue in the UI library or is default
                             onClick={() => setIsModalOpen(true)}
@@ -92,10 +157,8 @@ export default function ValuationSection({ instrument, purchasePrice, canEdit }:
                             }`}>
                             <p className="text-xs uppercase tracking-wide opacity-80">Rendimiento</p>
                             <p className="text-2xl font-bold mt-1">
-                                <p className="text-2xl font-bold mt-1">
-                                    {((instrument.marketValue?.current?.value || 0) - purchasePrice) > 0 ? '+' : ''}
-                                    {((instrument.marketValue?.current?.value || 0) - purchasePrice).toLocaleString('es-ES', { minimumFractionDigits: 2 })}€
-                                </p>
+                                {((instrument.marketValue?.current?.value || 0) - purchasePrice) > 0 ? '+' : ''}
+                                {((instrument.marketValue?.current?.value || 0) - purchasePrice).toLocaleString('es-ES', { minimumFractionDigits: 2 })}€
                             </p>
                         </div>
                     </>

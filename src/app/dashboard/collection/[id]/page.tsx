@@ -6,6 +6,8 @@ import MaintenanceHistory from '@/components/MaintenanceHistory';
 import { Tabs, Tab } from '@/components/Tabs';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
 import PersonalGallerySection from '@/components/gallery/PersonalGallerySection';
+import { getResources } from '@/actions/resource';
+import ResourceSection from '@/components/resources/ResourceSection';
 
 export default async function EditItemPage({ params }: { params: { id: string } }) {
     const { id } = await params;
@@ -13,6 +15,7 @@ export default async function EditItemPage({ params }: { params: { id: string } 
     if (!session) redirect('/api/auth/signin');
 
     const item = await getCollectionItemById(id);
+    const resources = await getResources({ collectionItemId: id });
 
     if (!item) notFound();
 
@@ -24,9 +27,9 @@ export default async function EditItemPage({ params }: { params: { id: string } 
 
             <div className="md:flex gap-6">
                 <div className="md:w-1/3 mb-6">
-                    <div className="aspect-square bg-gray-200 dark:bg-gray-700 rounded-lg mb-4 overflow-hidden shadow-sm border border-gray-200 dark:border-gray-700">
+                    <div className="aspect-square apple-card p-4 mb-4 overflow-hidden flex items-center justify-center bg-white dark:bg-white/5">
                         {item.instrumentId.genericImages?.[0] && (
-                            <img src={item.instrumentId.genericImages[0]} className="w-full h-full object-cover" />
+                            <img src={item.instrumentId.genericImages[0]} className="w-full h-full object-contain" />
                         )}
                     </div>
                     {/* Personal Gallery */}
@@ -62,6 +65,15 @@ export default async function EditItemPage({ params }: { params: { id: string } 
                                     maintenanceInterval={item.maintenanceInterval}
                                     maintenanceNotes={item.maintenanceNotes}
                                     instrumentName={`${item.instrumentId.brand} ${item.instrumentId.model}`}
+                                />
+                            </div>
+                        </Tab>
+                        <Tab label="Archivos / Patches">
+                            <div className="pt-4">
+                                <ResourceSection
+                                    collectionItemId={item._id}
+                                    resources={resources}
+                                    canEdit={true}
                                 />
                             </div>
                         </Tab>

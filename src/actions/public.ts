@@ -38,6 +38,7 @@ export async function getPublicProfile(userId: string) {
                 _id: doc._id.toString(),
                 status: doc.status,
                 condition: doc.condition,
+                images: doc.images || [],
                 instrumentId: {
                     _id: doc.instrumentId._id.toString(),
                     brand: doc.instrumentId.brand,

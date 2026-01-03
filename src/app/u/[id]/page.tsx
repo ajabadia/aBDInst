@@ -3,6 +3,7 @@ import CollectionItemCard from '@/components/CollectionItemCard';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import { ShieldCheck, Calendar } from 'lucide-react';
+import UserAvatar from '@/components/UserAvatar';
 
 export default async function PublicProfilePage({ params }: { params: { id: string } }) {
     const data = await getPublicProfile(params.id);
@@ -16,17 +17,12 @@ export default async function PublicProfilePage({ params }: { params: { id: stri
     return (
         <div className="min-h-screen bg-gray-50 dark:bg-[#0a0a0a]">
             {/* HERO HEADER */}
-            <div className="relative bg-white dark:bg-black border-b border-gray-200 dark:border-white/10 pt-12 pb-16 overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-900/10 dark:to-purple-900/10" />
+            <div className="relative bg-white dark:bg-black border-b border-gray-200 dark:border-gray-800 pt-12 pb-16">
 
                 <div className="max-w-7xl mx-auto px-6 relative z-10">
                     <div className="flex flex-col md:flex-row items-center gap-8 justify-center md:justify-start text-center md:text-left">
-                        <div className="relative w-32 h-32 rounded-full border-4 border-white dark:border-black shadow-xl overflow-hidden">
-                            {user.image ? (
-                                <Image src={user.image} alt={user.name} fill className="object-cover" />
-                            ) : (
-                                <div className="w-full h-full bg-gradient-to-br from-blue-400 to-purple-500" />
-                            )}
+                        <div className="relative w-32 h-32 rounded-full border-4 border-white dark:border-black shadow-xl">
+                            <UserAvatar user={user} size={128} className="w-full h-full" />
                         </div>
 
                         <div>

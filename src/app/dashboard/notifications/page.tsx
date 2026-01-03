@@ -7,7 +7,7 @@ export default async function NotificationsPage() {
     const notifications = success ? data : [];
 
     return (
-        <div className="container mx-auto px-6 py-12 max-w-4xl">
+        <div className="container mx-auto px-6 py-12 max-w-7xl">
             <div className="flex items-center gap-4 mb-8">
                 <div className="p-3 bg-blue-100 dark:bg-blue-900/20 text-blue-600 rounded-xl">
                     <Bell size={24} />

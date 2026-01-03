@@ -3,7 +3,12 @@
 import ActivityItem from './ActivityItem';
 import { LayoutList } from 'lucide-react';
 
-export default function ActivityFeed({ activities }: { activities: any[] }) {
+interface ActivityFeedProps {
+    activities: any[];
+    compact?: boolean;
+}
+
+export default function ActivityFeed({ activities, compact = false }: ActivityFeedProps) {
     if (!activities || activities.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center py-20 text-center opacity-60">

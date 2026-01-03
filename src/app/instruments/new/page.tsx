@@ -11,7 +11,7 @@ export default async function NewInstrumentPage() {
     }
 
     return (
-        <div className="container mx-auto p-4">
+        <div className="container mx-auto p-8 max-w-7xl">
             <h1 className="text-2xl font-bold mb-6 text-center">Nuevo Instrumento</h1>
             <InstrumentForm />
         </div>

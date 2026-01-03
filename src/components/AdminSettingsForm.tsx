@@ -9,11 +9,13 @@ import { Save, RotateCcw, Sparkles, Smartphone } from 'lucide-react';
 interface AdminSettingsFormProps {
     initialPrompt: string;
     initialModel: string;
+    initialProxy: string;
 }
 
-export default function AdminSettingsForm({ initialPrompt, initialModel }: AdminSettingsFormProps) {
+export default function AdminSettingsForm({ initialPrompt, initialModel, initialProxy }: AdminSettingsFormProps) {
     const [prompt, setPrompt] = useState(initialPrompt);
     const [modelName, setModelName] = useState(initialModel);
+    const [scraperProxy, setScraperProxy] = useState(initialProxy || '');
     const [loading, setLoading] = useState(false);
 
     const handleSave = async () => {
@@ -21,8 +23,9 @@ export default function AdminSettingsForm({ initialPrompt, initialModel }: Admin
         try {
             const resP = await updateSystemConfig('ai_system_prompt', prompt);
             const resM = await updateSystemConfig('ai_model_name', modelName);
+            const resProxy = await updateSystemConfig('scraper_proxy_url', scraperProxy);
 
-            if (resP.success && resM.success) {
+            if (resP.success && resM.success && resProxy.success) {
                 toast.success('Configuración actualizada correctamente');
             } else {
                 toast.error('Ocurrió un error al guardar');
@@ -40,6 +43,7 @@ export default function AdminSettingsForm({ initialPrompt, initialModel }: Admin
                 const defaults = await getDefaultConfig();
                 setPrompt(defaults.prompt);
                 setModelName(defaults.model);
+                setScraperProxy(''); // Default is empty
                 toast.success('Valores por defecto cargados. Recuerda guardar.');
             } catch (error) {
                 toast.error('Error al cargar valores por defecto');
@@ -70,6 +74,33 @@ export default function AdminSettingsForm({ initialPrompt, initialModel }: Admin
                         />
                         <p className="text-[10px] text-gray-400 mt-2 px-1">
                             Valores sugeridos: <code className="text-purple-500">gemini-3-flash-preview</code>, <code className="text-purple-500">gemini-2.0-flash-exp</code>, <code className="text-purple-500">gemini-1.5-flash</code>
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            {/* NEW PROXY SECTION */}
+            <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-200 dark:border-gray-800 shadow-sm">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-green-100 dark:bg-green-900/30 flex items-center justify-center text-green-600">
+                        <span className="font-bold text-xs">IP</span>
+                    </div>
+                    <div>
+                        <h2 className="text-xl font-bold">Proxy de Scraping</h2>
+                        <p className="text-sm text-gray-500">Configuración de red para evitar bloqueos (Reverb, eBay)</p>
+                    </div>
+                </div>
+                <div className="space-y-4">
+                    <div className="relative">
+                        <input
+                            value={scraperProxy}
+                            onChange={(e) => setScraperProxy(e.target.value)}
+                            className="apple-input font-mono text-sm"
+                            placeholder="http://user:pass@host:port"
+                            type="password"
+                        />
+                        <p className="text-[10px] text-gray-400 mt-2 px-1">
+                            Dejar vacío si no se usa. Soporta HTTP/HTTPS.
                         </p>
                     </div>
                 </div>

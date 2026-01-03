@@ -1,6 +1,7 @@
 
 import { auth } from '@/auth';
 import { getInstrumentById } from '@/actions/instrument';
+import { getResources } from '@/actions/resource';
 import InstrumentForm from '@/components/InstrumentForm';
 import { notFound, redirect } from 'next/navigation';
 
@@ -14,15 +15,16 @@ export default async function EditInstrumentPage({ params }: { params: { id: str
     }
 
     const instrument = await getInstrumentById(id);
+    const resources = await getResources({ instrumentId: id });
 
     if (!instrument) {
         notFound();
     }
 
     return (
-        <div className="container mx-auto p-4 max-w-2xl">
+        <div className="container mx-auto p-8 max-w-7xl">
             <h1 className="text-2xl font-bold mb-6">Editar Instrumento</h1>
-            <InstrumentForm initialData={instrument} instrumentId={id} />
+            <InstrumentForm initialData={instrument} instrumentId={id} resources={resources} />
         </div>
     );
 }

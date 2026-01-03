@@ -33,7 +33,10 @@ export default function CommandPalette() {
                         />
                     </div>
 
-                    <Command.List className="max-h-[300px] overflow-y-auto overflow-x-hidden p-2">
+                    <Command.List
+                        className="max-h-[300px] overflow-y-auto overflow-x-hidden p-2 [&::-webkit-scrollbar]:hidden"
+                        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+                    >
                         <Command.Empty className="py-6 text-center text-sm text-gray-500">
                             No se encontraron resultados.
                         </Command.Empty>

@@ -24,28 +24,28 @@ export default function InsuranceManager({ collectionItemId, policies }: Insuran
     };
 
     const handleNew = () => {
-        setSelectedPolicy(null);
-        setIsEditing(true);
+        setEditingPolicy(null);
+        setIsFormOpen(true);
     };
 
     const handleDelete = async (id: string) => {
         if (!confirm('¿Seguro que quieres borrar esta póliza?')) return;
-        const res = await deleteInsurancePolicy(id, instrumentId);
+        const res = await deleteInsurancePolicy(id, collectionItemId);
         if (res.success) toast.success('Póliza eliminada');
         else toast.error('Error al eliminar');
     };
 
     const isActive = (endDate: string) => new Date(endDate) > new Date();
 
-    if (isEditing) {
+    if (isFormOpen) {
         return (
             <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-                <h3 className="text-lg font-bold mb-4">{selectedPolicy ? 'Editar Póliza' : 'Nueva Póliza'}</h3>
+                <h3 className="text-lg font-bold mb-4">{editingPolicy ? 'Editar Póliza' : 'Nueva Póliza'}</h3>
                 <InsuranceForm
-                    instrumentId={instrumentId}
-                    policy={selectedPolicy}
-                    onClose={() => setIsEditing(false)}
-                    onSuccess={() => setIsEditing(false)}
+                    instrumentId={collectionItemId}
+                    policy={editingPolicy}
+                    onClose={() => setIsFormOpen(false)}
+                    onSuccess={() => setIsFormOpen(false)}
                 />
             </div>
         );

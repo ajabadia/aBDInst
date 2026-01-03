@@ -10,7 +10,7 @@ export default async function FeedPage() {
     const { data: activities, error } = await getUserFeed();
 
     return (
-        <div className="max-w-4xl mx-auto p-6 md:p-10">
+        <div className="container mx-auto max-w-7xl p-6 md:p-8">
             <div className="flex items-center gap-4 mb-8">
                 <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-2xl text-blue-600 dark:text-blue-400">
                     <Activity size={32} />

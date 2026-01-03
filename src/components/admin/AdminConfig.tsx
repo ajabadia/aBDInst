@@ -75,6 +75,7 @@ Format output as a single JSON object:
     const [modelName, setModelName] = useState(getValue('ai_model_name', 'gemini-2.0-flash-exp'));
     const [systemPrompt, setSystemPrompt] = useState(getValue('ai_system_prompt', DEFAULT_SYSTEM));
     const [bulkPrompt, setBulkPrompt] = useState(getValue('ai_bulk_prompt', DEFAULT_BULK));
+    const [scraperProxy, setScraperProxy] = useState(getValue('scraper_proxy_url', ''));
     const [loading, setLoading] = useState(false);
 
     const handleSave = async () => {
@@ -83,7 +84,8 @@ Format output as a single JSON object:
             await Promise.all([
                 setSystemConfig('ai_model_name', modelName),
                 setSystemConfig('ai_system_prompt', systemPrompt),
-                setSystemConfig('ai_bulk_prompt', bulkPrompt)
+                setSystemConfig('ai_bulk_prompt', bulkPrompt),
+                setSystemConfig('scraper_proxy_url', scraperProxy)
             ]);
             toast.success('Configuración guardada correctamente');
         } catch (error) {
@@ -93,17 +95,15 @@ Format output as a single JSON object:
         }
     };
 
-
-
     const resetDefaults = () => {
         setSystemPrompt(DEFAULT_SYSTEM);
         setBulkPrompt(DEFAULT_BULK);
         setModelName('gemini-2.0-flash-exp');
+        setScraperProxy('');
     };
 
     return (
         <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-
             <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-white/5">
                 <div className="flex items-center gap-3">
                     <div className="p-2 bg-purple-100 text-purple-600 rounded-lg dark:bg-purple-900/30">
@@ -117,7 +117,26 @@ Format output as a single JSON object:
             </div>
 
             <div className="p-6 space-y-6">
-                <div>
+
+                {/* Proxy Section - Added for Visibility */}
+                <div className="bg-blue-50 dark:bg-blue-900/10 p-4 rounded-xl border border-blue-100 dark:border-blue-800">
+                    <label className="block text-sm font-bold text-blue-900 dark:text-blue-100 mb-2 flex items-center gap-2">
+                        <span className="bg-blue-600 text-white text-[10px] px-1.5 py-0.5 rounded uppercase">Nuevo</span>
+                        Proxy de Scraping (Anti-Bloqueo)
+                    </label>
+                    <input
+                        type="text"
+                        value={scraperProxy}
+                        onChange={(e) => setScraperProxy(e.target.value)}
+                        className="apple-input font-mono text-sm border-blue-200 focus:ring-blue-500"
+                        placeholder="http://user:pass@host:port"
+                    />
+                    <p className="text-xs text-blue-600/80 dark:text-blue-300 mt-2">
+                        Introduce aquí tu proxy para activar el rastreo de precios en Reverb/eBay.
+                    </p>
+                </div>
+
+                <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 flex items-center gap-2">
                         <Cpu size={16} />
                         Modelo Gemini

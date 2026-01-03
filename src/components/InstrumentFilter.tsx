@@ -52,7 +52,7 @@ export default function InstrumentFilter() {
             </div>
 
             {isOpen && (
-                <div className="mt-4 p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-xl shadow-gray-200/50 dark:shadow-none animate-in fade-in slide-in-from-top-2">
+                <div className="mt-4 glass-panel rounded-[1.5rem] p-6 shadow-apple-lg animate-in fade-in slide-in-from-top-2 z-10 relative">
                     <div className="flex items-center justify-between mb-4">
                         <h3 className="font-semibold text-gray-900 dark:text-white">Filtrar por Categoría</h3>
                         <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-900">

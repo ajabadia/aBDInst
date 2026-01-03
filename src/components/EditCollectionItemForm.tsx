@@ -18,7 +18,7 @@ function SubmitButton() {
             type="submit"
             disabled={pending}
             disabled={pending}
-            className="w-full bg-gray-900 dark:bg-white text-white dark:text-gray-900 py-2.5 rounded-lg font-medium hover:opacity-90 transition disabled:opacity-50"
+            className="w-full apple-button-primary justify-center py-3"
         >
             {pending ? 'Guardando...' : 'Guardar Cambios'}
         </button>
@@ -80,12 +80,12 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
     };
 
     return (
-        <form action={action} className="space-y-6 bg-white dark:bg-gray-800 p-6 rounded shadow">
+        <form action={action} className="space-y-6 apple-card p-6">
 
             <div className="grid grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">Estado</label>
-                    <select name="status" defaultValue={item.status} className="w-full text-black p-2 border rounded">
+                    <label className="apple-label">Estado</label>
+                    <select name="status" defaultValue={item.status} className="apple-select">
                         <option value="active">Activo (En mi estudio)</option>
                         <option value="sold">Vendido</option>
                         <option value="wishlist">Lista de Deseos</option>
@@ -93,8 +93,8 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
                     </select>
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">Condición</label>
-                    <select name="condition" defaultValue={item.condition} className="w-full text-black p-2 border rounded">
+                    <label className="apple-label">Condición</label>
+                    <select name="condition" defaultValue={item.condition} className="apple-select">
                         <option value="new">Nuevo</option>
                         <option value="excellent">Excelente</option>
                         <option value="good">Bueno</option>
@@ -114,7 +114,7 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
                         name="marketValue.current"
                         type="number"
                         defaultValue={item.marketValue?.current}
-                        className="w-full text-black p-2 border rounded border-blue-200 focus:ring-blue-500 dark:bg-gray-700 dark:text-white dark:border-gray-600"
+                        className="apple-input border-ios-blue/30 focus:border-ios-blue"
                         placeholder="Valor de mercado actual..."
                     />
                     <div className="flex items-center text-sm text-gray-500 px-3 bg-gray-50 dark:bg-gray-600 dark:text-gray-300 rounded border dark:border-gray-500">
@@ -128,16 +128,16 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                    <label className="block text-sm font-medium mb-1">Número de Serie (Fabricante)</label>
-                    <input name="serialNumber" defaultValue={item.serialNumber} className="w-full text-black p-2 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600" />
+                    <label className="apple-label">Número de Serie (Fabricante)</label>
+                    <input name="serialNumber" defaultValue={item.serialNumber} className="apple-input" />
                 </div>
                 <div>
-                    <label className="block text-sm font-medium mb-1">N/S Inventario (Interno)</label>
-                    <input name="inventorySerial" defaultValue={item.inventorySerial} className="w-full text-black p-2 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="Ej. KEY-001" />
+                    <label className="apple-label">N/S Inventario (Interno)</label>
+                    <input name="inventorySerial" defaultValue={item.inventorySerial} className="apple-input" placeholder="Ej. KEY-001" />
                 </div>
                 <div className="md:col-span-2">
-                    <label className="block text-sm font-medium mb-1">Ubicación / Estudio</label>
-                    <input name="location" defaultValue={item.location} className="w-full text-black p-2 border rounded dark:bg-gray-700 dark:text-white dark:border-gray-600" placeholder="Ej. Home Studio, Rack B..." />
+                    <label className="apple-label">Ubicación / Estudio</label>
+                    <input name="location" defaultValue={item.location} className="apple-input" placeholder="Ej. Home Studio, Rack B..." />
                 </div>
             </div>
 
@@ -145,26 +145,26 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
                 <h3 className="font-semibold mb-3">Datos de Adquisición</h3>
                 <div className="grid grid-cols-2 gap-4">
                     <div>
-                        <label className="block text-sm font-medium mb-1">Fecha de Compra</label>
-                        <input name="acquisition.date" type="date" defaultValue={item.acquisition?.date} className="w-full text-black p-2 border rounded" />
+                        <label className="apple-label">Fecha de Compra</label>
+                        <input name="acquisition.date" type="date" defaultValue={item.acquisition?.date} className="apple-input" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Precio</label>
+                        <label className="apple-label">Precio</label>
                         <div className="flex gap-2">
-                            <input name="acquisition.price" type="number" defaultValue={item.acquisition?.price} className="w-full text-black p-2 border rounded" placeholder="0.00" />
-                            <select name="acquisition.currency" defaultValue={item.acquisition?.currency || 'EUR'} className="text-black p-2 border rounded">
+                            <input name="acquisition.price" type="number" defaultValue={item.acquisition?.price} className="apple-input" placeholder="0.00" />
+                            <select name="acquisition.currency" defaultValue={item.acquisition?.currency || 'EUR'} className="apple-select w-24">
                                 <option value="EUR">EUR</option>
                                 <option value="USD">USD</option>
                             </select>
                         </div>
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Vendedor</label>
-                        <input name="acquisition.seller" defaultValue={item.acquisition?.seller} className="w-full text-black p-2 border rounded" />
+                        <label className="apple-label">Vendedor</label>
+                        <input name="acquisition.seller" defaultValue={item.acquisition?.seller} className="apple-input" />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium mb-1">Fuente (Reverb, Wallapop...)</label>
-                        <input name="acquisition.source" defaultValue={item.acquisition?.source} className="w-full text-black p-2 border rounded" />
+                        <label className="apple-label">Fuente (Reverb, Wallapop...)</label>
+                        <input name="acquisition.source" defaultValue={item.acquisition?.source} className="apple-input" />
                     </div>
                     <div className="flex items-center gap-2 mt-4">
                         <input
@@ -179,12 +179,12 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
                     <div></div> {/* Spacer */}
 
                     <div className="col-span-2">
-                        <label className="block text-sm font-medium mb-1">Procedencia / Historia (Provenance)</label>
+                        <label className="apple-label">Procedencia / Historia (Provenance)</label>
                         <textarea
                             name="acquisition.provenance"
                             defaultValue={item.acquisition?.provenance}
                             rows={2}
-                            className="w-full text-black p-2 border rounded text-sm placeholder:text-gray-400"
+                            className="apple-input"
                             placeholder="Historia del instrumento, propietarios anteriores importantes, giras..."
                         ></textarea>
                     </div>
@@ -192,8 +192,8 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
             </div>
 
             <div className="border-t pt-4 dark:border-gray-700">
-                <label className="block text-sm font-medium mb-1">Notas Privadas</label>
-                <textarea name="customNotes" defaultValue={item.customNotes} rows={3} className="w-full text-black p-2 border rounded"></textarea>
+                <label className="apple-label">Notas Privadas</label>
+                <textarea name="customNotes" defaultValue={item.customNotes} rows={3} className="apple-input"></textarea>
             </div>
 
             {/* TAGS SECTION */}

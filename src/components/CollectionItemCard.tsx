@@ -15,17 +15,17 @@ export default function CollectionItemCard({ item, publicView = false }: { item:
 
     return (
         <Wrapper {...(wrapperProps as any)}>
-            <div className="bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2.5rem] border border-gray-200/50 dark:border-white/10 p-6 shadow-sm hover:shadow-2xl transition-all duration-500 overflow-hidden">
+            <div className="apple-card p-6 overflow-hidden">
 
                 <div className="flex flex-col md:flex-row gap-8 items-center">
                     {/* IMAGEN MINIATURA */}
                     <div className="relative w-32 h-32 rounded-3xl bg-gray-50 dark:bg-black/20 overflow-hidden flex-shrink-0">
-                        {item.instrumentId.genericImages?.[0] ? (
+                        {(item.images?.[0] || item.instrumentId.genericImages?.[0]) ? (
                             <Image
-                                src={item.instrumentId.genericImages[0]}
+                                src={item.images?.[0] || item.instrumentId.genericImages?.[0]}
                                 alt={item.instrumentId.model}
                                 fill
-                                className="object-contain p-4 transition-transform group-hover:scale-110"
+                                className="object-cover transition-transform group-hover:scale-110"
                                 placeholder="blur"
                                 blurDataURL={getBlurDataURL()}
                             />

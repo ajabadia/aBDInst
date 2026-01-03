@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Save, Lock, User as UserIcon, MapPin, Globe, Phone, FileText, Trash2, Download } from 'lucide-react';
+import { Save, Lock, User as UserIcon, MapPin, Globe, Phone, FileText, Trash2, Download, Camera, Loader2, X } from 'lucide-react';
 import { toast } from 'sonner';
-import { updateUserProfile, changePassword, deleteAccount } from '@/actions/user';
+import { updateUserProfile, changePassword, deleteAccount, updateProfileImage, deleteProfileImage } from '@/actions/user';
 import { getExportData } from '@/actions/export';
 import { useRouter } from 'next/navigation';
+import UserAvatar from './UserAvatar';
+import { useRef } from 'react';
 
 interface UserSettingsFormProps {
     user: any;
@@ -35,6 +37,53 @@ export default function UserSettingsForm({ user }: UserSettingsFormProps) {
             phone: user.phone || '',
         });
     }, [user]);
+
+    // Image Upload Logic
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const [imageLoading, setImageLoading] = useState(false);
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        setImageLoading(true);
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await updateProfileImage(formData);
+            if (res.success) {
+                toast.success('Foto de perfil actualizada');
+                // Force router refresh to see new image
+                router.refresh();
+            } else {
+                toast.error(res.error || 'Error al subir la imagen');
+            }
+        } catch (error) {
+            toast.error('Error en la subida');
+        } finally {
+            setImageLoading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
+    };
+
+    const handleImageDelete = async () => {
+        if (!confirm('¿Quieres eliminar tu foto de perfil actual?')) return;
+        setImageLoading(true);
+        try {
+            const res = await deleteProfileImage();
+            if (res.success) {
+                toast.success('Foto eliminada');
+                router.refresh();
+            } else {
+                toast.error(res.error);
+            }
+        } catch (error) {
+            toast.error('Error al eliminar');
+        } finally {
+            setImageLoading(false);
+        }
+    };
 
     const handleProfileUpdate = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -120,6 +169,67 @@ export default function UserSettingsForm({ user }: UserSettingsFormProps) {
                     <div>
                         <h2 className="text-2xl font-bold">Datos Personales</h2>
                         <p className="text-sm text-gray-500">Información pública y de contacto</p>
+                    </div>
+                </div>
+
+                {/* AVATAR SECTION */}
+                <div className="mb-8 flex flex-col md:flex-row items-center md:items-start gap-8 border-b border-gray-100 dark:border-gray-800 pb-8">
+                    <div className="relative group">
+                        <UserAvatar user={user} size={100} className="w-24 h-24 md:w-32 md:h-32 text-4xl" />
+
+                        {/* Overlay on Hover */}
+                        <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+                            onClick={() => fileInputRef.current?.click()}>
+                            <Camera className="text-white" size={24} />
+                        </div>
+
+                        {imageLoading && (
+                            <div className="absolute inset-0 bg-white/80 dark:bg-black/80 rounded-full flex items-center justify-center z-10">
+                                <Loader2 className="animate-spin text-blue-600" size={24} />
+                            </div>
+                        )}
+                    </div>
+
+                    <div className="flex-grow space-y-3 text-center md:text-left">
+                        <div>
+                            <h3 className="font-semibold text-lg">Foto de Perfil</h3>
+                            <p className="text-sm text-gray-500 max-w-sm">
+                                Haz clic en la imagen para cambiarla. Se recomienda una imagen cuadrada de al menos 400x400px.
+                            </p>
+                        </div>
+
+                        <div className="flex items-center gap-3 justify-center md:justify-start">
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={imageLoading}
+                                icon={Camera}
+                            >
+                                Subir Foto
+                            </Button>
+
+                            {user.image && (
+                                <Button
+                                    variant="danger"
+                                    size="sm"
+                                    onClick={handleImageDelete}
+                                    disabled={imageLoading}
+                                    icon={Trash2}
+                                    className="bg-red-50 text-red-600 hover:bg-red-100 dark:bg-red-900/20 dark:hover:bg-red-900/40 border-none"
+                                >
+                                    Eliminar
+                                </Button>
+                            )}
+
+                            <input
+                                type="file"
+                                ref={fileInputRef}
+                                className="hidden"
+                                accept="image/*"
+                                onChange={handleImageUpload}
+                            />
+                        </div>
                     </div>
                 </div>
 

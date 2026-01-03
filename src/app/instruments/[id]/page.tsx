@@ -20,6 +20,8 @@ import ValuationSection from '@/components/valuation/ValuationSection';
 import InstrumentFinanceSection from '@/components/finance/InstrumentFinanceSection';
 import PersonalInventoryManager from '@/components/inventory/PersonalInventoryManager';
 import UserUnitDetails from '@/components/inventory/UserUnitDetails';
+import ResourceSection from '@/components/resources/ResourceSection'; // Import ResourceSection
+import { getResources } from '@/actions/resource'; // Import getResources action
 import User from '@/models/User'; // Prepare to check ban status locally if needed
 import dbConnect from '@/lib/db';
 
@@ -60,6 +62,9 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
     // Fetch comments and user status parallel
     const commentsData = await getComments(id);
     const comments = commentsData.success ? commentsData.data : [];
+
+    // Fetch Public Resources (Patches, Manuals, etc.)
+    const resources = await getResources({ instrumentId: id });
 
     let currentUserFull = null;
     let ownedItems: any[] = [];
@@ -265,39 +270,50 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                 </div>
             )}
 
-            {/* Resources & Files moved to bottom */}
-            {instrument.documents && instrument.documents.length > 0 && (
-                <div className="mt-24 border-t border-gray-100 dark:border-gray-800 pt-16">
-                    <h2 className="text-2xl font-semibold tracking-tight mb-8 dark:text-white">Recursos y Documentación</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {instrument.documents.map((doc: any, idx: number) => {
-                            const isPdf = doc.type?.toLowerCase() === 'pdf' || doc.type?.toLowerCase() === 'manual' || doc.url?.toLowerCase().endsWith('.pdf');
+            {/* Resources & Files (New System) */}
+            <div className="mt-24 border-t border-gray-100 dark:border-gray-800 pt-16">
+                {/* Re-using ResourceSection in read-only mode for public view */}
+                {/* Only show if there are resources OR if user has legacy documents that we might want to manually display (optional) */}
+                {/* Ideally migrate "documents" to "resources" in database, but for now we render both if needed, or prefer Resources */}
 
-                            const CardContent = (
-                                <div className="flex items-center p-4 rounded-xl bg-gray-50 dark:bg-gray-900 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition group border border-gray-100 dark:border-gray-800 hover:border-blue-100 dark:hover:border-blue-800 h-full">
-                                    <div className="p-3 bg-white dark:bg-gray-800 rounded-lg mr-4 shadow-sm text-blue-600 dark:text-blue-400">
-                                        <FileText className="w-5 h-5" />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium text-gray-900 dark:text-gray-100 text-sm group-hover:text-blue-600 transition-colors">{doc.title}</p>
-                                        <p className="text-xs text-gray-400 uppercase mt-0.5">{doc.type}</p>
-                                    </div>
+                {/* Render new ResourceSection. It handles "No resources" internally but for public page we might want to hide section if empty */}
+                {(resources.length > 0 || instrument.documents?.length > 0) && (
+                    <>
+                        {resources.length > 0 ? (
+                            <ResourceSection
+                                resources={resources}
+                                canEdit={false} // Public view is read-only
+                            />
+                        ) : (
+                            // Fallback to old documents view if no new resources exist yet
+                            <>
+                                <h2 className="text-2xl font-semibold tracking-tight mb-8 dark:text-white">Recursos y Documentación</h2>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {instrument.documents?.map((doc: any, idx: number) => {
+                                        const isPdf = doc.type?.toLowerCase() === 'pdf' || doc.type?.toLowerCase() === 'manual' || doc.url?.toLowerCase().endsWith('.pdf');
+                                        const CardContent = (
+                                            <div className="flex items-center apple-card p-4 h-full group hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+                                                <div className="p-3 bg-white/50 dark:bg-white/10 rounded-2xl mr-4 text-ios-blue">
+                                                    <FileText className="w-5 h-5" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm group-hover:text-ios-blue transition-colors">{doc.title}</p>
+                                                    <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mt-0.5">{doc.type}</p>
+                                                </div>
+                                            </div>
+                                        );
+                                        return isPdf ? (
+                                            <PdfPreviewModal key={idx} url={doc.url} title={doc.title}>{CardContent}</PdfPreviewModal>
+                                        ) : (
+                                            <a key={idx} href={doc.url} target="_blank" className="block h-full">{CardContent}</a>
+                                        );
+                                    })}
                                 </div>
-                            );
-
-                            return isPdf ? (
-                                <PdfPreviewModal key={idx} url={doc.url} title={doc.title}>
-                                    {CardContent}
-                                </PdfPreviewModal>
-                            ) : (
-                                <a key={idx} href={doc.url} target="_blank" className="block h-full">
-                                    {CardContent}
-                                </a>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
+                            </>
+                        )}
+                    </>
+                )}
+            </div>
 
             {/* Market Value & Prices (Moved to bottom) */}
             {/* Always show if there is data OR if the user can edit (to add data) */}

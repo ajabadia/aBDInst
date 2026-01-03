@@ -26,7 +26,7 @@ export default function Search({ placeholder }: { placeholder: string }) {
                 Buscar
             </label>
             <input
-                className="peer block w-full rounded-md border border-gray-200 py-[9px] pl-10 text-sm outline-2 placeholder:text-gray-500 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
+                className="apple-input pl-11 text-base font-medium placeholder:font-normal"
                 placeholder={placeholder}
                 onChange={(e) => {
                     handleSearch(e.target.value);

@@ -31,6 +31,8 @@ export class CloudinaryProvider implements IStorageProvider {
                 {
                     folder,
                     resource_type: 'auto',
+                    use_filename: true, // Preserve original filename
+                    unique_filename: true, // Append random characters to avoid collisions but keep name
                     transformation: [
                         { width: 2000, crop: 'limit' }, // Max width
                         { quality: 'auto:good' },

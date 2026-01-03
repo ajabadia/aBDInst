@@ -24,7 +24,7 @@ export default function InstrumentCard({ inst }: { inst: any }) {
                 </div>
 
                 <Link href={`/instruments/${inst._id}`} className="block h-full">
-                    <div className="relative h-full flex flex-col bg-white/40 dark:bg-white/5 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] transition-all duration-500 hover:-translate-y-2 overflow-hidden">
+                    <div className="apple-card relative h-full flex flex-col overflow-hidden group">
 
                         {/* AREA DE IMAGEN: Fondo neutro para que el objeto "flote" */}
                         <div className="relative aspect-[4/3] m-3 overflow-hidden rounded-[1.5rem] bg-gray-50 dark:bg-black/20">

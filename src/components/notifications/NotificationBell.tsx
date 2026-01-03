@@ -74,7 +74,7 @@ export default function NotificationBell() {
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 bg-white dark:bg-gray-900 rounded-2xl shadow-xl ring-1 ring-black ring-opacity-5 z-50 overflow-hidden animate-in fade-in zoom-in-95">
+                <div className="absolute right-0 top-full mt-2 w-80 sm:w-96 apple-card z-50 overflow-hidden animate-in fade-in zoom-in-95 shadow-2xl">
                     <div className="p-3 border-b border-gray-100 dark:border-gray-800 flex justify-between items-center bg-gray-50/50 dark:bg-gray-900">
                         <h3 className="font-semibold text-gray-900 dark:text-white pl-1">Notificaciones</h3>
                         {unreadCount > 0 && (

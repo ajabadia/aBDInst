@@ -70,14 +70,14 @@ export default function TagInput({
                 {tags.map((tag) => (
                     <span
                         key={tag}
-                        className="inline-flex items-center gap-1 px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium"
+                        className="inline-flex items-center gap-1.5 px-3 py-1 bg-ios-blue/10 dark:bg-ios-blue/20 text-ios-blue dark:text-blue-300 rounded-full text-xs font-semibold uppercase tracking-wide border border-ios-blue/10 transition-colors"
                     >
-                        <Tag size={12} />
+                        <Tag size={12} className="opacity-70" />
                         {tag}
                         <button
                             type="button"
                             onClick={() => removeTag(tag)}
-                            className="hover:bg-blue-200 dark:hover:bg-blue-800 rounded-full p-0.5 transition-colors"
+                            className="hover:bg-ios-blue/20 dark:hover:bg-ios-blue/30 rounded-full p-0.5 transition-colors -mr-1"
                         >
                             <X size={12} />
                         </button>
@@ -97,21 +97,22 @@ export default function TagInput({
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     placeholder={tags.length >= maxTags ? `Máximo ${maxTags} etiquetas` : placeholder}
                     disabled={tags.length >= maxTags}
-                    className="w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    disabled={tags.length >= maxTags}
+                    className="apple-input"
                 />
 
                 {/* Suggestions Dropdown */}
                 {showSuggestions && (
-                    <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-48 overflow-y-auto">
+                    <div className="absolute z-10 w-full mt-2 bg-white/80 dark:bg-gray-900/90 backdrop-blur-xl border border-gray-200 dark:border-gray-700 rounded-2xl shadow-apple-lg max-h-48 overflow-y-auto custom-scrollbar">
                         {filteredSuggestions.map((suggestion) => (
                             <button
                                 key={suggestion}
                                 type="button"
                                 onClick={() => addTag(suggestion)}
-                                className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
+                                className="w-full text-left px-4 py-2.5 hover:bg-ios-blue/10 dark:hover:bg-white/10 transition-colors flex items-center gap-2 first:rounded-t-xl last:rounded-b-xl"
                             >
                                 <Tag size={14} className="text-gray-400" />
-                                <span className="text-sm">{suggestion}</span>
+                                <span className="text-sm font-medium">{suggestion}</span>
                             </button>
                         ))}
                     </div>
