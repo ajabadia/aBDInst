@@ -63,7 +63,12 @@ export async function createInstrument(data: FormData) {
     }
 }
 
-export async function getInstruments(query?: string, category?: string | null) {
+export async function getInstruments(
+    query?: string,
+    category?: string | null,
+    sortBy: 'brand' | 'model' | 'year' | 'type' = 'brand',
+    sortOrder: 'asc' | 'desc' = 'asc'
+) {
     try {
         await dbConnect();
 
@@ -82,10 +87,32 @@ export async function getInstruments(query?: string, category?: string | null) {
             filter.type = { $regex: new RegExp(`^${safeCategory}$`, 'i') };
         }
 
+        // Determine Sort Object
+        let sort: any = {};
+        const dir = sortOrder === 'asc' ? 1 : -1;
+
+        switch (sortBy) {
+            case 'brand':
+                sort = { brand: dir, model: 1 };
+                break;
+            case 'model':
+                sort = { model: dir };
+                break;
+            case 'type':
+                sort = { type: dir, brand: 1 };
+                break;
+            case 'year':
+                // Sort by the first year in the array
+                sort = { 'years.0': dir, brand: 1 };
+                break;
+            default:
+                sort = { brand: 1, model: 1 };
+        }
+
         // Optimize: Select only necessary fields and use lean()
         const instruments = await Instrument.find(filter)
-            .select('brand model type subtype genericImages years')
-            .sort({ brand: 1, model: 1 })
+            .select('brand model type subtype genericImages years description')
+            .sort(sort)
             .lean();
 
         // Efficient transformation to plain objects for Server Components

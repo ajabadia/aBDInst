@@ -12,8 +12,9 @@ function SubmitButton() {
     return (
         <Button
             isLoading={pending}
+            variant="primary"
             icon={Plus}
-            className="shadow-sm shadow-blue-500/20" // Standard sizing is handled by Button component base styles
+            className="w-full md:w-auto"
         >
             {pending ? 'Añadiendo...' : 'Añadir a mi Colección'}
         </Button>
@@ -30,12 +31,12 @@ export default function AddToCollectionButton({ instrumentId }: { instrumentId: 
             router.push('/dashboard');
             router.refresh();
         } else {
-            toast.error('Error: ' + res.error);
+            toast.error(res.error || 'Error al añadir a la colección');
         }
     }
 
     return (
-        <form action={action}>
+        <form action={action} className="w-full md:w-auto">
             <SubmitButton />
         </form>
     );

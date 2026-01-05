@@ -12,18 +12,28 @@ import BulkImporter from '@/components/BulkImporter';
 
 import { cleanData } from '@/lib/utils';
 
+import { getMetadataMap } from '@/actions/metadata';
+
 export default async function InstrumentsPage(props: {
     searchParams?: Promise<{
         query?: string;
         category?: string;
+        sortBy?: 'brand' | 'model' | 'year' | 'type';
+        sortOrder?: 'asc' | 'desc';
     }>;
 }) {
     const searchParams = await props.searchParams;
     const query = searchParams?.query || '';
     const category = searchParams?.category || null;
+    const sortBy = searchParams?.sortBy || 'brand';
+    const sortOrder = searchParams?.sortOrder || 'asc';
 
     const session = await auth();
-    const rawInstruments = await getInstruments(query, category);
+    const [rawInstruments, metadata] = await Promise.all([
+        getInstruments(query, category, sortBy, sortOrder),
+        getMetadataMap() // Fetch all metadata
+    ]);
+
     const instruments = cleanData(rawInstruments);
     const role = session?.user?.role;
     const canEdit = ['admin', 'editor'].includes(role || '');
@@ -66,7 +76,11 @@ export default async function InstrumentsPage(props: {
             </div>
 
             {/* Standard Grid with internal virtualization logic */}
-            <InstrumentGrid instruments={instruments} />
+            <InstrumentGrid
+                instruments={instruments}
+                sortBy={sortBy}
+                metadata={metadata}
+            />
         </div>
     );
 }

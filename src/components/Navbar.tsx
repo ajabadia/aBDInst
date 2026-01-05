@@ -6,27 +6,26 @@ import { signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import SettingsModal from './SettingsModal';
-import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, ChevronDown, Heart, Activity, Wrench, Bell } from 'lucide-react';
+import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, Shield, Heart, Activity, Wrench, Bell } from 'lucide-react';
 import NotificationBell from './notifications/NotificationBell';
-import { Shield } from 'lucide-react';
 import { useVaultMode } from '@/context/VaultModeContext';
 import { useCommandPalette } from '@/context/CommandPaletteContext';
 import UserAvatar from './UserAvatar';
+import { Button } from './ui/Button';
+import { cn } from '@/lib/utils';
 
 export default function Navbar({ session }: { session: any }) {
     const router = useRouter();
     const { isVaultMode } = useVaultMode();
     const { toggle: toggleCommandPalette } = useCommandPalette();
-    // ...
     const pathname = usePathname();
-    const [isOpen, setIsOpen] = useState(false);
     const [userMenuOpen, setUserMenuOpen] = useState(false);
     const [settingsOpen, setSettingsOpen] = useState(false);
     const [scrolled, setScrolled] = useState(false);
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    // Efecto para cambiar el estilo al hacer scroll
     useEffect(() => {
-        const handleScroll = () => setScrolled(window.scrollY > 20);
+        const handleScroll = () => setScrolled(window.scrollY > 10);
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
@@ -36,203 +35,145 @@ export default function Navbar({ session }: { session: any }) {
         { name: 'Mi Colección', href: '/dashboard', icon: LayoutDashboard, authRequired: true },
         { name: 'Alertas', href: '/dashboard/alerts', icon: Bell, authRequired: true },
         { name: 'Wishlist', href: '/dashboard/wishlist', icon: Heart, authRequired: true },
-        { name: 'Feed', href: '/dashboard/feed', icon: Activity, authRequired: true },
         { name: 'Mantenimiento', href: '/dashboard/maintenance', icon: Wrench, authRequired: true },
     ];
 
     return (
-        <nav className={`fixed top-0 z-50 w-full transition-all duration-300 pointer-events-none ${scrolled
-            ? 'bg-white/70 dark:bg-black/70 backdrop-blur-xl border-b border-gray-200/50 dark:border-white/10 py-2'
-            : 'bg-transparent py-4'
-            }`}>
-            <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-12 pointer-events-auto">
+        <nav className={cn(
+            "fixed top-0 z-50 w-full transition-all duration-500",
+            scrolled 
+                ? "py-2 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-black/5 dark:border-white/10" 
+                : "py-5 bg-transparent"
+        )}>
+            <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-12">
 
                 {/* LOGO */}
-                <Link href="/" className="flex items-center gap-2 group">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-lg shadow-blue-500/20 group-hover:scale-105 transition-transform">
+                <Link href="/" className="flex items-center gap-2.5 group">
+                    <div className="w-9 h-9 rounded-xl bg-ios-blue flex items-center justify-center shadow-lg shadow-ios-blue/30 group-hover:scale-105 transition-transform duration-300">
                         <Music className="w-5 h-5 text-white" strokeWidth={2.5} />
                     </div>
-                    <span className="text-lg font-semibold tracking-tighter text-gray-900 dark:text-white">
-                        Instrument<span className="text-gray-400 dark:text-gray-500 font-normal">Collector</span>
+                    <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white hidden sm:block">
+                        Instrument<span className="text-ios-blue">Collector</span>
                     </span>
                 </Link>
 
                 {/* DESKTOP NAV */}
-                <div className="hidden md:flex items-center gap-8">
-                    <div className="flex items-center gap-1">
-                        {navLinks.map((link) => {
-                            if (link.authRequired && !session) return null;
-                            const isActive = pathname === link.href;
-                            return (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    className={`px-4 py-2 text-sm font-medium rounded-full transition-all ${isActive
-                                        ? 'text-blue-600 dark:text-blue-400 bg-blue-50/50 dark:bg-blue-900/20'
-                                        : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
-                                        }`}
-                                >
-                                    {link.name}
-                                </Link>
-                            );
-                        })}
-                    </div>
+                <div className="hidden md:flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5">
+                    {navLinks.map((link) => {
+                        if (link.authRequired && !session) return null;
+                        const isActive = pathname === link.href;
+                        return (
+                            <Link
+                                key={link.href}
+                                href={link.href}
+                                className={cn(
+                                    "px-4 py-2 text-[13px] font-semibold rounded-xl transition-all duration-200",
+                                    isActive
+                                        ? "bg-white dark:bg-white/15 text-ios-blue dark:text-white shadow-sm"
+                                        : "text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                                )}
+                            >
+                                {link.name}
+                            </Link>
+                        );
+                    })}
+                </div>
 
-                    <div className="h-4 w-[1px] bg-gray-200 dark:bg-gray-800" />
+                <div className="flex items-center gap-3">
+                    {/* SEARCH TRIGGER */}
+                    <button
+                        onClick={toggleCommandPalette}
+                        className="hidden lg:flex items-center gap-3 px-3 py-1.5 bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-colors border border-black/5 dark:border-white/5 group"
+                    >
+                        <Search size={16} className="text-gray-400 group-hover:text-ios-blue transition-colors" />
+                        <span className="text-sm text-gray-400 font-medium">Buscar...</span>
+                        <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded bg-black/5 dark:bg-white/10 px-1.5 font-mono text-[10px] text-gray-400">
+                            ⌘K
+                        </kbd>
+                    </button>
 
-                    <div className="flex items-center gap-4">
-
-
-
+                    <div className="flex items-center gap-2">
                         {isVaultMode && (
-                            <div title="Modo Bóveda: Precios Ocultos" className="flex items-center gap-2 px-3 py-1 bg-amber-50 text-amber-600 dark:bg-amber-900/20 dark:text-amber-500 rounded-full text-xs font-bold border border-amber-200 dark:border-amber-800 animate-in fade-in">
-                                <Shield size={14} />
+                            <div className="p-2 bg-ios-orange/10 text-ios-orange rounded-xl border border-ios-orange/20">
+                                <Shield size={18} />
                             </div>
                         )}
 
                         {session && <NotificationBell />}
 
-                        {/* COMMAND PALETTE TRIGGER */}
-                        <button
-                            onClick={toggleCommandPalette}
-                            className="hidden md:flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white bg-gray-100 dark:bg-white/5 hover:bg-gray-200 dark:hover:bg-white/10 rounded-md transition-colors mr-2 border border-gray-200 dark:border-white/5"
-                            title="Abrir Comandos (Cmd+K)"
-                        >
-                            <Command size={14} />
-                            <span>Buscar</span>
-                            <kbd className="hidden lg:inline-flex h-5 items-center gap-1 rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-1.5 font-mono text-[10px] font-medium text-gray-500 dark:text-gray-400">
-                                <span className="text-xs">⌘</span>K
-                            </kbd>
-                        </button>
-
-                        {/* MOBILE TRIGGER */}
-                        <button
-                            onClick={toggleCommandPalette}
-                            className="md:hidden p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors"
-                        >
-                            <Command size={20} />
-                        </button>
-
-
-
                         {session ? (
-                            <div className="relative pointer-events-auto">
+                            <div className="relative">
                                 <button
                                     onClick={() => setUserMenuOpen(!userMenuOpen)}
-                                    className="flex items-center gap-3 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-all group"
-                                    aria-expanded={userMenuOpen}
-                                    aria-haspopup="true"
-                                    aria-label="Menú de usuario"
+                                    className="flex items-center gap-2 p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/10 transition-all"
                                 >
-                                    <div className="text-right hidden sm:block">
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Usuario</p>
-                                        <p className="text-sm font-bold text-gray-900 dark:text-white leading-none">{session.user.name}</p>
-                                    </div>
-                                    <UserAvatar user={session.user} size={40} className="w-10 h-10 border-2 border-white dark:border-gray-800 group-hover:border-blue-500 transition-all" />
+                                    <UserAvatar user={session.user} size={36} className="w-9 h-9 border border-black/10 dark:border-white/20 shadow-sm" />
+                                    <ChevronDown size={14} className={cn("text-gray-400 transition-transform", userMenuOpen && "rotate-180")} />
                                 </button>
 
                                 {/* Dropdown Menu */}
                                 {userMenuOpen && (
                                     <>
-                                        <div
-                                            className="fixed inset-0 z-40"
-                                            onClick={() => setUserMenuOpen(false)}
-                                        />
-                                        <div className="absolute right-0 top-full mt-3 w-64 bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-800 p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
-                                            <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 mb-2">
-                                                <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{session.user?.email}</p>
+                                        <div className="fixed inset-0 z-40" onClick={() => setUserMenuOpen(false)} />
+                                        <div className="absolute right-0 top-full mt-3 w-64 glass-panel rounded-2xl shadow-apple-lg p-2 z-50 animate-in fade-in zoom-in-95 duration-200">
+                                            <div className="px-4 py-3 border-b border-black/5 dark:border-white/5 mb-1">
+                                                <p className="text-sm font-bold truncate">{session.user.name}</p>
+                                                <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate uppercase tracking-wider">{session.user?.email}</p>
                                             </div>
 
-                                            <Link
-                                                href={`/profile/${(session.user as any).id}`}
-                                                onClick={() => setUserMenuOpen(false)}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors font-bold"
-                                            >
-                                                <User size={14} />
-                                                Mi Perfil Público
-                                            </Link>
-
-                                            <Link
-                                                href="/dashboard"
-                                                onClick={() => setUserMenuOpen(false)}
-                                                className="flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-xl transition-colors"
-                                            >
-                                                <LayoutDashboard className="w-4 h-4" />
-                                                Mi Colección
-                                            </Link>
-
-                                            {/* Link to profile if it existed, otherwise just dashboard or disabled for now */}
-                                            <hr className="border-gray-50 dark:border-gray-800 my-1" />
-
-                                            {(session.user).role === 'admin' && (
-                                                <button
-                                                    onClick={() => {
-                                                        setUserMenuOpen(false);
-                                                        router.push('/admin');
-                                                    }}
-                                                    className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
-                                                >
-                                                    <Shield size={14} />
-                                                    Administración (IA & Config)
+                                            <div className="space-y-0.5">
+                                                <Link href={`/profile/${session.user.id}`} onClick={() => setUserMenuOpen(false)}
+                                                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-ios-blue hover:text-white rounded-xl transition-all font-medium">
+                                                    <User size={16} /> Perfil Público
+                                                </Link>
+                                                <Link href="/dashboard/settings" onClick={() => setUserMenuOpen(false)}
+                                                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-ios-blue hover:text-white rounded-xl transition-all font-medium">
+                                                    <Settings size={16} /> Ajustes
+                                                </Link>
+                                                {session.user.role === 'admin' && (
+                                                    <Link href="/admin" onClick={() => setUserMenuOpen(false)}
+                                                        className="flex items-center gap-3 px-3 py-2 text-sm text-ios-red hover:bg-ios-red hover:text-white rounded-xl transition-all font-semibold">
+                                                        <Shield size={16} /> Panel Admin
+                                                    </Link>
+                                                )}
+                                                <div className="h-[1px] bg-black/5 dark:bg-white/5 my-1" />
+                                                <button onClick={() => signOut()}
+                                                    className="w-full flex items-center gap-3 px-3 py-2 text-sm text-gray-500 hover:bg-ios-red/10 hover:text-ios-red rounded-xl transition-all font-medium">
+                                                    <LogOut size={16} /> Cerrar Sesión
                                                 </button>
-                                            )}
-
-                                            <Link
-                                                href="/dashboard/settings"
-                                                onClick={() => setUserMenuOpen(false)}
-                                                className="w-full flex items-center gap-2 px-4 py-2.5 text-xs font-bold text-gray-500 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
-                                            >
-                                                <Settings size={14} />
-                                                Ajustes de Perfil
-                                            </Link>
-
-                                            <button
-                                                onClick={() => {
-                                                    setUserMenuOpen(false);
-                                                    signOut();
-                                                }}
-                                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 rounded-xl transition-colors mt-1"
-                                            >
-                                                <LogOut className="w-4 h-4" />
-                                                Cerrar Sesión
-                                            </button>
+                                            </div>
                                         </div>
                                     </>
                                 )}
                             </div>
                         ) : (
-                            <div className="flex items-center gap-3">
-                                <Link href="/login" className="text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900">
-                                    Entrar
+                            <div className="flex items-center gap-2">
+                                <Link href="/login">
+                                    <Button variant="ghost" size="sm">Entrar</Button>
                                 </Link>
-                                <Link
-                                    href="/register"
-                                    className="px-5 py-2 text-sm font-semibold text-white bg-blue-600 rounded-full hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/25 active:scale-95"
-                                >
-                                    Empezar
+                                <Link href="/register">
+                                    <Button size="sm">Empezar</Button>
                                 </Link>
                             </div>
                         )}
+                        
+                        {/* MOBILE MENU TRIGGER */}
+                        <Button 
+                            variant="secondary" 
+                            size="icon" 
+                            className="md:hidden" 
+                            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                        >
+                            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+                        </Button>
                     </div>
-                </div>
-
-                {/* MOBILE MENU BUTTON */}
-                <div className="md:hidden flex items-center gap-4">
-                    <button
-                        onClick={() => setIsOpen(!isOpen)}
-                        className="p-2 rounded-xl bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-800"
-                        aria-label={isOpen ? "Cerrar menú" : "Abrir menú"}
-                        aria-expanded={isOpen}
-                    >
-                        {isOpen ? <X size={24} /> : <Menu size={24} />}
-                    </button>
                 </div>
             </div>
 
-            {/* MOBILE MENU OVERLAY */}
-            {isOpen && (
-                <div className="md:hidden absolute top-full left-0 w-full bg-white/95 dark:bg-black/95 backdrop-blur-2xl border-b border-gray-200 dark:border-gray-800 animate-in slide-in-from-top duration-300 pointer-events-auto">
-                    <div className="px-6 py-8 space-y-6">
+            {/* MOBILE MENU */}
+            {mobileMenuOpen && (
+                <div className="md:hidden glass-panel border-t border-black/5 dark:border-white/10 animate-in slide-in-from-top duration-300">
+                    <div className="p-6 space-y-4">
                         {navLinks.map((link) => {
                             if (link.authRequired && !session) return null;
                             const Icon = link.icon;
@@ -240,26 +181,39 @@ export default function Navbar({ session }: { session: any }) {
                                 <Link
                                     key={link.href}
                                     href={link.href}
-                                    onClick={() => setIsOpen(false)}
-                                    className="flex items-center gap-4 text-2xl font-semibold tracking-tight text-gray-900 dark:text-white"
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="flex items-center gap-4 text-xl font-bold text-gray-900 dark:text-white"
                                 >
-                                    <Icon className="w-6 h-6 text-blue-500" />
+                                    <div className="p-2 bg-ios-blue/10 text-ios-blue rounded-xl">
+                                        <Icon size={20} />
+                                    </div>
                                     {link.name}
                                 </Link>
                             );
                         })}
-                        <hr className="border-gray-100 dark:border-gray-800" />
-                        {!session && (
-                            <div className="flex flex-col gap-4">
-                                <Link href="/login" className="text-lg font-medium">Entrar</Link>
-                                <Link href="/register" className="w-full py-4 bg-blue-600 text-white text-center rounded-2xl font-bold">Empezar ahora</Link>
-                            </div>
-                        )}
                     </div>
                 </div>
             )}
 
             <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
         </nav>
+    );
+}
+
+function ChevronDown({ size, className }: { size: number, className?: string }) {
+    return (
+        <svg 
+            width={size} 
+            height={size} 
+            viewBox="0 0 24 24" 
+            fill="none" 
+            stroke="currentColor" 
+            strokeWidth="2.5" 
+            strokeLinecap="round" 
+            strokeLinejoin="round" 
+            className={className}
+        >
+            <path d="m6 9 6 6 6-6" />
+        </svg>
     );
 }

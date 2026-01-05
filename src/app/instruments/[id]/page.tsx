@@ -3,47 +3,37 @@ import { auth } from '@/auth';
 import { getInstrumentById } from '@/actions/instrument';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import InstrumentSpecs from '@/components/InstrumentSpecs';
-import InstrumentHero from '@/components/InstrumentHero';
-import AddToCollectionButton from '@/components/AddToCollectionButton';
-import ImageGallery from '@/components/ImageGallery';
-import QRCodeGenerator from '@/components/QRCodeGenerator';
-import SpecRow from '@/components/SpecRow';
-import PdfPreviewModal from '@/components/PdfPreviewModal';
-import { getRelatedGear } from '@/actions/instrument';
-import PrintSpecSheet from '@/components/PrintSpecSheet';
 import InstrumentHeaderButtons from '@/components/InstrumentHeaderButtons';
-import { ArrowLeft, FileText, Box, ChevronRight, Layers, Globe, ExternalLink, Star } from 'lucide-react';
-import { getComments } from '@/actions/comments';
+import ImageGallery from '@/components/ImageGallery';
+import SpecRow from '@/components/SpecRow';
+import PrintSpecSheet from '@/components/PrintSpecSheet';
 import CommentSection from '@/components/comments/CommentSection';
 import ValuationSection from '@/components/valuation/ValuationSection';
-import InstrumentFinanceSection from '@/components/finance/InstrumentFinanceSection';
 import PersonalInventoryManager from '@/components/inventory/PersonalInventoryManager';
 import UserUnitDetails from '@/components/inventory/UserUnitDetails';
-import ResourceSection from '@/components/resources/ResourceSection'; // Import ResourceSection
-import { getResources } from '@/actions/resource'; // Import getResources action
-import User from '@/models/User'; // Prepare to check ban status locally if needed
+import ResourceSection from '@/components/resources/ResourceSection';
+import QRCodeGenerator from '@/components/QRCodeGenerator';
+import PdfPreviewModal from '@/components/PdfPreviewModal';
+
+import { getRelatedGear } from '@/actions/instrument';
+import { getComments } from '@/actions/comments';
+import { getResources } from '@/actions/resource';
+import { ArrowLeft, FileText, Box, ChevronRight, Layers, Globe, ExternalLink } from 'lucide-react';
 import dbConnect from '@/lib/db';
+import User from '@/models/User';
+import { cn } from '@/lib/utils';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const { id } = await params;
     const instrument = await getInstrumentById(id);
-
-    if (!instrument) {
-        return {
-            title: 'Instrumento no encontrado',
-        };
-    }
+    if (!instrument) return { title: 'Instrumento no encontrado' };
 
     const title = `${instrument.model} - ${instrument.brand}`;
-    const description = instrument.description?.substring(0, 160) || `Especificaciones y detalles técnicos de ${instrument.brand} ${instrument.model}.`;
-
     return {
         title: `${title} | Instrument Collector`,
-        description,
+        description: instrument.description?.substring(0, 160),
         openGraph: {
             title,
-            description,
             images: instrument.genericImages?.[0] ? [{ url: instrument.genericImages[0] }] : [],
         },
     };
@@ -52,18 +42,15 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
 export default async function InstrumentDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const instrument = await getInstrumentById(id);
+    if (!instrument) notFound();
+
     const relatedGear = await getRelatedGear(id);
     const session = await auth();
     const isLoggedIn = !!session?.user;
-    // For now, allow any logged in user to edit/contribute market values. 
-    // In a strict multi-user app we would check roles, but for this personal collector app, being logged in is likely sufficient authorization.
-    const canEdit = isLoggedIn; // ['admin', 'editor'].includes((session?.user as any)?.role);
+    const canEdit = isLoggedIn;
 
-    // Fetch comments and user status parallel
     const commentsData = await getComments(id);
     const comments = commentsData.success ? commentsData.data : [];
-
-    // Fetch Public Resources (Patches, Manuals, etc.)
     const resources = await getResources({ instrumentId: id });
 
     let currentUserFull = null;
@@ -72,28 +59,20 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
     if (session?.user?.email) {
         await dbConnect();
         currentUserFull = await User.findOne({ email: session.user.email }).select('name image role isBanned').lean();
-        currentUserFull = JSON.parse(JSON.stringify(currentUserFull));
         if (currentUserFull) {
-            currentUserFull.id = (currentUserFull as any)._id.toString();
+            currentUserFull = JSON.parse(JSON.stringify(currentUserFull));
+            (currentUserFull as any).id = (currentUserFull as any)._id.toString();
+            
+            const UserCollection = (await import('@/models/UserCollection')).default;
+            ownedItems = await UserCollection.find({
+                userId: (currentUserFull as any)._id,
+                instrumentId: id,
+                deletedAt: null
+            }).select('acquisition inventorySerial condition status images').lean();
+            ownedItems = JSON.parse(JSON.stringify(ownedItems));
         }
-
-        // Fetch User Collection Item for ROI
-        // We need to import UserCollection at top
-        const UserCollection = (await import('@/models/UserCollection')).default;
-        // Fetch ALL instances of this instrument owned by user
-        ownedItems = await UserCollection.find({
-            userId: (currentUserFull as any)._id,
-            instrumentId: id,
-            deletedAt: null // Only active items
-        }).select('acquisition inventorySerial condition status images').lean(); // Added images
-        ownedItems = JSON.parse(JSON.stringify(ownedItems));
     }
 
-    if (!instrument) {
-        notFound();
-    }
-
-    // Group specs logic
     const groupedSpecs: Record<string, any[]> = {};
     if (instrument.specs && Array.isArray(instrument.specs)) {
         instrument.specs.forEach((s: any) => {
@@ -103,263 +82,236 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-12 md:py-20">
-            {/* Header: Clean & Airy */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
-                <div>
-                    <Link href="/instruments" className="inline-flex items-center text-sm text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition mb-4 group">
-                        <ArrowLeft className="w-4 h-4 mr-1 transition-transform group-hover:-translate-x-1" />
-                        Volver al catálogo
-                    </Link>
-                    <p className="text-blue-600 dark:text-blue-400 font-medium text-sm mb-2 uppercase tracking-wider">{instrument.brand}</p>
-                    <h1 className="text-4xl md:text-5xl font-semibold tracking-tight dark:text-white text-gray-900">{instrument.model}</h1>
-                    <p className="text-xl text-gray-500 dark:text-gray-400 mt-2 font-light">{instrument.type} {instrument.subtype && `• ${instrument.subtype}`}</p>
+        <div className="max-w-7xl mx-auto px-6 py-12 lg:py-24">
+            
+            {/* Navigation & Header */}
+            <div className="mb-16">
+                <Link href="/instruments" className="inline-flex items-center text-sm font-semibold text-ios-blue hover:underline mb-8 group">
+                    <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
+                    Catálogo Maestro
+                </Link>
+                
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+                    <div className="space-y-2">
+                        <p className="text-ios-blue font-bold text-sm uppercase tracking-[0.2em]">{instrument.brand}</p>
+                        <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-gray-900 dark:text-white leading-[1.1]">
+                            {instrument.model}
+                        </h1>
+                        <div className="flex items-center gap-3 text-xl text-gray-500 dark:text-gray-400 font-medium pt-2">
+                            <span>{instrument.type}</span>
+                            {instrument.subtype && (
+                                <>
+                                    <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-gray-700" />
+                                    <span>{instrument.subtype}</span>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    <InstrumentHeaderButtons
+                        instrumentId={instrument._id || instrument.id}
+                        canEdit={canEdit}
+                        isLoggedIn={isLoggedIn}
+                    />
                 </div>
-                <InstrumentHeaderButtons
-                    instrumentId={instrument._id || instrument.id}
-                    canEdit={canEdit}
-                    isLoggedIn={isLoggedIn}
-                />
             </div>
 
-            {/* PRINT COMPONENT (Hidden unless printing) */}
             <PrintSpecSheet instrument={instrument} />
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-20">
-                {/* Left: Gallery (Big visual impact) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24">
+                
+                {/* Visuals Column */}
                 <div className="lg:col-span-7">
-                    <div className="sticky top-24">
+                    <div className="sticky top-28">
                         <ImageGallery images={instrument.genericImages || []} altText={`${instrument.brand} ${instrument.model}`} />
                     </div>
                 </div>
 
-                {/* Right: Narrative Info */}
-                <div className="lg:col-span-5 space-y-10">
+                {/* Information Column */}
+                <div className="lg:col-span-5 space-y-12">
+                    
+                    {/* Narrative Description */}
                     <section>
-                        <h3 className="text-xs font-semibold uppercase tracking-widest text-gray-400 mb-6">Descripción</h3>
-                        <p className="text-lg text-gray-600 dark:text-gray-300 leading-relaxed font-light">
+                        <h3 className="apple-label">Historia y Detalles</h3>
+                        <p className="text-xl text-gray-700 dark:text-gray-300 leading-relaxed font-normal tracking-tight">
                             {instrument.description || 'Sin descripción disponible.'}
                         </p>
                     </section>
 
-                    {instrument.years && instrument.years.length > 0 && (
-                        <section className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-6">
-                            <span className="text-sm font-medium text-gray-500">Años de producción</span>
-                            <span className="text-lg font-semibold text-gray-900 dark:text-white">{instrument.years.join(', ')}</span>
-                        </section>
-                    )}
+                    {/* Quick Metadata Panel */}
+                    <div className="glass-panel rounded-3xl p-6 space-y-6">
+                        {instrument.years && instrument.years.length > 0 && (
+                            <div className="flex items-center justify-between">
+                                <span className="text-sm font-semibold text-gray-500">Periodo</span>
+                                <span className="text-base font-bold text-gray-900 dark:text-white bg-black/5 dark:bg-white/10 px-3 py-1 rounded-lg">
+                                    {instrument.years.join(', ')}
+                                </span>
+                            </div>
+                        )}
 
-                    {instrument.version && (
-                        <section className="flex items-center justify-between border-t border-gray-100 dark:border-gray-800 pt-6">
-                            <span className="text-sm font-medium text-gray-500">Versión</span>
-                            <span className="text-lg font-semibold text-gray-900 dark:text-white">{instrument.version}</span>
-                        </section>
-                    )}
+                        {instrument.version && (
+                            <div className="flex items-center justify-between border-t border-black/5 dark:border-white/5 pt-4">
+                                <span className="text-sm font-semibold text-gray-500">Versión</span>
+                                <span className="text-base font-bold text-gray-900 dark:text-white">{instrument.version}</span>
+                            </div>
+                        )}
 
-                    {instrument.relatedTo && (
-                        <section className="pt-6 border-t border-gray-100 dark:border-gray-800">
-                            <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Equipo Principal</h4>
+                        {instrument.relatedTo && (
                             <Link
                                 href={`/instruments/${instrument.relatedTo.id || instrument.relatedTo._id || instrument.relatedTo}`}
-                                className="flex items-center gap-3 p-3 rounded-2xl bg-blue-50/50 dark:bg-blue-900/10 border border-blue-100/50 dark:border-blue-900/20 group hover:bg-blue-50 transition-colors"
+                                className="flex items-center gap-4 p-4 rounded-2xl bg-ios-blue/5 border border-ios-blue/10 hover:bg-ios-blue/10 transition-all group mt-2"
                             >
-                                <div className="w-10 h-10 rounded-xl bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm text-blue-600">
+                                <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center shadow-sm text-ios-blue">
                                     <Box size={20} />
                                 </div>
-                                <div>
-                                    <p className="text-xs text-blue-600/60 dark:text-blue-400/60 font-medium">Accesorio para:</p>
-                                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100 group-hover:underline">
+                                <div className="flex-1">
+                                    <p className="text-[10px] text-ios-blue font-bold uppercase tracking-widest leading-none mb-1.5">Equipo Principal</p>
+                                    <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-ios-blue transition-colors">
                                         {instrument.relatedTo.brand} {instrument.relatedTo.model}
                                     </p>
                                 </div>
-                                <ChevronRight className="ml-auto w-4 h-4 text-blue-300 group-hover:translate-x-1 transition-transform" />
+                                <ChevronRight className="w-4 h-4 text-ios-blue/40 group-hover:translate-x-1 transition-transform" />
                             </Link>
-                        </section>
-                    )}
+                        )}
+                    </div>
 
-                    {relatedGear && relatedGear.length > 0 && (
-                        <section className="pt-6 border-t border-gray-100 dark:border-gray-800">
-                            <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-3">Accesorios y Periféricos</h4>
-                            <div className="grid gap-2">
-                                {relatedGear.map((gear: any) => (
-                                    <Link
-                                        key={gear._id}
-                                        href={`/instruments/${gear._id}`}
-                                        className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-blue-600 transition-colors group"
-                                    >
-                                        <Layers className="w-3.5 h-3.5 text-gray-300 group-hover:text-blue-400" />
-                                        <span>{gear.brand} {gear.model}</span>
-                                        <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-gray-100 dark:bg-gray-800 ml-auto group-hover:bg-blue-100 transition-colors">
-                                            {gear.type === 'Accessory' ? 'Accesorio' : gear.type}
-                                        </span>
-                                    </Link>
-                                ))}
-                            </div>
-                        </section>
-                    )}
-
-
-
-
-                    {instrument.websites && instrument.websites.length > 0 && (
-                        <div className="space-y-4 pt-4 border-t border-gray-100 dark:border-gray-800">
-                            {/* Primary Website Highlight */}
-                            {instrument.websites.find((w: any) => w.isPrimary) && (
-                                <section>
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Sitio Oficial</h4>
-                                    <a
-                                        href={(() => {
-                                            const url = instrument.websites.find((w: any) => w.isPrimary).url;
-                                            return url.startsWith('http') ? url : `https://${url}`;
-                                        })()}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors group"
-                                    >
-                                        <Globe className="w-4 h-4 transition-transform group-hover:rotate-12" />
-                                        Visitar sitio oficial
-                                        <ExternalLink className="w-3 h-3 opacity-0 group-hover:opacity-100 transition-opacity" />
-                                    </a>
-                                </section>
-                            )}
-
-                            {/* Secondary Websites List */}
-                            {instrument.websites.filter((w: any) => !w.isPrimary).length > 0 && (
-                                <section>
-                                    <h4 className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-2">Enlaces Relacionados</h4>
-                                    <div className="space-y-2">
-                                        {instrument.websites.filter((w: any) => !w.isPrimary).map((ws: any, idx: number) => (
-                                            <a
-                                                key={idx}
-                                                href={ws.url.startsWith('http') ? ws.url : `https://${ws.url}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="flex items-center gap-2 text-xs text-gray-500 hover:text-blue-600 transition-colors group"
-                                            >
-                                                <ChevronRight className="w-3 h-3 text-gray-300 group-hover:text-blue-400 transition-colors" />
-                                                <span className="truncate max-w-[200px]">{ws.url.replace(/^https?:\/\//, '')}</span>
-                                            </a>
-                                        ))}
-                                    </div>
-                                </section>
-                            )}
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Bottom: Technical Specs in Columns */}
-            {Object.keys(groupedSpecs).length > 0 && (
-                <div className="mt-24 md:mt-32 border-t border-gray-100 dark:border-gray-800 pt-16">
-                    <h2 className="text-3xl font-semibold tracking-tight mb-16 dark:text-white">Especificaciones Técnicas</h2>
-
-                    <div className="space-y-16">
-                        {Object.entries(groupedSpecs).map(([category, items]) => (
-                            <div key={category} className="grid grid-cols-1 md:grid-cols-4 gap-8">
-                                <div className="md:col-span-1">
-                                    <h3 className="text-lg font-medium text-gray-900 dark:text-white sticky top-24">{category}</h3>
-                                </div>
-                                <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-x-12 gap-y-0">
-                                    {items.map((item, idx) => (
-                                        <SpecRow key={idx} label={item.label} value={item.value} />
+                    {/* Secondary Info: Accessories & Websites */}
+                    <div className="space-y-8">
+                        {relatedGear && relatedGear.length > 0 && (
+                            <section>
+                                <h4 className="apple-label">Accesorios</h4>
+                                <div className="grid gap-3">
+                                    {relatedGear.map((gear: any) => (
+                                        <Link key={gear._id} href={`/instruments/${gear._id}`} className="apple-card p-4 flex items-center gap-3 hover:border-ios-blue/30 group">
+                                            <Layers className="w-4 h-4 text-gray-400 group-hover:text-ios-blue transition-colors" />
+                                            <span className="text-sm font-semibold">{gear.brand} {gear.model}</span>
+                                            <span className="ml-auto text-[10px] font-bold px-2 py-1 bg-black/5 dark:bg-white/5 rounded-lg text-gray-500 uppercase tracking-widest">
+                                                {gear.type}
+                                            </span>
+                                        </Link>
                                     ))}
                                 </div>
-                            </div>
-                        ))}
+                            </section>
+                        )}
+
+                        {instrument.websites && instrument.websites.length > 0 && (
+                            <section className="space-y-4">
+                                <h4 className="apple-label">Enlaces</h4>
+                                <div className="flex flex-wrap gap-3">
+                                    {instrument.websites.map((ws: any, idx: number) => (
+                                        <a key={idx} href={ws.url.startsWith('http') ? ws.url : `https://${ws.url}`} target="_blank" rel="noopener noreferrer"
+                                            className={cn(
+                                                "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all",
+                                                ws.isPrimary 
+                                                    ? "bg-ios-blue text-white shadow-md shadow-ios-blue/20 hover:bg-ios-blue/90" 
+                                                    : "bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10"
+                                            )}>
+                                            <Globe size={14} />
+                                            {ws.isPrimary ? "Sitio Oficial" : ws.url.replace(/^https?:\/\/(www\.)?/, '').split('/')[0]}
+                                            <ExternalLink size={10} className="opacity-50" />
+                                        </a>
+                                    ))}
+                                </div>
+                            </section>
+                        )}
                     </div>
                 </div>
-            )}
-
-            {/* Resources & Files (New System) */}
-            <div className="mt-24 border-t border-gray-100 dark:border-gray-800 pt-16">
-                {/* Re-using ResourceSection in read-only mode for public view */}
-                {/* Only show if there are resources OR if user has legacy documents that we might want to manually display (optional) */}
-                {/* Ideally migrate "documents" to "resources" in database, but for now we render both if needed, or prefer Resources */}
-
-                {/* Render new ResourceSection. It handles "No resources" internally but for public page we might want to hide section if empty */}
-                {(resources.length > 0 || instrument.documents?.length > 0) && (
-                    <>
-                        {resources.length > 0 ? (
-                            <ResourceSection
-                                resources={resources}
-                                canEdit={false} // Public view is read-only
-                            />
-                        ) : (
-                            // Fallback to old documents view if no new resources exist yet
-                            <>
-                                <h2 className="text-2xl font-semibold tracking-tight mb-8 dark:text-white">Recursos y Documentación</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {instrument.documents?.map((doc: any, idx: number) => {
-                                        const isPdf = doc.type?.toLowerCase() === 'pdf' || doc.type?.toLowerCase() === 'manual' || doc.url?.toLowerCase().endsWith('.pdf');
-                                        const CardContent = (
-                                            <div className="flex items-center apple-card p-4 h-full group hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
-                                                <div className="p-3 bg-white/50 dark:bg-white/10 rounded-2xl mr-4 text-ios-blue">
-                                                    <FileText className="w-5 h-5" />
-                                                </div>
-                                                <div>
-                                                    <p className="font-semibold text-gray-900 dark:text-white text-sm group-hover:text-ios-blue transition-colors">{doc.title}</p>
-                                                    <p className="text-[10px] font-bold tracking-widest text-gray-400 uppercase mt-0.5">{doc.type}</p>
-                                                </div>
-                                            </div>
-                                        );
-                                        return isPdf ? (
-                                            <PdfPreviewModal key={idx} url={doc.url} title={doc.title}>{CardContent}</PdfPreviewModal>
-                                        ) : (
-                                            <a key={idx} href={doc.url} target="_blank" className="block h-full">{CardContent}</a>
-                                        );
-                                    })}
-                                </div>
-                            </>
-                        )}
-                    </>
-                )}
             </div>
 
-            {/* Market Value & Prices (Moved to bottom) */}
-            {/* Always show if there is data OR if the user can edit (to add data) */}
-            {/* Market Value & User Inventory */}
-            {ownedItems.length > 0 ? (
-                <div className="mt-24 border-t border-gray-100 dark:border-gray-800 pt-16">
-                    <h2 className="text-2xl font-semibold tracking-tight mb-8 dark:text-white">Mi Colección</h2>
-                    <PersonalInventoryManager items={ownedItems}>
-                        {ownedItems.map((unit: any) => (
-                            <UserUnitDetails
-                                key={unit._id}
-                                unit={unit}
-                                instrument={instrument}
-                                canEdit={canEdit}
-                            />
-                        ))}
-                    </PersonalInventoryManager>
-                </div>
-            ) : (
-                /* Global Valuation for Non-Owners */
-                (instrument.marketValue || instrument.originalPrice || canEdit) && (
-                    <div className="mt-24 border-t border-gray-100 dark:border-gray-800 pt-16">
-                        <ValuationSection
-                            instrument={instrument}
-                            purchasePrice={undefined}
-                            canEdit={canEdit}
-                        />
+            {/* Bottom Sections: Technical Content */}
+            <div className="mt-32 space-y-32">
+                
+                {/* Technical Specifications */}
+                {Object.keys(groupedSpecs).length > 0 && (
+                    <section>
+                        <div className="flex items-center gap-4 mb-16">
+                            <h2 className="text-4xl font-bold tracking-tight">Especificaciones</h2>
+                            <div className="h-[2px] flex-1 bg-black/5 dark:bg-white/5 rounded-full" />
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-20">
+                            {Object.entries(groupedSpecs).map(([category, items]) => (
+                                <div key={category} className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                                    <div className="lg:col-span-1">
+                                        <h3 className="text-xl font-bold text-ios-blue sticky top-32">{category}</h3>
+                                    </div>
+                                    <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-x-16 gap-y-2">
+                                        {items.map((item, idx) => (
+                                            <SpecRow key={idx} label={item.label} value={item.value} />
+                                        ))}
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
+                {/* Resources & Files */}
+                {(resources.length > 0 || instrument.documents?.length > 0) && (
+                    <section>
+                        <div className="flex items-center gap-4 mb-16">
+                            <h2 className="text-4xl font-bold tracking-tight">Documentación</h2>
+                            <div className="h-[2px] flex-1 bg-black/5 dark:bg-white/5 rounded-full" />
+                        </div>
+                        {resources.length > 0 ? (
+                            <ResourceSection resources={resources} canEdit={false} />
+                        ) : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {instrument.documents?.map((doc: any, idx: number) => {
+                                    const isPdf = doc.type?.toLowerCase() === 'pdf' || doc.url?.toLowerCase().endsWith('.pdf');
+                                    const Content = (
+                                        <div className="apple-card p-6 flex items-center gap-4 group cursor-pointer h-full">
+                                            <div className="w-12 h-12 rounded-2xl bg-ios-blue/10 flex items-center justify-center text-ios-blue group-hover:bg-ios-blue group-hover:text-white transition-all duration-300">
+                                                <FileText size={24} />
+                                            </div>
+                                            <div className="flex-1">
+                                                <p className="font-bold text-gray-900 dark:text-white leading-tight mb-1">{doc.title}</p>
+                                                <p className="text-[10px] font-bold uppercase tracking-widest text-ios-blue">{doc.type || 'Archivo'}</p>
+                                            </div>
+                                        </div>
+                                    );
+                                    return isPdf 
+                                        ? <PdfPreviewModal key={idx} url={doc.url} title={doc.title}>{Content}</PdfPreviewModal>
+                                        : <a key={idx} href={doc.url} target="_blank" rel="noopener noreferrer">{Content}</a>;
+                                })}
+                            </div>
+                        )}
+                    </section>
+                )}
+
+                {/* Market & Inventory */}
+                <section>
+                    {ownedItems.length > 0 ? (
+                        <div className="space-y-16">
+                            <div className="flex items-center gap-4 mb-16">
+                                <h2 className="text-4xl font-bold tracking-tight">Mi Colección</h2>
+                                <div className="h-[2px] flex-1 bg-black/5 dark:bg-white/5 rounded-full" />
+                            </div>
+                            <PersonalInventoryManager items={ownedItems}>
+                                {ownedItems.map((unit: any) => (
+                                    <UserUnitDetails key={unit._id} unit={unit} instrument={instrument} canEdit={canEdit} />
+                                ))}
+                            </PersonalInventoryManager>
+                        </div>
+                    ) : (
+                        (instrument.marketValue || canEdit) && (
+                            <ValuationSection instrument={instrument} canEdit={canEdit} />
+                        )
+                    )}
+                </section>
+
+                {/* Community */}
+                <CommentSection instrumentId={id} comments={comments} currentUser={currentUserFull} />
+
+                {/* Digital Sheet / QR Footer */}
+                <footer className="pt-32 pb-16 flex flex-col items-center gap-8 border-t border-black/5 dark:border-white/5">
+                    <div className="text-center space-y-2">
+                        <p className="apple-label text-center m-0">Ficha Técnica Digital</p>
+                        <p className="text-sm text-gray-500">Accede a esta ficha desde cualquier dispositivo</p>
                     </div>
-                )
-            )}
-
-            {/* Comments Section */}
-            <CommentSection
-                instrumentId={id}
-                comments={comments}
-                currentUser={currentUserFull}
-            />
-
-            {/* QR Code moved to very bottom */}
-            <div className="mt-24 pt-16 border-t border-gray-100 dark:border-gray-800 flex justify-center">
-                <div className="flex flex-col items-center gap-6">
-                    <p className="text-sm font-medium text-gray-400 uppercase tracking-widest">Ficha Digital</p>
-                    <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 dark:bg-white/5">
+                    <div className="apple-card p-6 bg-white dark:bg-white/5">
                         <QRCodeGenerator url={`/instruments/${id}`} label={instrument.model} />
                     </div>
-                </div>
+                </footer>
             </div>
         </div>
     );
