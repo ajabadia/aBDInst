@@ -19,8 +19,9 @@ test.describe('Instruments', () => {
 
     test('should open Add Instrument form', async ({ page }) => {
         await page.goto('/instruments');
-        await page.click('text=Añadir nuevo');
+        // Using a more specific selector for the button
+        await page.getByRole('button', { name: /añadir nuevo/i }).click();
         await expect(page).toHaveURL(/.*instruments\/new/);
-        await expect(page.locator('h1')).toContainText('instrumento');
+        await expect(page.locator('h1')).toHaveText(/instrumento/i);
     });
 });
