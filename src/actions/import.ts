@@ -1,8 +1,8 @@
 'use server';
 
-import { Instrument } from '@/models/Instrument';
-import { UserCollection } from '@/models/UserCollection';
-import { connectDB } from '@/lib/db';
+import Instrument from '@/models/Instrument';
+import UserCollection from '@/models/UserCollection';
+import connectDB from '@/lib/db';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 

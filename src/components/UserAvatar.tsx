@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Image from 'next/image';
-import { User } from 'lucide-react';
 
 interface UserAvatarProps {
     user: {
@@ -17,30 +16,31 @@ interface UserAvatarProps {
 export default function UserAvatar({ user, size = 40, className = '' }: UserAvatarProps) {
     const [imageError, setImageError] = useState(false);
 
-    // Determines the size class for the container if needed, 
-    // but usually size is handled by the parent or inline style for specific pixel needs.
-    // We'll use the size prop to determine layout dimensions.
+    // Generate initials for fallback
+    const initials = (user?.name || user?.email || 'U').substring(0, 2).toUpperCase();
 
-    const fallbackUrl = `https://source.boringavatars.com/beam/${size}/${encodeURIComponent(user?.name || user?.email || 'User')}?colors=264653,2a9d8f,e9c46a,f4a261,e76f51`;
-
-    const imageSrc = (user?.image && !imageError) ? user.image : fallbackUrl;
-
-    // Check if it's the specific "default google" or similar generic that we want to override? 
-    // For now we trust user.image unless it fails.
+    // If we have a valid image and no error, show it.
+    const showImage = user?.image && !imageError;
 
     return (
         <div
-            className={`relative rounded-full overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-gray-800 border border-white dark:border-gray-800 shadow-sm ${className}`}
+            className={`relative rounded-full overflow-hidden flex-shrink-0 bg-gradient-to-br from-blue-500 to-purple-600 border border-white dark:border-gray-800 shadow-sm flex items-center justify-center ${className}`}
             style={{ width: size, height: size }}
         >
-            <Image
-                src={imageSrc}
-                alt={user?.name || 'User Avatar'}
-                fill
-                className="object-cover"
-                onError={() => setImageError(true)}
-                unoptimized={true} // Bypass Next.js optimization to ensure external images load reliably inside the app
-            />
+            {showImage ? (
+                <Image
+                    src={user.image!}
+                    alt={user?.name || 'User Avatar'}
+                    fill
+                    className="object-cover"
+                    onError={() => setImageError(true)}
+                    unoptimized={true}
+                />
+            ) : (
+                <span className="font-bold text-white leading-none overflow-hidden" style={{ fontSize: size * 0.4 }}>
+                    {initials}
+                </span>
+            )}
         </div>
     );
 }

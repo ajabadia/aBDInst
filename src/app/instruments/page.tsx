@@ -25,8 +25,8 @@ export default async function InstrumentsPage(props: {
     const session = await auth();
     const rawInstruments = await getInstruments(query, category);
     const instruments = cleanData(rawInstruments);
-    const role = (session?.user as any)?.role;
-    const canEdit = ['admin', 'editor'].includes(role);
+    const role = session?.user?.role;
+    const canEdit = ['admin', 'editor'].includes(role || '');
 
     return (
         <div className="container mx-auto p-8 max-w-7xl">
@@ -41,13 +41,19 @@ export default async function InstrumentsPage(props: {
                 </div>
                 <div className="flex gap-3">
                     <Link href="/instruments/compare">
-                        <Button variant="secondary" icon={GitCompare}>Comparar</Button>
+                        <Button variant="secondary">
+                            <GitCompare size={20} className="stroke-[2.5px]" />
+                            Comparar
+                        </Button>
                     </Link>
                     {canEdit && (
                         <>
                             <BulkImporter />
                             <Link href="/instruments/new">
-                                <Button icon={Plus}>Añadir nuevo</Button>
+                                <Button>
+                                    <Plus size={20} className="stroke-[2.5px]" />
+                                    Añadir nuevo
+                                </Button>
                             </Link>
                         </>
                     )}

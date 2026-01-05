@@ -83,8 +83,18 @@ export async function getInstruments(query?: string, category?: string | null) {
             filter.type = { $regex: new RegExp(`^${category}$`, 'i') };
         }
 
-        const instruments = await Instrument.find(filter).sort({ brand: 1, model: 1 });
-        return JSON.parse(JSON.stringify(instruments));
+        // Optimize: Select only necessary fields and use lean()
+        const instruments = await Instrument.find(filter)
+            .select('brand model type subtype genericImages years')
+            .sort({ brand: 1, model: 1 })
+            .lean();
+
+        // Efficient transformation
+        return instruments.map((inst: any) => ({
+            ...inst,
+            _id: inst._id.toString(),
+            id: inst._id.toString()
+        }));
     } catch (error) {
         console.error('Get Instruments Error:', error);
         return [];

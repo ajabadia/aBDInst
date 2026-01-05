@@ -12,6 +12,11 @@ declare module "next-auth" {
             id: string
         } & DefaultSession["user"]
     }
+
+    interface User {
+        role?: string
+    }
+}
 }
 
 declare module "@auth/core/jwt" {

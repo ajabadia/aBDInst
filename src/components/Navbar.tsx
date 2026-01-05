@@ -164,7 +164,7 @@ export default function Navbar({ session }: { session: any }) {
                                             {/* Link to profile if it existed, otherwise just dashboard or disabled for now */}
                                             <hr className="border-gray-50 dark:border-gray-800 my-1" />
 
-                                            {(session.user as any).role === 'admin' && (
+                                            {(session.user).role === 'admin' && (
                                                 <button
                                                     onClick={() => {
                                                         setUserMenuOpen(false);
