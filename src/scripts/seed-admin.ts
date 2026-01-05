@@ -6,7 +6,7 @@ import bcrypt from 'bcryptjs';
 async function seed() {
     await dbConnect();
 
-    const email = 'admin@example.com';
+    const email = 'admin@instrumentcollector.com';
     const password = 'admin';
 
     const existingUser = await User.findOne({ email });
@@ -18,14 +18,14 @@ async function seed() {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await User.create({
-        name: 'Admin User',
+        name: 'Admin',
         email,
         password: hashedPassword,
         role: 'admin',
     });
 
     console.log('Admin user created successfully.');
-    console.log('Email: admin@example.com');
+    console.log('Email: admin@instrumentcollector.com');
     console.log('Password: admin');
 }
 

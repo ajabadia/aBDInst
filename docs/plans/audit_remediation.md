@@ -23,16 +23,31 @@
 **Prioridad: MEDIA**
 
 - [x] **Optimizar Sesión de Usuario (`src/auth.ts`)**:
-  - **Problema**: La callback de `session` realiza una consulta a la base de datos (`User.findById`) en cada request para refrescar los datos del usuario.
-  - **Solución Propuesta**:
-    - Implementar una estrategia de caché (ej. verificar la actualización solo si han pasado X minutos).
-    - O eliminar la consulta forzosa si la consistencia inmediata de nombre/avatar no es crítica, confiando en el token JWT hasta que expire.
+  - **Problema**: La callback de `session` realiza una consulta a la base de datos (`User.findById`)## 3. Plan de Ejecución
 
-- [x] **Serialización de Datos**:
-  - **Problema**: Uso extensivo de `JSON.parse(JSON.stringify(obj))` para serializar documentos de Mongoose (ej. en `src/actions/collection.ts`).
-  - **Solución Propuesta**:
-    - Usar `.lean()` en las consultas de Mongoose donde sea posible para obtener objetos planos de JavaScript directamente.
-    - Implementar una utilidad de serialización ligera si `.lean()` no es suficiente (ej. para transformar `_id` a string).
+### Fase 1: Configuración & Limpieza (Inmediato)
+- [x] **Configuración Sentry**:
+  - [x] Crear `instrumentation.ts` para inicialización central.
+  - [x] Configurar `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`.
+  - [x] Unificar opciones en `next.config.ts` (quitar duplicados).
+- [x] **Tipado TypeScript**:
+  - [x] Crear `types/next-auth.d.ts` para extender Session/User (role, id).
+  - [x] Eliminar `as any` en `auth.config.ts` y componentes.
+
+### Fase 2: Rendimiento & Estabilidad
+- [x] **Serialización**:
+  - [x] Revisar `getInstruments` y usar `.lean()` + serialización explícita (`JSON.parse(JSON.stringify)` o mapeo manual).
+  - [x] Revisar paso de props a Client Components (iconos como props vs children).
+- [x] **Optimizaciones DB**:
+  - [x] Implementar caching en `auth.ts` (evitar fetch de usuario en cada callback si es posible, o usar `unstable_cache`).
+- [x] **Componentes UI**:
+  - [x] Solucionar errores de hidratación o "plain object" en `Button.tsx` (revisar `icon` prop).
+
+### Fase 3: Hardening Final
+- [x] **Validación de Entradas**:
+  - [x] Sanitizar inputs regex en `getInstruments` (prevenir NoSQL injection).
+- [x] **Tests E2E**:
+  - [x] Implementar suite básica con Playwright para flujos críticos (Login, Create Instrument).
 
 ## 3. Calidad de Código y Seguridad
 **Prioridad: BAJA/MANTENIMIENTO**

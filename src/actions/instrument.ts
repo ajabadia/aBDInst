@@ -81,7 +81,8 @@ export async function getInstruments(query?: string, category?: string | null) {
         }
 
         if (category) {
-            filter.type = { $regex: new RegExp(`^${category}$`, 'i') };
+            const safeCategory = escapeRegExp(category);
+            filter.type = { $regex: new RegExp(`^${safeCategory}$`, 'i') };
         }
 
         // Optimize: Select only necessary fields and use lean()
