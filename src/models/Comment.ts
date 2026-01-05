@@ -6,6 +6,7 @@ export interface IComment extends Document {
     content: string;
     parentId?: Schema.Types.ObjectId;
     status: 'visible' | 'hidden';
+    isDeleted: boolean;
     reports: { userId: Schema.Types.ObjectId; reason: string; date: Date }[];
     reportCount: number;
     createdAt: Date;
@@ -41,6 +42,11 @@ const CommentSchema = new Schema<IComment>(
             type: String,
             enum: ['visible', 'hidden'],
             default: 'visible',
+            index: true
+        },
+        isDeleted: {
+            type: Boolean,
+            default: false,
             index: true
         },
         reports: [{

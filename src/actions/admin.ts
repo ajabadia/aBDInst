@@ -5,6 +5,7 @@ import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { revalidatePath } from 'next/cache';
 import SystemConfig from '@/models/SystemConfig';
+import { escapeRegExp } from '@/lib/utils';
 
 // Helper to check if current user is admin
 async function checkAdmin() {
@@ -26,9 +27,10 @@ export async function getUsers(page = 1, limit = 20, search = '') {
 
         const query: any = {};
         if (search) {
+            const safeSearch = escapeRegExp(search);
             query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { email: { $regex: search, $options: 'i' } }
+                { name: { $regex: safeSearch, $options: 'i' } },
+                { email: { $regex: safeSearch, $options: 'i' } }
             ];
         }
 
@@ -124,24 +126,42 @@ export async function updateSystemConfig(key: string, value: any, description?: 
 export async function getAdminStats() {
     try {
         await checkAdmin();
-        const userCount = await User.countDocuments({});
-        const instrumentCount = (await import('@/models/Instrument')).default.countDocuments({});
-        const banned = await User.countDocuments({ isBanned: true });
+        const Comment = (await import('@/models/Comment')).default;
+
+        const [userCount, instrumentCount, reports, banned] = await Promise.all([
+            User.countDocuments({}),
+            (await import('@/models/Instrument')).default.countDocuments({}),
+            Comment.countDocuments({ reportCount: { $gt: 0 }, isDeleted: false }),
+            User.countDocuments({ isBanned: true })
+        ]);
+
         return {
             users: userCount,
-            instruments: await instrumentCount,
-            reports: 0,
+            instruments: instrumentCount,
+            reports: reports,
             banned
         };
     } catch (error) {
         console.error('Error getting admin stats:', error);
-        return { users: 0, instruments: 0, reports: 0 };
+        return { users: 0, instruments: 0, reports: 0, banned: 0 };
     }
 }
 
 export async function getModerationQueue() {
-    await checkAdmin();
-    return [];
+    try {
+        await checkAdmin();
+        const Comment = (await import('@/models/Comment')).default;
+
+        const reported = await Comment.find({ reportCount: { $gt: 0 }, isDeleted: false })
+            .populate('userId', 'name email role isBanned')
+            .sort({ reportCount: -1, createdAt: -1 })
+            .lean();
+
+        return JSON.parse(JSON.stringify(reported));
+    } catch (error) {
+        console.error('Error fetching moderation queue:', error);
+        return [];
+    }
 }
 
 export async function getAllSystemConfigs() {
@@ -162,7 +182,11 @@ export async function manageReport(commentId: string, action: 'dismiss' | 'delet
         const Comment = (await import('@/models/Comment')).default;
 
         if (action === 'delete') {
-            await Comment.findByIdAndDelete(commentId);
+            await Comment.findByIdAndUpdate(commentId, {
+                isDeleted: true,
+                status: 'hidden',
+                content: '[Comentario eliminado por moderación]'
+            });
         } else if (action === 'dismiss') {
             await Comment.findByIdAndUpdate(commentId, { reports: [], reportCount: 0 });
         }

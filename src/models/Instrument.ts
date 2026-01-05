@@ -79,7 +79,7 @@ InstrumentSchema.index({ type: 1 });
 InstrumentSchema.index({ 'marketValue.current.value': 1 });
 
 // Hotfix for Next.js dev mode: reload model if schema changed
-if (models.Instrument && !models.Instrument.schema.paths.websites) {
+if (process.env.NODE_ENV === 'development' && models.Instrument && !models.Instrument.schema.paths.websites) {
     console.log('Detected outdated Instrument model (missing websites). Clearing cache...');
     delete (models as any).Instrument;
 }

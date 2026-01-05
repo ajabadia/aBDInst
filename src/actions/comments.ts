@@ -94,7 +94,7 @@ export async function getComments(instrumentId: string) {
         await dbConnect();
 
         // If admin, show everything. If not, only show visible.
-        const query: any = { instrumentId };
+        const query: any = { instrumentId, isDeleted: false };
         if (!isAdmin) {
             query.status = 'visible';
         }
@@ -168,9 +168,13 @@ export async function deleteOwnComment(commentId: string) {
         if (hasChildren) {
             comment.content = "[Comentario eliminado por el usuario]";
             comment.status = 'hidden';
+            comment.isDeleted = true;
             await comment.save();
         } else {
-            await Comment.findByIdAndDelete(commentId);
+            comment.content = "[Comentario eliminado por el usuario]";
+            comment.status = 'hidden';
+            comment.isDeleted = true;
+            await comment.save();
         }
 
         revalidatePath(`/instruments/${comment.instrumentId}`);
@@ -191,7 +195,11 @@ export async function moderateComment(commentId: string, action: 'hide' | 'visib
         await dbConnect();
 
         if (action === 'delete') {
-            await Comment.findByIdAndDelete(commentId);
+            await Comment.findByIdAndUpdate(commentId, {
+                isDeleted: true,
+                status: 'hidden',
+                content: '[Comentario eliminado por administración]'
+            });
         } else {
             await Comment.findByIdAndUpdate(commentId, { status: action });
         }
@@ -228,7 +236,7 @@ export async function getModerationQueue() {
 
         await dbConnect();
 
-        const reported = await Comment.find({ reportCount: { $gt: 0 } })
+        const reported = await Comment.find({ reportCount: { $gt: 0 }, isDeleted: false })
             .populate('userId', 'name email role isBanned')
             .sort({ reportCount: -1, createdAt: -1 })
             .lean();
