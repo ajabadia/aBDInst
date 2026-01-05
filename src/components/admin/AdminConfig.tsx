@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { setSystemConfig } from '@/actions/admin';
+import { updateSystemConfig } from '@/actions/admin';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'sonner';
 import { Save, Bot, Cpu } from 'lucide-react';
@@ -72,7 +72,7 @@ Format output as a single JSON object:
 }`;
     const DEFAULT_BULK = "You are an expert instrument appraiser. Parse the raw list into a JSON ARRAY of objects with brand, model, type, year, description.";
 
-    const [modelName, setModelName] = useState(getValue('ai_model_name', 'gemini-2.0-flash-exp'));
+    const [modelName, setModelName] = useState(getValue('ai_model_name', 'gemini-3-flash-preview'));
     const [systemPrompt, setSystemPrompt] = useState(getValue('ai_system_prompt', DEFAULT_SYSTEM));
     const [bulkPrompt, setBulkPrompt] = useState(getValue('ai_bulk_prompt', DEFAULT_BULK));
     const [scraperProxy, setScraperProxy] = useState(getValue('scraper_proxy_url', ''));
@@ -82,10 +82,10 @@ Format output as a single JSON object:
         setLoading(true);
         try {
             await Promise.all([
-                setSystemConfig('ai_model_name', modelName),
-                setSystemConfig('ai_system_prompt', systemPrompt),
-                setSystemConfig('ai_bulk_prompt', bulkPrompt),
-                setSystemConfig('scraper_proxy_url', scraperProxy)
+                updateSystemConfig('ai_model_name', modelName),
+                updateSystemConfig('ai_system_prompt', systemPrompt),
+                updateSystemConfig('ai_bulk_prompt', bulkPrompt),
+                updateSystemConfig('scraper_proxy_url', scraperProxy)
             ]);
             toast.success('Configuración guardada correctamente');
         } catch (error) {

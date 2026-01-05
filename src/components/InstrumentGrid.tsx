@@ -1,28 +1,49 @@
 'use client';
 
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, Variants } from 'framer-motion';
 import InstrumentCard from '@/components/InstrumentCard';
 import EmptyState from '@/components/EmptyState';
+import VirtualizedInstrumentGrid from './VirtualizedInstrumentGrid';
 
 interface InstrumentGridProps {
     instruments: any[];
 }
 
+const container: Variants = {
+    hidden: { opacity: 0 },
+    show: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.05
+        }
+    }
+};
+
+const itemVariant: Variants = {
+    hidden: { opacity: 0, y: 20 },
+    show: { opacity: 1, y: 0, transition: { type: "spring", stiffness: 300, damping: 24 } }
+};
+
 export default function InstrumentGrid({ instruments }: InstrumentGridProps) {
+
+    // Performance Optimization: Use Virtualization for large lists (>100 items)
+    if (instruments.length > 100) {
+        return <VirtualizedInstrumentGrid instruments={instruments} />;
+    }
+
     return (
         <motion.div
-            layout
-            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10"
+            variants={container}
+            initial="hidden"
+            animate="show"
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 py-4"
         >
             <AnimatePresence mode="popLayout">
                 {instruments.map((inst) => (
                     <motion.div
                         key={inst._id}
+                        variants={itemVariant}
                         layout
-                        initial={{ opacity: 0, scale: 0.9 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.9 }}
-                        transition={{ duration: 0.3 }}
                     >
                         <InstrumentCard inst={inst} />
                     </motion.div>
@@ -31,8 +52,8 @@ export default function InstrumentGrid({ instruments }: InstrumentGridProps) {
 
             {instruments.length === 0 && (
                 <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
                     className="col-span-full"
                 >
                     <EmptyState

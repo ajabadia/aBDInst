@@ -13,10 +13,6 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**', // Allow all HTTPS domains
-      },
-      {
-        protocol: 'https',
         hostname: 'res.cloudinary.com',
       },
       {
@@ -24,10 +20,6 @@ const nextConfig: NextConfig = {
         hostname: '*.googleusercontent.com',
       },
     ],
-  },
-  // Ensure we ignore the build errors for now if types are loose
-  typescript: {
-    ignoreBuildErrors: true,
   },
   experimental: {
     serverActions: {

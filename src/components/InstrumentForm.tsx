@@ -457,6 +457,7 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                                     multiple={true}
                                     accept="image/*"
                                     label="Subir Imágenes"
+                                    context="catalog"
                                 />
 
                                 {/* Manual Image URL Input */}
@@ -464,7 +465,6 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                                     <input
                                         type="text"
                                         id="img-url-input"
-                                        placeholder="O pegar URL de imagen..."
                                         placeholder="O pegar URL de imagen..."
                                         className="apple-input flex-1"
                                         onKeyDown={(e) => {

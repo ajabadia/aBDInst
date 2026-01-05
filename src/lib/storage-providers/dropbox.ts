@@ -13,7 +13,7 @@ export class DropboxProvider implements IStorageProvider {
     async upload(file: File | Buffer, userId: string, path?: string): Promise<string> {
         try {
             // Create user-specific path
-            const fileName = path || `photo-${Date.now()}.jpg`;
+            const fileName = path || `photo-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`;
             const dropboxPath = `/instrument-collector/${userId}/${fileName}`;
 
             // Convert File to Buffer if needed

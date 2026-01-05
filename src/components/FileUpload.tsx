@@ -8,9 +8,10 @@ interface FileUploadProps {
     multiple?: boolean;
     accept?: string;
     label?: string;
+    context?: 'general' | 'catalog';
 }
 
-export default function FileUpload({ onUpload, multiple = false, accept = "image/*", label = "Subir archivo" }: FileUploadProps) {
+export default function FileUpload({ onUpload, multiple = false, accept = "image/*", label = "Subir archivo", context = 'general' }: FileUploadProps) {
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
 
@@ -43,6 +44,7 @@ export default function FileUpload({ onUpload, multiple = false, accept = "image
 
             const formData = new FormData();
             formData.append('file', file);
+            formData.append('context', context);
             xhr.send(formData);
         });
     };

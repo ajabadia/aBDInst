@@ -1,0 +1,9 @@
+﻿src/app/admin/page.tsx(25,66): error TS2339: Property 'pendingReports' does not exist on type '{ users: number; instruments: number; reports: number; }'.
+src/app/admin/page.tsx(34,66): error TS2339: Property 'totalUsers' does not exist on type '{ users: number; instruments: number; reports: number; }'.
+src/app/admin/page.tsx(43,66): error TS2551: Property 'totalInstruments' does not exist on type '{ users: number; instruments: number; reports: number; }'. Did you mean 'instruments'?
+src/app/admin/page.tsx(52,66): error TS2339: Property 'bannedUsers' does not exist on type '{ users: number; instruments: number; reports: number; }'.
+src/app/profile/[id]/page.tsx(7,28): error TS2307: Cannot find module '@/types/instrument' or its corresponding type declarations.
+src/components/Search.tsx(34,31): error TS18047: 'searchParams' is possibly 'null'.
+src/components/valuation/ValuationModal.tsx(52,17): error TS18048: 'result' is possibly 'undefined'.
+src/components/valuation/ValuationModal.tsx(56,29): error TS18048: 'result' is possibly 'undefined'.
+src/components/VirtualizedInstrumentGrid.tsx(9,26): error TS2339: Property 'FixedSizeGrid' does not exist on type 'typeof import("D:/desarrollos/aBDInst/instrument-collector/node_modules/react-window/dist/react-window")'.

@@ -24,15 +24,22 @@ export class CloudinaryProvider implements IStorageProvider {
             const buffer = file instanceof File ? Buffer.from(await file.arrayBuffer()) : file;
 
             // Upload to Cloudinary with user-specific folder
+            // Upload to Cloudinary with user-specific folder and unique suffix
+            const filenameRegex = /(.+?)(\.[^.]*$|$)/;
+            const originalName = (file instanceof File ? file.name : 'image').replace(/\.[^/.]+$/, "");
+            const uniqueSuffix = `${Date.now()}-${Math.random().toString(36).substring(7)}`;
+            const publicId = `${originalName}-${uniqueSuffix}`;
+
             const folder = customPath || `users/${userId}/collection`;
 
             const result = await cloudinary.uploader.upload(
                 `data:image/jpeg;base64,${buffer.toString('base64')}`,
                 {
                     folder,
+                    public_id: publicId, // Manually set unique public_id
                     resource_type: 'auto',
-                    use_filename: true, // Preserve original filename
-                    unique_filename: true, // Append random characters to avoid collisions but keep name
+                    // use_filename: true, // Removed to avoid conflicts
+                    // unique_filename: true, // Removed, handling manually
                     transformation: [
                         { width: 2000, crop: 'limit' }, // Max width
                         { quality: 'auto:good' },

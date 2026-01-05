@@ -179,7 +179,7 @@ export async function analyzeBulkList(textList: string) {
 
     try {
         const { getSystemConfig } = await import('./admin');
-        const modelName = await getSystemConfig('ai_model_name') || 'gemini-2.0-flash-exp';
+        const modelName = await getSystemConfig('ai_model_name') || 'gemini-3-flash-preview';
         const bulkPrompt = await getSystemConfig('ai_bulk_prompt');
 
         const prompt = bulkPrompt ? `${bulkPrompt}\n\nRAW LIST:\n${textList}` : `

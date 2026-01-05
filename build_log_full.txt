@@ -1,0 +1,12 @@
+﻿
+> instrument-collector@0.1.0 build
+> next build
+
+Ôû▓ Next.js 16.1.1 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  ┬À serverActions
+
+  Creating an optimized production build ...
+Ô£ô Compiled successfully in 44s
+  Running TypeScript ...

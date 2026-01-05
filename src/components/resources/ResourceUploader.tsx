@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Upload, FileText, Music, FileCode, Check, Loader2, X } from 'lucide-react';
+import { Upload, FileText, Music, FileCode, Check, Loader2, X, Play } from 'lucide-react';
 import { toast } from 'sonner';
 import { uploadResource } from '@/actions/resource';
 import { useRouter } from 'next/navigation';
@@ -185,8 +185,8 @@ export default function ResourceUploader({
                                 type="button"
                                 onClick={() => setVisibility('private')}
                                 className={`flex-1 text-xs font-semibold py-2 rounded-lg transition-all shadow-sm ${visibility === 'private'
-                                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]'
-                                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 shadow-none bg-transparent'
+                                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]'
+                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 shadow-none bg-transparent'
                                     }`}
                             >
                                 Privado
@@ -195,8 +195,8 @@ export default function ResourceUploader({
                                 type="button"
                                 onClick={() => setVisibility('public')}
                                 className={`flex-1 text-xs font-semibold py-2 rounded-lg transition-all shadow-sm ${visibility === 'public'
-                                        ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]'
-                                        : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 shadow-none bg-transparent'
+                                    ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-[0_1px_3px_rgba(0,0,0,0.1)]'
+                                    : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 shadow-none bg-transparent'
                                     }`}
                             >
                                 Público

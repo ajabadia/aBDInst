@@ -37,9 +37,7 @@ export default function ValueEvolutionChart({ collection }: ValueEvolutionChartP
             let totalInvested = 0;
 
             collection.forEach(item => {
-                // Check if instrument was owned at this date (or Acquisition Date is missing/invalid, assume effectively owned if legacy?)
-                // Let's rely on acquisition date. If null, maybe ignore or assume owned from start? 
-                // Better to strict check acquisition date.
+                // Check if instrument was owned at this date
                 const acqDate = item.acquisition?.date ? new Date(item.acquisition.date) : null;
 
                 if (acqDate && acqDate <= checkDate) {
@@ -48,9 +46,10 @@ export default function ValueEvolutionChart({ collection }: ValueEvolutionChartP
                     totalInvested += purchasePrice;
 
                     // Determine value at this date
-                    // Find latest history point <= checkDate
                     let estimatedValue = purchasePrice; // Default to purchase price
+                    let valueFound = false;
 
+                    // 1. Try Individual History (User Manual Entry)
                     if (item.marketValue?.history?.length > 0) {
                         const relevantPoints = item.marketValue.history
                             .filter((h: any) => new Date(h.date) <= checkDate)
@@ -72,6 +71,19 @@ export default function ValueEvolutionChart({ collection }: ValueEvolutionChartP
                             } else {
                                 estimatedValue = relevantPoints[0].value;
                             }
+                            valueFound = true;
+                        }
+                    }
+
+                    // 2. Smart Fallback: Use Master Instrument History (Aggregation/AI)
+                    if (!valueFound && item.instrument?.marketValue?.history?.length > 0) {
+                        const masterPoints = item.instrument.marketValue.history
+                            .filter((h: any) => new Date(h.date) <= checkDate)
+                            .sort((a: any, b: any) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                        if (masterPoints.length > 0) {
+                            estimatedValue = masterPoints[0].value;
+                            // Optional: Adjust for condition? E.g. (estimatedValue * 0.8 if condition is 'fair')
                         }
                     }
 

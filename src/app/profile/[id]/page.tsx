@@ -4,7 +4,7 @@ import Image from 'next/image';
 import { MapPin, Calendar, Globe, Box, Heart } from 'lucide-react';
 import FollowButton from '@/components/social/FollowButton';
 import Link from 'next/link';
-import { Instrument } from '@/types/instrument';
+// import { Instrument } from '@/types/instrument';
 
 export default async function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;

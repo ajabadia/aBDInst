@@ -54,8 +54,8 @@ export default function InstrumentFilter() {
             {isOpen && (
                 <div className="mt-4 glass-panel rounded-[1.5rem] p-6 shadow-apple-lg animate-in fade-in slide-in-from-top-2 z-10 relative">
                     <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-semibold text-gray-900 dark:text-white">Filtrar por Categoría</h3>
-                        <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-900">
+                        <h3 className="apple-heading text-lg text-gray-900 dark:text-white tracking-tight">Filtrar por Categoría</h3>
+                        <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800">
                             <X size={18} />
                         </button>
                     </div>

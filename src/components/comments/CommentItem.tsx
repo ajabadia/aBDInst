@@ -8,6 +8,7 @@ import { Flag, Trash2, Ban, MessageCircle, MoreVertical, X, CornerDownRight } fr
 import { reportComment, deleteOwnComment, moderateComment, banUser, postComment } from '@/actions/comments';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 
 interface CommentItemProps {
     comment: any;
@@ -75,7 +76,7 @@ export default function CommentItem({ comment, currentUser, replies, onReplyPost
     };
 
     const handleToggleVisibility = async () => {
-        const newStatus = isVisible ? 'hidden' : 'visible';
+        const newStatus = isVisible ? 'hide' : 'visible';
         const result = await moderateComment(comment._id, newStatus);
         if (result.success) {
             toast.success(`Comentario ${isVisible ? 'oculto' : 'visible'}`);

@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/input';
+import { Input } from '@/components/ui/Input';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { addValuation } from '@/actions/valuation';
@@ -49,11 +49,11 @@ export default function ValuationModal({ isOpen, onClose, instrumentId, instrume
 
         try {
             const result = await addValuation(instrumentId, numericValue, new Date(date), source, finalNotes, range);
-            if (result.success) {
+            if (result && result.success) {
                 toast.success("Valor registrado correctamente");
                 onClose();
             } else {
-                toast.error(result.error || "Error al registrar valor");
+                toast.error(result?.error || "Error al registrar valor");
             }
         } catch (error) {
             toast.error("Error desconocido");

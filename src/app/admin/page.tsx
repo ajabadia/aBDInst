@@ -8,9 +8,9 @@ export default async function AdminPage() {
     const queueData = await getModerationQueue();
     const configData = await getAllSystemConfigs();
 
-    const stats = statsData.success ? statsData.data : { pendingReports: 0, bannedUsers: 0, totalUsers: 0 };
-    const queue = queueData.success ? queueData.data : [];
-    const configs = configData.success ? configData.data : [];
+    const stats = statsData;
+    const queue = queueData;
+    const configs = configData;
 
     return (
         <div className="space-y-8">
@@ -22,7 +22,7 @@ export default async function AdminPage() {
                     </div>
                     <div>
                         <p className="text-sm text-gray-500">Reportes Pendientes</p>
-                        <p className="text-2xl font-bold">{stats.pendingReports}</p>
+                        <p className="text-2xl font-bold">{stats.reports}</p>
                     </div>
                 </div>
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
@@ -31,7 +31,7 @@ export default async function AdminPage() {
                     </div>
                     <div>
                         <p className="text-sm text-gray-500">Usuarios Totales</p>
-                        <p className="text-2xl font-bold">{stats.totalUsers}</p>
+                        <p className="text-2xl font-bold">{stats.users}</p>
                     </div>
                 </div>
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
@@ -40,7 +40,7 @@ export default async function AdminPage() {
                     </div>
                     <div>
                         <p className="text-sm text-gray-500">Instrumentos</p>
-                        <p className="text-2xl font-bold">{stats.totalInstruments}</p>
+                        <p className="text-2xl font-bold">{stats.instruments}</p>
                     </div>
                 </div>
                 <div className="bg-white dark:bg-gray-800 p-6 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm flex items-center gap-4">
@@ -49,7 +49,7 @@ export default async function AdminPage() {
                     </div>
                     <div>
                         <p className="text-sm text-gray-500">Usuarios Baneados</p>
-                        <p className="text-2xl font-bold">{stats.bannedUsers}</p>
+                        <p className="text-2xl font-bold">{(stats as any).banned || 0}</p>
                     </div>
                 </div>
             </div>

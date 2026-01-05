@@ -22,7 +22,7 @@ export default function AdminPage() {
             // Note: This only counts current page stats if not careful, but for MVP we will stick to basic display
             // To do real global stats we should add it to the getUsers response.
             // For now, let's just show total count from response.
-            setStats(prev => ({ ...prev, total: res.total }));
+            setStats(prev => ({ ...prev, total: (res as any).total || 0 }));
         } else {
             toast.error(res.error);
         }

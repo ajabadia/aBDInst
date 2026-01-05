@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Instrument Collector</string>
+    <string name="title_activity_main">Instrument Collector</string>
+    <string name="package_name">io.instrument.collector</string>
+    <string name="custom_url_scheme">io.instrument.collector</string>
+</resources>

@@ -1,7 +1,7 @@
 'use client';
 
 import { Share2, Edit3, QrCode, Plus, Calendar, Zap, LayoutTemplate, Cable } from 'lucide-react';
-import PremiumGallery from './PremiumGallery';
+import ImageGallery from './ImageGallery';
 import QRCodeGenerator from './QRCodeGenerator';
 import { useState, useTransition } from 'react';
 import Link from 'next/link';
@@ -69,7 +69,7 @@ export default function InstrumentHero({ instrument, canEdit, isLoggedIn }: Inst
 
                     {/* LEFT: Premium Gallery (7/12) */}
                     <div className="lg:col-span-7">
-                        <PremiumGallery images={instrument.genericImages || []} altText={instrument.model} />
+                        <ImageGallery images={instrument.genericImages || []} altText={instrument.model} />
                     </div>
 
                     {/* RIGHT: High-End Info (5/12) */}

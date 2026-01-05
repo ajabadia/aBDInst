@@ -71,6 +71,13 @@ const InstrumentSchema = new Schema({
 // Compound index for uniqueness
 InstrumentSchema.index({ brand: 1, model: 1, version: 1 }, { unique: true });
 
+// Text indices for performant search
+InstrumentSchema.index({ brand: 'text', model: 'text', description: 'text' });
+
+// Single field indices for filtering and sorting
+InstrumentSchema.index({ type: 1 });
+InstrumentSchema.index({ 'marketValue.current.value': 1 });
+
 // Hotfix for Next.js dev mode: reload model if schema changed
 if (models.Instrument && !models.Instrument.schema.paths.websites) {
     console.log('Detected outdated Instrument model (missing websites). Clearing cache...');

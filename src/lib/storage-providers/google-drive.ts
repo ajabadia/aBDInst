@@ -30,7 +30,7 @@ export class GoogleDriveProvider implements IStorageProvider {
 
             // Prepare file metadata
             const fileMetadata = {
-                name: path || `photo-${Date.now()}.jpg`,
+                name: path || `photo-${Date.now()}-${Math.random().toString(36).substring(7)}.jpg`,
                 parents: [folderId],
             };
 

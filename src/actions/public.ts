@@ -30,8 +30,8 @@ export async function getPublicProfile(userId: string) {
         // 3. Sanitize Data
         const sanitizedData = {
             user: {
-                name: user.name,
-                image: user.image,
+                name: (user as any).name,
+                image: (user as any).image,
                 id: (user as any)._id.toString()
             },
             collection: collection.map((doc: any) => ({

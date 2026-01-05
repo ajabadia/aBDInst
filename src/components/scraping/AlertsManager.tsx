@@ -4,7 +4,8 @@ import { useState } from 'react';
 import { createPriceAlert, deletePriceAlert, runScraperForAlert } from '@/actions/scraping';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
-import { Search, Bell, Trash2, Play, AlertCircle } from 'lucide-react';
+import { Search, Bell, Trash2, Play, AlertCircle, Box } from 'lucide-react';
+import Image from 'next/image';
 import { toast } from 'sonner';
 
 export default function AlertsManager({ initialAlerts }: { initialAlerts: any[] }) {
@@ -85,16 +86,41 @@ export default function AlertsManager({ initialAlerts }: { initialAlerts: any[] 
             {/* List */}
             <div className="grid gap-4">
                 {alerts.map((alert) => (
-                    <div key={alert._id} className="apple-card p-4 flex items-center justify-between">
-                        <div>
-                            <h4 className="font-bold text-lg">{alert.query}</h4>
-                            <div className="text-sm text-gray-500 flex items-center gap-4">
-                                {alert.targetPrice && (
-                                    <span className="text-green-600 font-medium">
-                                        Meta: &lt; {alert.targetPrice} €
-                                    </span>
+                    <div key={alert._id} className="apple-card p-4 flex items-center justify-between gap-4">
+                        <div className="flex items-center gap-4 flex-1">
+                            {/* Image Thumbnail */}
+                            <div className="w-16 h-16 bg-gray-100 rounded-lg shrink-0 overflow-hidden relative border border-gray-200 dark:border-gray-700">
+                                {alert.instrumentId?.images?.[0] ? (
+                                    <Image
+                                        src={alert.instrumentId.images[0]}
+                                        alt={alert.query}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                ) : alert.instrumentId?.genericImages?.[0] ? (
+                                    <Image
+                                        src={alert.instrumentId.genericImages[0]}
+                                        alt={alert.query}
+                                        fill
+                                        className="object-cover"
+                                    />
+                                ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                        <Box size={24} />
+                                    </div>
                                 )}
-                                <span>Última comprobación: {alert.lastChecked ? new Date(alert.lastChecked).toLocaleDateString() : 'Nunca'}</span>
+                            </div>
+
+                            <div>
+                                <h4 className="font-bold text-lg">{alert.query}</h4>
+                                <div className="text-sm text-gray-500 flex items-center gap-4">
+                                    {alert.targetPrice && (
+                                        <span className="text-green-600 font-medium">
+                                            Meta: &lt; {alert.targetPrice} €
+                                        </span>
+                                    )}
+                                    <span>Última comprobación: {alert.lastChecked ? new Date(alert.lastChecked).toLocaleDateString() : 'Nunca'}</span>
+                                </div>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">

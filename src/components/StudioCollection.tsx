@@ -2,9 +2,12 @@
 
 import { useState, useMemo } from 'react';
 import CollectionItemCard from './CollectionItemCard';
+import TagFilter from './TagFilter';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MapPin, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
+
+import VirtualizedStudioList from './VirtualizedStudioList';
 
 interface StudioCollectionProps {
     collection: any[];
@@ -68,26 +71,40 @@ export default function StudioCollection({ collection, allTags = [] }: StudioCol
                 </div>
             </div>
 
-            {/* Grid */}
-            <motion.div
-                layout
-                className="grid grid-cols-1 gap-6"
-            >
-                <AnimatePresence mode="popLayout">
-                    {filteredItems.map((item) => (
-                        <motion.div
-                            key={item._id}
-                            layout
-                            initial={{ opacity: 0, scale: 0.9 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.9 }}
-                            transition={{ duration: 0.2 }}
-                        >
-                            <CollectionItemCard item={item} />
-                        </motion.div>
-                    ))}
-                </AnimatePresence>
-            </motion.div>
+            {/* Tags Filter */}
+            {allTags.length > 0 && (
+                <TagFilter
+                    allTags={allTags}
+                    selectedTags={selectedTags}
+                    onTagsChange={setSelectedTags}
+                />
+            )}
+
+            {/* Grid or Virtual List */}
+            {filteredItems.length > 50 ? (
+                <VirtualizedStudioList items={filteredItems} />
+            ) : (
+                <motion.div
+                    layout
+                    className="grid grid-cols-1 gap-6"
+                >
+                    <AnimatePresence mode="popLayout">
+                        {filteredItems.map((item) => (
+                            <motion.div
+                                key={item._id}
+                                layout
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                transition={{ duration: 0.2 }}
+                            >
+                                <CollectionItemCard item={item} />
+                            </motion.div>
+                        ))}
+
+                    </AnimatePresence>
+                </motion.div>
+            )}
 
             {filteredItems.length === 0 && (
                 <div className="text-center py-20 bg-gray-50 dark:bg-gray-900/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-800">

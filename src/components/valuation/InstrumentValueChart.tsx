@@ -120,7 +120,7 @@ export default function InstrumentValueChart({ history, purchasePrice, purchaseD
                     />
                     <Tooltip
                         contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-                        formatter={(value: number) => [`${value}€`, '']}
+                        formatter={(value: any) => [`${value}€`, '']}
                         labelStyle={{ color: '#374151', fontWeight: 600, marginBottom: '0.5rem' }}
                     />
                     <Legend iconType="circle" />

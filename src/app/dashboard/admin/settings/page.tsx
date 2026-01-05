@@ -14,6 +14,9 @@ export default async function AdminSettingsPage() {
     const initialPrompt = await getSystemConfig('ai_system_prompt');
     const initialModel = await getSystemConfig('ai_model_name');
 
+
+    const initialProxy = await getSystemConfig('scraper_proxy_url');
+
     return (
         <div className="max-w-4xl mx-auto p-4 sm:p-8">
             <header className="mb-10">
@@ -25,7 +28,7 @@ export default async function AdminSettingsPage() {
                 <p className="text-gray-500 mt-2">Ajusta los parámetros globales y el comportamiento de la IA.</p>
             </header>
 
-            <AdminSettingsForm initialPrompt={initialPrompt} initialModel={initialModel} />
+            <AdminSettingsForm initialPrompt={initialPrompt} initialModel={initialModel} initialProxy={initialProxy} />
         </div>
     );
 }

@@ -83,7 +83,7 @@ export async function getInstrumentFinancials(collectionItemId: string) {
             _id: collectionItemId,
             userId: (session.user as any).id,
             deletedAt: null
-        }).lean();
+        }).lean() as any;
 
         if (!collectionItem) return { success: false, error: "Instrument not found in collection" };
 

@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { Button } from '@/components/ui/Button';
-import { UserAvatar } from '@/components/UserAvatar';
+import UserAvatar from '@/components/UserAvatar';
 import { MoreHorizontal, Shield, ShieldAlert, Slash, CheckCircle, Search, Trash2 } from 'lucide-react';
 import { updateUserRole, toggleUserBan } from '@/actions/admin';
 import { toast } from 'sonner';
@@ -79,8 +79,8 @@ export default function UserTable({ users, onRefresh }: UserTableProps) {
                                     onChange={(e) => handleRoleChange(user._id, e.target.value)}
                                     disabled={loadingId === user._id}
                                     className={`text-xs font-medium px-2 py-1 rounded-lg border-none bg-opacity-20 cursor-pointer focus:ring-2 focus:ring-blue-500 outline-none transition-colors ${user.role === 'admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
-                                            user.role === 'editor' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
-                                                'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
+                                        user.role === 'editor' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
+                                            'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
                                         }`}
                                 >
                                     <option value="normal">Normal</option>

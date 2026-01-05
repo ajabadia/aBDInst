@@ -1,64 +1,49 @@
-
-import { v2 as cloudinary } from 'cloudinary';
 import { NextResponse } from 'next/server';
-
-// Configure Cloudinary
-const cloudConfig = {
-    cloud_name: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY || process.env.NEXT_PUBLIC_CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET || process.env.NEXT_PUBLIC_CLOUDINARY_API_SECRET,
-};
-
-cloudinary.config(cloudConfig);
+import { auth } from '@/auth';
+import { getStorageProvider } from '@/lib/storage-providers/factory';
 
 export async function POST(request: Request) {
-    console.log('📡 Upload API called');
-    console.log('🔧 Cloud Config Check:', {
-        cloud_name: cloudConfig.cloud_name ? 'Presente' : 'MISSING',
-        api_key: cloudConfig.api_key ? 'Presente' : 'MISSING',
-        api_secret: cloudConfig.api_secret ? 'Presente' : 'MISSING (!!!)'
-    });
-
     try {
+        const session = await auth();
+        if (!session || !['admin', 'editor', 'normal'].includes((session.user as any).role)) {
+            return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
+        }
+
         const formData = await request.formData();
         const file = formData.get('file') as File;
+        const context = formData.get('context') as string;
 
         if (!file) {
-            console.error('❌ No file in FormData');
             return NextResponse.json({ success: false, error: 'No file received' }, { status: 400 });
         }
 
-        console.log(`📂 File received: ${file.name} (${file.size} bytes)`);
+        const userId = (session.user as any).id;
+        let provider;
+        let folder;
 
-        // Convert file to buffer
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        // Force Cloudinary for Master Catalog updates
+        if (context === 'catalog') {
+            // Use environment variables directly (System Cloudinary)
+            /* eslint-disable @typescript-eslint/no-var-requires */
+            const { CloudinaryProvider } = require('@/lib/storage-providers/cloudinary');
+            provider = new CloudinaryProvider({
+                cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
+                apiKey: process.env.CLOUDINARY_API_KEY || '',
+                apiSecret: process.env.CLOUDINARY_API_SECRET || ''
+            });
+            folder = 'instruments/catalog'; // Shared folder
+        } else {
+            // Normal user flow: Use their preferred provider
+            provider = await getStorageProvider(userId);
+            folder = undefined; // Let provider decide (usually users/${id}/collection)
+        }
 
-        console.log('🚀 Starting Cloudinary upload...');
-
-        // Upload to Cloudinary via stream
-        const result = await new Promise((resolve, reject) => {
-            const uploadStream = cloudinary.uploader.upload_stream(
-                {
-                    folder: 'instrument-collector/instruments',
-                    resource_type: 'auto',
-                },
-                (error, result) => {
-                    if (error) {
-                        console.error('❌ Cloudinary upload error:', error);
-                        reject(error);
-                    } else {
-                        console.log('✅ Cloudinary success:', result?.secure_url);
-                        resolve(result);
-                    }
-                }
-            );
-            uploadStream.end(buffer);
-        });
+        // Upload
+        const url = await provider.upload(file, userId, folder);
 
         return NextResponse.json({
             success: true,
-            url: (result as any).secure_url
+            url: url
         });
 
     } catch (error: any) {

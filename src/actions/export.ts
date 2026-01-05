@@ -46,3 +46,5 @@ export async function exportCollectionToCSV() {
         return { success: false, error: "Failed to export" };
     }
 }
+
+export const getExportData = exportCollectionToCSV;

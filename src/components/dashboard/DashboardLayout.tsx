@@ -1,24 +1,20 @@
+
 'use client';
 
 import { useState } from 'react';
 import {
     Plus, Music, Settings, GitCompare, Bell,
-    TrendingUp, LineChart, Activity, DollarSign,
-    Box, QrCode
+    TrendingUp, LineChart, DollarSign,
+    Box, QrCode, Activity
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { generateSpecSheet } from '@/actions/pdf'; // Assuming this exists or similar
+import { generateSpecSheet } from '@/actions/pdf';
 import { toast } from 'sonner';
 
-// Widgets
-import EnhancedStats from '@/components/EnhancedStats';
-import ValueEvolutionChart from '@/components/ValueEvolutionChart';
-import DistributionCharts from '@/components/DistributionCharts';
-import StudioCollection from '@/components/StudioCollection';
+// Widgets & DnD
+import DraggableGrid from '@/components/dashboard/DraggableGrid';
 import ActivityFeed from '@/components/social/ActivityFeed';
-import FinanceOverview from '@/components/finance/FinanceOverview';
-import EmptyState from '@/components/EmptyState';
 
 interface DashboardLayoutProps {
     collection: any[];
@@ -29,21 +25,28 @@ interface DashboardLayoutProps {
 }
 
 export default function DashboardLayout({ collection, tags, feed, finance, user }: DashboardLayoutProps) {
-    const [activeTab, setActiveTab] = useState<'overview' | 'finance' | 'activity'>('overview');
-
     // Quick Stats for Top Bar
     const totalValue = collection.reduce((acc, item) => acc + (item.value || 0), 0);
     const itemCount = collection.length;
+
+    // Prepare data object for widgets
+    const widgetData = {
+        collection,
+        tags,
+        feed,
+        finance,
+        user
+    };
 
     return (
         <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
 
-                {/* --- LEFT COLUMN (Main Content) --- */}
+                {/* --- LEFT COLUMN (Main Content - Draggable) --- */}
                 <div className="lg:col-span-2 space-y-8">
 
-                    {/* 1. HERO */}
+                    {/* 1. HERO (Static) */}
                     <div className="bg-gradient-to-br from-ios-blue to-ios-indigo rounded-3xl p-8 text-white shadow-apple-lg relative overflow-hidden group">
                         <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:opacity-20 transition-opacity duration-700">
                             <Music size={120} />
@@ -77,66 +80,15 @@ export default function DashboardLayout({ collection, tags, feed, finance, user 
                         </div>
                     </div>
 
-                    {/* 2. TABS */}
-                    <div className="flex items-center gap-2 border-b border-gray-200 dark:border-white/10 pb-1 overflow-x-auto">
-                        <button
-                            onClick={() => setActiveTab('overview')}
-                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'overview' ? 'bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5'}`}
-                        >
-                            Vista General
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('finance')}
-                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'finance' ? 'bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5'}`}
-                        >
-                            Finanzas y Mercado
-                        </button>
-                        <button
-                            onClick={() => setActiveTab('activity')}
-                            className={`px-4 py-2 rounded-xl font-medium transition-all duration-300 whitespace-nowrap ${activeTab === 'activity' ? 'bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-gray-50 dark:hover:bg-white/5'}`}
-                        >
-                            Actividad y Social
-                        </button>
-                    </div>
+                    {/* 2. DRAGGABLE GRID */}
+                    <DraggableGrid
+                        initialLayout={user.dashboardLayout}
+                        data={widgetData}
+                    />
 
-                    {/* 3. TAB CONTENT */}
-                    <div className="min-h-[400px]">
-                        {activeTab === 'overview' && (
-                            <div className="space-y-8">
-                                {collection.length > 0 ? (
-                                    <>
-                                        <StudioCollection collection={collection} allTags={tags} />
-                                        <DistributionCharts collection={collection} />
-                                    </>
-                                ) : (
-                                    <EmptyState
-                                        title="Empieza tu colección"
-                                        description="Añade tu primer instrumento para ver estadísticas."
-                                        actionLabel="Añadir Ahora"
-                                        actionHref="/instruments"
-                                        icon={<Music size={48} />}
-                                    />
-                                )}
-                            </div>
-                        )}
-
-                        {activeTab === 'finance' && (
-                            <div className="space-y-8">
-                                {finance.success && <FinanceOverview data={finance.data} />}
-                                <ValueEvolutionChart collection={collection} />
-                            </div>
-                        )}
-
-                        {activeTab === 'activity' && (
-                            <div className="apple-card p-6">
-                                <h3 className="text-xl font-bold mb-4">Actividad Detallada</h3>
-                                <ActivityFeed activities={feed} />
-                            </div>
-                        )}
-                    </div>
                 </div>
 
-                {/* --- RIGHT COLUMN (Sidebar) --- */}
+                {/* --- RIGHT COLUMN (Sidebar - Static for now, or could be part of grid) --- */}
                 <div className="space-y-6">
 
                     {/* 1. METRICS */}
@@ -166,22 +118,14 @@ export default function DashboardLayout({ collection, tags, feed, finance, user 
                         </div>
                     </div>
 
-                    {/* 2. EXTRA STATS */}
-                    {collection.length > 0 && (
-                        <div className="apple-card p-6">
-                            <h4 className="font-bold text-gray-500 mb-4 text-xs uppercase tracking-wider">Distribución</h4>
-                            <EnhancedStats collection={collection} compact />
-                        </div>
-                    )}
-
-                    {/* 3. ACTIVITY FEED */}
+                    {/* 3. ACTIVITY FEED (Sidebar Version) */}
                     <div className="apple-card p-6 sticky top-24">
                         <div className="flex items-center justify-between mb-6">
                             <h3 className="font-bold text-lg flex items-center gap-2 tracking-tight">
                                 <Activity size={20} className="text-ios-blue" />
                                 Actividad
                             </h3>
-                            <button className="text-xs font-semibold text-ios-blue bg-ios-blue/10 px-3 py-1 rounded-full cursor-pointer hover:bg-ios-blue/20 transition-colors" onClick={() => setActiveTab('activity')}>Ver todo</button>
+                            {/* <button className="text-xs font-semibold text-ios-blue bg-ios-blue/10 px-3 py-1 rounded-full cursor-pointer hover:bg-ios-blue/20 transition-colors">Ver todo</button> */}
                         </div>
                         <div className="max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                             <ActivityFeed activities={feed.slice(0, 5)} compact />
@@ -193,3 +137,4 @@ export default function DashboardLayout({ collection, tags, feed, finance, user 
         </div>
     );
 }
+

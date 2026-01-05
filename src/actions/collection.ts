@@ -22,8 +22,12 @@ export async function getUserCollection() {
             deletedAt: null
         })
             .populate('instrumentId')
-            .sort({ createdAt: -1 });
+            .populate('instrumentId')
+            .sort({ createdAt: -1 })
+            .lean();
 
+        // With lean(), the result is a POJO. JSON.parse/stringify is still useful for stripping undefined/Dates to ISO
+        // but much faster than on Documents.
         return JSON.parse(JSON.stringify(collection));
     } catch (error) {
         console.error('Get Collection Error:', error);

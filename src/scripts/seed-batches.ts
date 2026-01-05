@@ -139,7 +139,6 @@ const instruments = [
     {
         brand: 'Behringer',
         model: 'ABACUS',
-        model: 'ABACUS',
         type: 'Eurorack Module',
         subtype: 'Math Processor',
         version: 'Standard',

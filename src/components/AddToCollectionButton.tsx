@@ -13,7 +13,6 @@ function SubmitButton() {
         <Button
             isLoading={pending}
             icon={Plus}
-            icon={Plus}
             className="shadow-sm shadow-blue-500/20" // Standard sizing is handled by Button component base styles
         >
             {pending ? 'Añadiendo...' : 'Añadir a mi Colección'}

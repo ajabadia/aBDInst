@@ -97,7 +97,6 @@ export default function TagInput({
                     onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                     placeholder={tags.length >= maxTags ? `Máximo ${maxTags} etiquetas` : placeholder}
                     disabled={tags.length >= maxTags}
-                    disabled={tags.length >= maxTags}
                     className="apple-input"
                 />
 

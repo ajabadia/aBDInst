@@ -17,7 +17,6 @@ function SubmitButton() {
         <button
             type="submit"
             disabled={pending}
-            disabled={pending}
             className="w-full apple-button-primary justify-center py-3"
         >
             {pending ? 'Guardando...' : 'Guardar Cambios'}

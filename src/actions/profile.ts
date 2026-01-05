@@ -12,7 +12,7 @@ export async function getPublicProfile(userId: string) {
         const user = await User.findById(userId).select('name image bio location website createdAt followers following isBanned').lean();
 
         if (!user) return { success: false, error: "Usuario no encontrado" };
-        if (user.isBanned) return { success: false, error: "Este perfil no está disponible." };
+        if ((user as any).isBanned) return { success: false, error: "Este perfil no está disponible." };
 
         // Get stats
         const collectionsCount = await UserCollection.countDocuments({ userId, deletedAt: null });
@@ -25,7 +25,7 @@ export async function getPublicProfile(userId: string) {
             status: { $ne: 'wishlist' }, // Exclude wishlist from this list
             // visibility: 'public' // If we had visibility field
         })
-            .populate('instrumentId', 'brand model images type')
+            .populate('instrumentId', 'brand model images genericImages type')
             .sort({ createdAt: -1 })
             .limit(6)
             .lean();

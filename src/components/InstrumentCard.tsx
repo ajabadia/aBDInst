@@ -12,10 +12,12 @@ export default function InstrumentCard({ inst }: { inst: any }) {
 
     return (
         <motion.div
+            layout
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -8, scale: 1.02 }}
             viewport={{ once: true, margin: "-50px" }}
-            transition={{ duration: 0.4, ease: "easeOut" }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
             className="h-full"
         >
             <div className="group block h-full relative">

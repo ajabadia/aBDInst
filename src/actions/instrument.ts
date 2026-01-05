@@ -125,7 +125,7 @@ export async function updateInstrument(id: string, data: FormData) {
             specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [], // Changed from undefined to []
             genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [], // Changed from undefined to []
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [], // Changed from undefined to []
-            documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [], // Changed from undefined to []
+
             relatedTo: data.get('relatedTo')?.toString() || undefined,
             // Add marketValue support for the Edit Form
             marketValue: data.get('marketValue') ? JSON.parse(data.get('marketValue') as string) : undefined,

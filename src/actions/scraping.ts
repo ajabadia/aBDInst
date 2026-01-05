@@ -47,7 +47,8 @@ export async function getPriceAlerts() {
 
         const alerts = await PriceAlert.find({
             userId: (session.user as any).id
-        }).sort({ createdAt: -1 });
+        }).sort({ createdAt: -1 })
+            .populate('instrumentId', 'brand model images genericImages');
 
         return JSON.parse(JSON.stringify(alerts));
     } catch (error) {

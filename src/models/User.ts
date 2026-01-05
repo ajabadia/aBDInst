@@ -45,6 +45,14 @@ const UserSchema = new Schema({
         },
         lastTested: { type: Date }
     },
+    dashboardLayout: {
+        type: [{
+            id: { type: String, required: true },
+            visible: { type: Boolean, default: true },
+            order: { type: Number, required: true }
+        }],
+        default: [] // Empty means use default layout
+    }
 }, { timestamps: true });
 
 const User = models?.User || model('User', UserSchema);
