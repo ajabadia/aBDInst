@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed": "tsx src/scripts/seed-admin.ts"
+    "seed": "tsx src/scripts/seed-admin.ts",
+    "test": "vitest"
   },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.1",
@@ -21,6 +22,7 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@ducanh2912/next-pwa": "^10.2.9",
+    "@sentry/nextjs": "^10.32.1",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
@@ -58,16 +60,21 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10.4.1",
+    "@testing-library/react": "^16.3.1",
     "@types/bcryptjs": "^2.4.6",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/react-virtualized-auto-sizer": "^1.0.4",
     "@types/react-window": "^1.8.8",
+    "@vitejs/plugin-react": "^5.1.2",
     "eslint": "^9",
     "eslint-config-next": "16.1.1",
+    "jsdom": "^27.4.0",
     "tailwindcss": "^4",
     "tsx": "^4.21.0",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.0.16"
   }
 }

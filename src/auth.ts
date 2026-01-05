@@ -6,7 +6,10 @@ import dbConnect from './lib/db';
 import User from './models/User';
 import bcrypt from 'bcryptjs';
 
+import { authConfig } from './auth.config';
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
+    ...authConfig,
     adapter: MongoDBAdapter(clientPromise),
     providers: [
         Credentials({
@@ -34,27 +37,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             }
         })
     ],
-    callbacks: {
-        jwt: async ({ token, user }) => {
-            if (user) {
-                token.role = (user as any).role;
-            }
-            return token;
-        },
-        session: async ({ session, token }) => {
-            if (session?.user && token.sub) {
-                (session.user as any).role = token.role;
-                (session.user as any).id = token.sub;
-
-                // Optimization: Rely on JWT token for user data instead of checking DB every request.
-                // Profile updates will appear on next session refresh (logout/login or token rotation).
-                // If immediate consistency is needed, consider client-side "update()" or unstable_cache.
-            }
-            return session;
-        }
-    },
+    // Callbacks are merged/overridden. We keep database-specific logic here if needed, 
+    // but common logic is in authConfig. 
+    // Since we moved role/id mapping to authConfig, we can rely on that.
     session: { strategy: "jwt" },
-    pages: {
-        signIn: '/login',
-    }
 });

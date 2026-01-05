@@ -5,6 +5,7 @@ import Instrument from '@/models/Instrument';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { InstrumentSchema } from '@/lib/schemas';
+import { escapeRegExp } from '@/lib/utils';
 
 // Helper to sanitize Mongoose documents for client
 function sanitize(doc: any) {
@@ -66,12 +67,15 @@ export async function getInstruments(query?: string, category?: string | null) {
     try {
         await dbConnect();
 
+
+
         const filter: any = {};
 
         if (query) {
+            const safeQuery = escapeRegExp(query);
             filter.$or = [
-                { brand: { $regex: query, $options: 'i' } },
-                { model: { $regex: query, $options: 'i' } }
+                { brand: { $regex: safeQuery, $options: 'i' } },
+                { model: { $regex: safeQuery, $options: 'i' } }
             ];
         }
 
