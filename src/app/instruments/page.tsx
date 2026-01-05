@@ -3,7 +3,7 @@ import { getInstruments } from '@/actions/instrument';
 import Link from 'next/link';
 import Search from '@/components/Search';
 import InstrumentFilter from '@/components/InstrumentFilter';
-import VirtualizedInstrumentGrid from '@/components/VirtualizedInstrumentGrid';
+import InstrumentGrid from '@/components/InstrumentGrid';
 import EmptyState from '@/components/EmptyState';
 import InstrumentCard from '@/components/InstrumentCard';
 import { Plus, GitCompare } from 'lucide-react';
@@ -65,8 +65,8 @@ export default async function InstrumentsPage(props: {
                 <InstrumentFilter />
             </div>
 
-            {/* Virtualized Grid for high performance with hundreds of items */}
-            <VirtualizedInstrumentGrid instruments={instruments} />
+            {/* Standard Grid with internal virtualization logic */}
+            <InstrumentGrid instruments={instruments} />
         </div>
     );
 }
