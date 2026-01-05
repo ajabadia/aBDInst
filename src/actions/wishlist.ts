@@ -14,42 +14,30 @@ export async function toggleWishlist(instrumentId: string) {
             return { success: false, error: 'No autorizado' };
         }
 
+        const userId = session.user.id;
         await dbConnect();
 
-        // Check if item exists in ANY status for this user and instrument
-        const existingItem = await UserCollection.findOne({
-            userId: session.user.id,
-            instrumentId: instrumentId
-        });
+        // 1. Check if the user already owns this instrument in their active collection
+        const ownedItem = await UserCollection.findOne({
+            userId,
+            instrumentId,
+            status: { $ne: 'wishlist' }
+        }).select('_id status').lean();
 
-        if (existingItem) {
-            // If it's in wishlist, remove it
-            if (existingItem.status === 'wishlist') {
-                await UserCollection.findByIdAndDelete(existingItem._id);
-                revalidatePath('/dashboard/wishlist');
-                revalidatePath('/instruments');
-                return { success: true, action: 'removed' };
-            }
-
-            // If it's owned (active/sold/repair), we generally shouldn't add to wishlist again
-            // UNLESS we want to support multiple copies, but for now let's say "You already own this"
-            if (existingItem.status !== 'wishlist') {
-                // Optional: Allow adding another copy? For now, we return a message
-                // Or we could create a NEW entry with status wishlist to allow wishing for a second unit
-                // Let's implement creating a NEW entry to allow multiple units/wishes
-                // But wait, toggle implies on/off. 
-                // Simple approach: If you own it, the button serves as "Add another to wishlist" ?
-                // No, standard UX: Wishlist button usually toggles "Is in wishlist".
-                // Let's check if there is specifically a WISHLIST item.
-            }
+        if (ownedItem) {
+            return { 
+                success: false, 
+                error: 'Ya tienes este instrumento en tu colección',
+                action: 'owned' 
+            };
         }
 
-        // Re-check specifically for wishlist status to handle multiple entries correctly
+        // 2. Check if it's already in the wishlist
         const wishlistItem = await UserCollection.findOne({
-            userId: session.user.id,
-            instrumentId: instrumentId,
+            userId,
+            instrumentId,
             status: 'wishlist'
-        });
+        }).select('_id').lean();
 
         if (wishlistItem) {
             await UserCollection.findByIdAndDelete(wishlistItem._id);
@@ -58,27 +46,28 @@ export async function toggleWishlist(instrumentId: string) {
             return { success: true, action: 'removed' };
         }
 
-        // Create new wishlist item
+        // 3. Create new wishlist item
         await UserCollection.create({
-            userId: session.user.id,
-            instrumentId: instrumentId,
+            userId,
+            instrumentId,
             status: 'wishlist',
-            condition: 'good' // default
+            condition: 'good'
         });
 
+        // Revalidate relevant paths
         revalidatePath('/dashboard/wishlist');
+        revalidatePath('/instruments');
 
+        // 4. Log activity (non-blocking)
+        Instrument.findById(instrumentId).select('brand model').lean().then(async (instrument) => {
+            if (instrument) {
+                await logActivity('add_wishlist', {
+                    instrumentId,
+                    instrumentName: `${instrument.brand} ${instrument.model}`
+                });
+            }
+        }).catch(err => console.error("Wishlist Activity Log Error:", err));
 
-
-
-        // Log activity
-        const instrument = await Instrument.findById(instrumentId).select('brand model');
-        if (instrument) {
-            await logActivity('add_wishlist', {
-                instrumentId,
-                instrumentName: `${instrument.brand} ${instrument.model}`
-            });
-        }
         return { success: true, action: 'added' };
 
     } catch (error: any) {
@@ -94,12 +83,17 @@ export async function getWishlist() {
 
         await dbConnect();
 
+        // Optimized populate: only fetch necessary fields for the grid
         const items = await UserCollection.find({
             userId: session.user.id,
             status: 'wishlist'
         })
-            .populate('instrumentId')
-            .sort({ createdAt: -1 });
+            .populate({
+                path: 'instrumentId',
+                select: 'brand model type genericImages years'
+            })
+            .sort({ createdAt: -1 })
+            .lean();
 
         return { success: true, data: JSON.parse(JSON.stringify(items)) };
     } catch (error: any) {
@@ -118,7 +112,7 @@ export async function checkWishlistStatus(instrumentId: string): Promise<boolean
             userId: session.user.id,
             instrumentId: instrumentId,
             status: 'wishlist'
-        });
+        }).select('_id').lean();
 
         return !!item;
     } catch (error) {

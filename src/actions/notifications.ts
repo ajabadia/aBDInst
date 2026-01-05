@@ -6,44 +6,51 @@ import Notification from "@/models/Notification";
 import Reminder from "@/models/Reminder";
 import { revalidatePath } from "next/cache";
 
-// --- INTERNAL HELPERS (Called by other actions) ---
-
+/**
+ * Optimized check for due reminders.
+ * Instead of checking one by one in a loop, it uses bulk operations.
+ */
 async function checkDueReminders(userId: string) {
     try {
         const now = new Date();
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-        // Find due reminders
+        // 1. Find all due reminders that aren't completed
         const dueReminders = await Reminder.find({
             userId,
             isCompleted: false,
             dueDate: { $lte: now }
-        });
+        }).lean();
 
-        for (const reminder of dueReminders) {
-            // Check if we already notified about this specific reminder recently (e.g., today)
-            // Or simple logic: check if there is a 'maintenance' notification for this instrument/reminder that is unread?
-            // Better: Checks if we have created a notification for this reminder ID ever.
+        if (dueReminders.length === 0) return;
 
-            const alreadyNotified = await Notification.exists({
+        // 2. Find which of these already have a notification to avoid duplicates
+        // We only care about 'maintenance' type notifications for these reminder IDs
+        const reminderIds = dueReminders.map(r => r._id);
+        const existingNotifications = await Notification.find({
+            userId,
+            type: 'maintenance',
+            'data.reminderId': { $in: reminderIds }
+        }).select('data.reminderId').lean();
+
+        const alreadyNotifiedIds = new Set(existingNotifications.map(n => n.data.reminderId.toString()));
+
+        // 3. Filter reminders that haven't been notified yet
+        const toNotify = dueReminders.filter(r => !alreadyNotifiedIds.has(r._id.toString()));
+
+        if (toNotify.length > 0) {
+            const newNotifications = toNotify.map(reminder => ({
                 userId,
                 type: 'maintenance',
-                'data.reminderId': reminder._id
-            });
+                data: {
+                    reminderId: reminder._id,
+                    instrumentId: reminder.instrumentId,
+                    title: reminder.title,
+                    description: reminder.description
+                },
+                read: false
+            }));
 
-            if (!alreadyNotified) {
-                await Notification.create({
-                    userId,
-                    type: 'maintenance',
-                    data: {
-                        reminderId: reminder._id,
-                        instrumentId: reminder.instrumentId,
-                        title: reminder.title,
-                        description: reminder.description
-                    },
-                    read: false
-                });
-            }
+            await Notification.insertMany(newNotifications);
         }
     } catch (error) {
         console.error("Error checking reminders:", error);
@@ -59,8 +66,6 @@ export async function createNotification(userId: string, type: string, data: any
             data,
             read: false
         });
-        // We can't revalidatePath specific user sessions easily from here without Websockets/Vapid
-        // But the next time they fetch/navigate, it will show.
     } catch (error) {
         console.error("Error creating notification:", error);
     }
@@ -71,15 +76,16 @@ export async function createNotification(userId: string, type: string, data: any
 export async function getUnreadNotificationsCount() {
     try {
         const session = await auth();
-        if (!session?.user) return 0;
+        const userId = session?.user?.id;
+        if (!userId) return 0;
 
         await dbConnect();
-
-        // Lazy check: process reminders whenever the user checks notifications
-        await checkDueReminders((session.user as any).id);
+        
+        // Lazy processing of maintenance reminders
+        await checkDueReminders(userId);
 
         const count = await Notification.countDocuments({
-            userId: (session.user as any).id,
+            userId,
             read: false
         });
 
@@ -92,10 +98,11 @@ export async function getUnreadNotificationsCount() {
 export async function getNotifications(limit = 10) {
     try {
         const session = await auth();
-        if (!session?.user) return { success: false, data: [] };
+        const userId = session?.user?.id;
+        if (!userId) return { success: false, data: [] };
 
         await dbConnect();
-        const notifications = await Notification.find({ userId: (session.user as any).id })
+        const notifications = await Notification.find({ userId })
             .sort({ createdAt: -1 })
             .limit(limit)
             .lean();
@@ -109,11 +116,12 @@ export async function getNotifications(limit = 10) {
 export async function markAsRead(notificationId: string) {
     try {
         const session = await auth();
-        if (!session?.user) return { success: false };
+        const userId = session?.user?.id;
+        if (!userId) return { success: false };
 
         await dbConnect();
         await Notification.findOneAndUpdate(
-            { _id: notificationId, userId: (session.user as any).id }, // Ensure ownership
+            { _id: notificationId, userId }, 
             { read: true }
         );
 
@@ -127,11 +135,12 @@ export async function markAsRead(notificationId: string) {
 export async function markAllAsRead() {
     try {
         const session = await auth();
-        if (!session?.user) return { success: false };
+        const userId = session?.user?.id;
+        if (!userId) return { success: false };
 
         await dbConnect();
         await Notification.updateMany(
-            { userId: (session.user as any).id, read: false },
+            { userId, read: false },
             { read: true }
         );
 

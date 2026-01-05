@@ -31,176 +31,89 @@
 :root {
   --background: #f5f5f7;
   --foreground: #1d1d1f;
+  --apple-radius: 1rem;
 }
 
 .dark {
-  --background: #0B0F19;
+  --background: #000000;
   --foreground: #f5f5f7;
 }
 
 body {
   background-color: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
-  letter-spacing: -0.025em;
+  font-family: var(--font-geist-sans), system-ui, -apple-system, sans-serif;
+  letter-spacing: -0.022em;
   -webkit-font-smoothing: antialiased;
 }
 
 /* Custom Utilities */
 @layer utilities {
-
-  /* Typography */
   .apple-heading {
-    letter-spacing: -0.025em;
+    letter-spacing: -0.03em;
     font-weight: 600;
   }
 
-  /* Glassmorphism */
   .glass-panel {
-    background-color: rgba(255, 255, 255, 0.75);
+    background-color: rgba(255, 255, 255, 0.7);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(255, 255, 255, 0.4);
   }
 
   .dark .glass-panel {
-    background-color: rgba(30, 30, 35, 0.65);
-    /* More slight gray to separate from pure black bg */
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
-  }
-
-  .text-balance {
-    text-wrap: balance;
+    background-color: rgba(28, 28, 30, 0.7);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 }
 
-/* Components */
+/* Components Core Styles */
 @layer components {
+  /* Apple Button Base */
+  .apple-btn {
+    @apply flex items-center justify-center gap-2 font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+    border-radius: var(--apple-radius);
+  }
+
+  /* Variants */
+  .apple-btn-primary {
+    @apply bg-ios-blue text-white shadow-lg shadow-ios-blue/20 hover:bg-[#0071eb];
+  }
+
+  .apple-btn-secondary {
+    @apply bg-white/60 dark:bg-white/10 text-black dark:text-white border border-black/5 dark:border-white/10 backdrop-blur-md hover:bg-white/80 dark:hover:bg-white/15;
+  }
+
+  .apple-btn-outline {
+    @apply bg-transparent border-2 border-ios-blue text-ios-blue hover:bg-ios-blue/5;
+  }
+
+  .apple-btn-ghost {
+    @apply bg-transparent text-gray-600 dark:text-gray-400 hover:bg-black/5 dark:hover:bg-white/5;
+  }
+
+  .apple-btn-destructive {
+    @apply bg-ios-red/10 text-ios-red border border-ios-red/20 hover:bg-ios-red hover:text-white;
+  }
 
   /* Apple Card */
   .apple-card {
     background-color: rgba(255, 255, 255, 0.8);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.5);
+    border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 1.5rem;
-    /* rounded-3xl equivalent roughly */
-    transition: transform 0.3s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.3s ease;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 
   .dark .apple-card {
     background-color: rgba(28, 28, 30, 0.6);
-    /* System Gray 6ish */
-    border-color: rgba(255, 255, 255, 0.08);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  }
-
-  .apple-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-apple-md);
-    border-color: rgba(0, 122, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.1);
   }
 
   /* Inputs */
-  .apple-input {
-    width: 100%;
-    padding: 0.75rem 1.25rem;
-    border-radius: 1rem;
-    border: 1px solid rgba(229, 231, 235, 0.5);
-    outline: none;
-    transition: all 300ms;
-    background-color: rgba(255, 255, 255, 0.5);
-    color: #111827;
-  }
-
-  .dark .apple-input {
-    background-color: rgba(255, 255, 255, 0.05);
-    border-color: rgba(255, 255, 255, 0.1);
-    color: #fff;
-  }
-
-  .apple-input:focus {
-    background-color: #fff;
-    border-color: var(--color-ios-blue);
-    box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.1);
-  }
-
-  .dark .apple-input:focus {
-    background-color: rgba(0, 0, 0, 0.2);
-  }
-
-  /* Labels */
-  .apple-label {
-    display: block;
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.1em;
-    color: #6b7280;
-    margin-bottom: 0.5rem;
-    margin-left: 0.25rem;
-  }
-
-  .dark .apple-label {
-    color: #9ca3af;
-  }
-
-  /* Buttons */
-  .apple-button-primary {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 1rem;
-    font-weight: 600;
-    transition: all 300ms;
-    background-color: var(--color-ios-blue);
-    color: white;
-    box-shadow: 0 10px 15px -3px rgba(0, 122, 255, 0.3);
-  }
-
-  .apple-button-primary:hover {
-    background-color: #0066CC;
-    transform: scale(1.02);
-  }
-
-  .apple-button-secondary {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    padding: 0.75rem 1.5rem;
-    border-radius: 1rem;
-    /* rounded-2xl */
-    font-weight: 600;
-    transition: all 0.2s ease-out;
-
-    background-color: rgba(255, 255, 255, 0.6);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    color: #1d1d1f;
-    border: 1px solid rgba(0, 0, 0, 0.05);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-  }
-
-  .dark .apple-button-secondary {
-    background-color: rgba(255, 255, 255, 0.1);
-    color: #f5f5f7;
-    border-color: rgba(255, 255, 255, 0.1);
-    box-shadow: none;
-  }
-
-  .apple-button-secondary:hover {
-    background-color: rgba(255, 255, 255, 0.8);
-    border-color: #d1d5db;
-    /* gray-300 */
-  }
-
-  .dark .apple-button-secondary:hover {
-    background-color: rgba(255, 255, 255, 0.2);
-    border-color: rgba(255, 255, 255, 0.2);
+  .apple-input-field {
+    @apply w-full px-4 py-3 outline-none transition-all duration-200 bg-white/50 dark:bg-white/5 border border-black/10 dark:border-white/10 focus:border-ios-blue focus:ring-4 focus:ring-ios-blue/10;
+    border-radius: 0.75rem;
   }
 }
