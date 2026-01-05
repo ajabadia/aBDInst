@@ -3,6 +3,7 @@
 import dbConnect from "@/lib/db";
 import User from "@/models/User";
 import UserCollection from "@/models/UserCollection";
+import "@/models/Instrument"; // Ensure Instrument schema is registered for populate
 import { getFollowStatus } from "./social";
 
 export async function getPublicProfile(userId: string) {

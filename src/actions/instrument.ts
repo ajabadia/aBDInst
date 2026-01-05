@@ -6,6 +6,7 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { InstrumentSchema } from '@/lib/schemas';
 import { escapeRegExp } from '@/lib/utils';
+import * as Sentry from "@sentry/nextjs";
 
 // Helper to sanitize Mongoose documents for client
 function sanitize(doc: any) {
@@ -84,17 +85,23 @@ export async function getInstruments(query?: string, category?: string | null) {
         }
 
         // Optimize: Select only necessary fields and use lean()
-        const instruments = await Instrument.find(filter)
-            .select('brand model type subtype genericImages years')
-            .sort({ brand: 1, model: 1 })
-            .lean();
+        return await Sentry.startSpan({
+            op: "db.query",
+            name: "Fetch Instruments",
+            attributes: { query: query || 'all', category: category || 'all' }
+        }, async () => {
+            const instruments = await Instrument.find(filter)
+                .select('brand model type subtype genericImages years')
+                .sort({ brand: 1, model: 1 })
+                .lean();
 
-        // Efficient transformation
-        return instruments.map((inst: any) => ({
-            ...inst,
-            _id: inst._id.toString(),
-            id: inst._id.toString()
-        }));
+            // Efficient transformation
+            return instruments.map((inst: any) => ({
+                ...inst,
+                _id: inst._id.toString(),
+                id: inst._id.toString()
+            }));
+        });
     } catch (error) {
         console.error('Get Instruments Error:', error);
         return [];

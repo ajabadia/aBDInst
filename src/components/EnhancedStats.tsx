@@ -62,7 +62,7 @@ export default function EnhancedStats({ collection, compact = false }: EnhancedS
 
     const containerClass = compact
         ? "grid grid-cols-1 gap-3"
-        : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12";
+        : "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-12";
 
     const cardClass = `rounded-3xl bg-white dark:bg-white/5 border border-gray-200/50 dark:border-white/10 shadow-sm backdrop-blur-md ${compact ? 'p-4' : 'p-6'}`;
     const valueTextClass = `font-semibold tracking-tighter text-gray-900 dark:text-white ${compact ? 'text-2xl' : 'text-3xl'}`;

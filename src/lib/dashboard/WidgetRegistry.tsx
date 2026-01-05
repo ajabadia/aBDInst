@@ -30,7 +30,7 @@ export const WIDGET_REGISTRY: Record<WidgetId, WidgetDefinition> = {
         component: EnhancedStats,
         defaultVisible: true,
         defaultOrder: 0,
-        colSpan: 1
+        colSpan: 2 // Force full width
     },
     'evolution': {
         id: 'evolution',
