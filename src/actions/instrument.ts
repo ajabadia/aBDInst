@@ -6,7 +6,6 @@ import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { InstrumentSchema } from '@/lib/schemas';
 import { escapeRegExp } from '@/lib/utils';
-import * as Sentry from "@sentry/nextjs";
 
 // Helper to sanitize Mongoose documents for client
 function sanitize(doc: any) {
@@ -68,8 +67,6 @@ export async function getInstruments(query?: string, category?: string | null) {
     try {
         await dbConnect();
 
-
-
         const filter: any = {};
 
         if (query) {
@@ -86,23 +83,17 @@ export async function getInstruments(query?: string, category?: string | null) {
         }
 
         // Optimize: Select only necessary fields and use lean()
-        return await Sentry.startSpan({
-            op: "db.query",
-            name: "Fetch Instruments",
-            attributes: { query: query || 'all', category: category || 'all' }
-        }, async () => {
-            const instruments = await Instrument.find(filter)
-                .select('brand model type subtype genericImages years')
-                .sort({ brand: 1, model: 1 })
-                .lean();
+        const instruments = await Instrument.find(filter)
+            .select('brand model type subtype genericImages years')
+            .sort({ brand: 1, model: 1 })
+            .lean();
 
-            // Efficient transformation
-            return instruments.map((inst: any) => ({
-                ...inst,
-                _id: inst._id.toString(),
-                id: inst._id.toString()
-            }));
-        });
+        // Efficient transformation to plain objects for Server Components
+        return instruments.map((inst: any) => ({
+            ...inst,
+            _id: inst._id.toString(),
+            id: inst._id.toString()
+        }));
     } catch (error) {
         console.error('Get Instruments Error:', error);
         return [];
@@ -143,26 +134,18 @@ export async function updateInstrument(id: string, data: FormData) {
             description: data.get('description')?.toString(),
             websites: data.get('websites')
                 ? Array.from(new Map((JSON.parse(data.get('websites') as string) as any[]).map(w => [w.url, w])).values())
-                : [], // Changed from undefined to []
-            specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [], // Changed from undefined to []
-            genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [], // Changed from undefined to []
-            documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [], // Changed from undefined to []
+                : [],
+            specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [],
+            genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
+            documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
 
             relatedTo: data.get('relatedTo')?.toString() || undefined,
-            // Add marketValue support for the Edit Form
             marketValue: data.get('marketValue') ? JSON.parse(data.get('marketValue') as string) : undefined,
         };
 
-        // Remove undefined fields so we don't validate things we aren't updating (though here we seem to update everything)
+        // Remove undefined fields
         Object.keys(rawUpdateData).forEach(key => (rawUpdateData as any)[key] === undefined && delete (rawUpdateData as any)[key]);
 
-        // Validate with Zod - Use partial() for updates if we were doing partial updates, 
-        // but here the form sends substantial data. However, genericImages/documents might be undefined in rawUpdateData if not present.
-        // InstrumentSchema expects arrays if present.
-        // Let's use InstrumentSchema and allow partials or check logic.
-        // Since the form resubmits everything, full schema validation is safer, but we need to handle "undefined" optional fields correctly if Zod expects them.
-
-        // Actually, looking at the schema: optional fields are optional.
         const validatedData = InstrumentSchema.partial().safeParse(rawUpdateData);
 
         if (!validatedData.success) {
