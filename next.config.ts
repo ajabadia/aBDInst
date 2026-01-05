@@ -35,10 +35,11 @@ const nextConfig: NextConfig = {
 };
 
 import { withSentryConfig } from "@sentry/nextjs";
+import createNextIntlPlugin from 'next-intl/plugin';
 
-// ... existing withPWA setup ...
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
 
-export default withSentryConfig(withPWA(nextConfig), {
+export default withSentryConfig(withPWA(withNextIntl(nextConfig)), {
   // For all available options, see:
   // https://github.com/getsentry/sentry-webpack-plugin#options
 
