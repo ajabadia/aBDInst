@@ -96,8 +96,9 @@ export default function InstrumentGrid({ instruments, sortBy = 'brand', metadata
             {groupedData ? (
                 // RENDER GROUPED
                 Object.entries(groupedData).map(([groupKey, groupItems]) => {
-                    const metaKey = sortBy === 'year' ? `decade:${groupKey}` : `${sortBy}:${groupKey}`;
-                    const meta = metadata[metaKey] || metadata[groupKey]; // Fallback for direct key match
+                    const normalizedKey = groupKey.toLowerCase();
+                    const metaKey = sortBy === 'year' ? `decade:${normalizedKey}` : `${sortBy}:${normalizedKey}`;
+                    const meta = metadata[metaKey] || metadata[normalizedKey]; // Fallback for direct key match
 
                     return (
                         <div key={groupKey} className="space-y-4">

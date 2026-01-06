@@ -19,8 +19,12 @@ export default function NotificationBell() {
     // For now, just on mount and pathname change (revalidation)
     useEffect(() => {
         const fetchCount = async () => {
-            const count = await getUnreadNotificationsCount();
-            setUnreadCount(count);
+            try {
+                const count = await getUnreadNotificationsCount();
+                setUnreadCount(count);
+            } catch (err) {
+                console.error("Failed to fetch notification count", err);
+            }
         };
         fetchCount();
 

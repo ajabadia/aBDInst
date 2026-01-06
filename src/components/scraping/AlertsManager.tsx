@@ -3,10 +3,10 @@
 import { useState } from 'react';
 import { createPriceAlert, deletePriceAlert, runScraperForAlert } from '@/actions/scraping';
 import { Button } from '@/components/ui/Button';
-import { Input } from '@/components/ui/Input';
-import { Search, Bell, Trash2, Play, AlertCircle, Box } from 'lucide-react';
+import { Search, Bell, Trash2, Play, AlertCircle, Box, Target, Plus } from 'lucide-react';
 import Image from 'next/image';
 import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
 export default function AlertsManager({ initialAlerts }: { initialAlerts: any[] }) {
     const [alerts, setAlerts] = useState(initialAlerts);
@@ -23,8 +23,7 @@ export default function AlertsManager({ initialAlerts }: { initialAlerts: any[] 
         });
 
         if (res.success) {
-            toast.success('Alerta creada');
-            // Optimistic update or refresh needed. ideally useRouter.refresh()
+            toast.success('Alerta creada correctamente');
             window.location.reload();
         } else {
             toast.error('Error al crear alerta');
@@ -33,7 +32,6 @@ export default function AlertsManager({ initialAlerts }: { initialAlerts: any[] 
     };
 
     const handleDelete = async (id: string) => {
-        if (!confirm('Eliminar alerta?')) return;
         const res = await deletePriceAlert(id);
         if (res.success) {
             setAlerts(alerts.filter(a => a._id !== id));
@@ -42,113 +40,142 @@ export default function AlertsManager({ initialAlerts }: { initialAlerts: any[] 
     };
 
     const handleRun = async (id: string) => {
-        toast.info('Buscando ofertas...');
+        toast.info('Escaneando mercados internacionales...');
         const res = await runScraperForAlert(id);
         if (res.success) {
-            toast.success(`Búsqueda completada. ${res.count} resultados, ${res.deals} ofertas.`);
+            toast.success(`Escaneo completado: ${res.deals} ofertas encontradas.`);
         } else {
-            toast.error(`Error: ${res.error}. Posible bloqueo de IP.`);
+            toast.error(`Error: ${res.error}`);
         }
     };
 
     return (
-        <div className="space-y-8">
-            {/* Create Form */}
-            <div className="apple-card p-6">
-                <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
-                    <Bell className="text-blue-500" />
-                    Crear Nueva Alerta
-                </h3>
-                <div className="flex gap-4 items-end">
-                    <div className="flex-1">
-                        <label className="apple-label">Búsqueda (Ej: Yamaha DX7)</label>
-                        <Input
+        <div className="space-y-10 p-2 md:p-6">
+            {/* Create Form - Apple Card Style */}
+            <div className="apple-card p-8 bg-white dark:bg-white/5 border-ios-blue/10">
+                <div className="flex items-center gap-3 mb-8">
+                    <div className="p-2 bg-ios-blue/10 text-ios-blue rounded-xl">
+                        <Plus size={20} />
+                    </div>
+                    <h3 className="text-xl font-bold tracking-tight">Nueva Vigilancia</h3>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
+                    <div className="md:col-span-7 space-y-2">
+                        <label className="apple-label ml-1">Instrumento o Modelo</label>
+                        <input
                             value={newQuery}
                             onChange={(e) => setNewQuery(e.target.value)}
-                            placeholder="Modelo exacto..."
+                            placeholder="Ej: Roland Juno-60..."
+                            className="apple-input-field"
                         />
                     </div>
-                    <div className="w-32">
-                        <label className="apple-label">Precio Máx (€)</label>
-                        <Input
+                    <div className="md:col-span-3 space-y-2">
+                        <label className="apple-label ml-1">Precio Objetivo (€)</label>
+                        <input
                             type="number"
                             value={targetPrice}
                             onChange={(e) => setTargetPrice(e.target.value)}
                             placeholder="Opcional"
+                            className="apple-input-field font-mono"
                         />
                     </div>
-                    <Button onClick={handleCreate} disabled={loading || !newQuery}>
-                        {loading ? 'Creando...' : 'Activar Alerta'}
-                    </Button>
+                    <div className="md:col-span-2">
+                        <Button 
+                            onClick={handleCreate} 
+                            disabled={loading || !newQuery}
+                            className="w-full shadow-apple-glow"
+                        >
+                            {loading ? '...' : 'Activar'}
+                        </Button>
+                    </div>
                 </div>
             </div>
 
-            {/* List */}
-            <div className="grid gap-4">
-                {alerts.map((alert) => (
-                    <div key={alert._id} className="apple-card p-4 flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4 flex-1">
-                            {/* Image Thumbnail */}
-                            <div className="w-16 h-16 bg-gray-100 rounded-lg shrink-0 overflow-hidden relative border border-gray-200 dark:border-gray-700">
-                                {alert.instrumentId?.images?.[0] ? (
-                                    <Image
-                                        src={alert.instrumentId.images[0]}
-                                        alt={alert.query}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                ) : alert.instrumentId?.genericImages?.[0] ? (
-                                    <Image
-                                        src={alert.instrumentId.genericImages[0]}
-                                        alt={alert.query}
-                                        fill
-                                        className="object-cover"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-300">
-                                        <Box size={24} />
-                                    </div>
-                                )}
-                            </div>
-
-                            <div>
-                                <h4 className="font-bold text-lg">{alert.query}</h4>
-                                <div className="text-sm text-gray-500 flex items-center gap-4">
-                                    {alert.targetPrice && (
-                                        <span className="text-green-600 font-medium">
-                                            Meta: &lt; {alert.targetPrice} €
-                                        </span>
+            {/* List of Active Alerts */}
+            <div className="space-y-4">
+                <div className="flex items-center gap-3 px-2 mb-6">
+                    <Target size={18} className="text-gray-400" />
+                    <h4 className="apple-label m-0">Rastreos Activos</h4>
+                </div>
+                
+                <div className="grid gap-4">
+                    {alerts.map((alert) => (
+                        <div key={alert._id} className="apple-card p-5 flex flex-col sm:flex-row items-center justify-between gap-6 hover:border-ios-blue/20 transition-all group">
+                            <div className="flex items-center gap-5 flex-1 w-full">
+                                {/* Enhanced Thumbnail */}
+                                <div className="w-16 h-16 bg-black/5 dark:bg-white/5 rounded-2xl shrink-0 overflow-hidden relative border border-black/5 dark:border-white/5">
+                                    {(alert.instrumentId?.images?.[0] || alert.instrumentId?.genericImages?.[0]) ? (
+                                        <Image
+                                            src={alert.instrumentId?.images?.[0] || alert.instrumentId?.genericImages?.[0]}
+                                            alt={alert.query}
+                                            fill
+                                            className="object-cover transition-transform group-hover:scale-110 duration-500"
+                                        />
+                                    ) : (
+                                        <div className="w-full h-full flex items-center justify-center text-gray-300">
+                                            <Box size={24} />
+                                        </div>
                                     )}
-                                    <span>Última comprobación: {alert.lastChecked ? new Date(alert.lastChecked).toLocaleDateString() : 'Nunca'}</span>
+                                </div>
+
+                                <div className="space-y-1">
+                                    <h4 className="font-bold text-lg tracking-tight">{alert.query}</h4>
+                                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                                        {alert.targetPrice && (
+                                            <span className="px-2 py-0.5 bg-ios-green/10 text-ios-green rounded-lg text-xs font-bold border border-ios-green/20">
+                                                Objetivo: &lt; {alert.targetPrice} €
+                                            </span>
+                                        )}
+                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1.5">
+                                            <Bell size={10} />
+                                            Último: {alert.lastChecked ? new Date(alert.lastChecked).toLocaleDateString() : 'Pendiente'}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
+                            
+                            <div className="flex items-center gap-3 w-full sm:w-auto border-t sm:border-t-0 pt-4 sm:pt-0 border-black/5 dark:border-white/5">
+                                <Button 
+                                    variant="secondary" 
+                                    size="sm" 
+                                    className="flex-1 sm:flex-none"
+                                    onClick={() => handleRun(alert._id)}
+                                >
+                                    <Play size={14} className="fill-current" />
+                                    Scan
+                                </Button>
+                                <Button 
+                                    variant="ghost" 
+                                    size="icon" 
+                                    className="text-gray-400 hover:text-ios-red rounded-full"
+                                    onClick={() => handleDelete(alert._id)}
+                                >
+                                    <Trash2 size={18} />
+                                </Button>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                            <Button variant="secondary" className="px-3 py-1.5 text-xs h-8" onClick={() => handleRun(alert._id)}>
-                                <Play size={14} className="mr-1" />
-                                Comprobar
-                            </Button>
-                            <Button variant="ghost" className="px-2 py-1.5 h-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20" onClick={() => handleDelete(alert._id)}>
-                                <Trash2 size={16} />
-                            </Button>
-                        </div>
-                    </div>
-                ))}
+                    ))}
 
-                {alerts.length === 0 && (
-                    <div className="text-center py-12 text-gray-400">
-                        <Search className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                        <p>No tienes alertas activas.</p>
-                    </div>
-                )}
+                    {alerts.length === 0 && (
+                        <div className="glass-panel rounded-3xl py-20 text-center border-dashed border-2">
+                            <Search className="w-12 h-12 mx-auto mb-4 text-gray-300 opacity-50" />
+                            <p className="text-gray-500 font-medium">No tienes vigilancias de mercado activas.</p>
+                        </div>
+                    )}
+                </div>
             </div>
 
-            <div className="bg-yellow-50 dark:bg-yellow-900/10 p-4 rounded-xl flex gap-3 text-sm text-yellow-800 dark:text-yellow-200">
-                <AlertCircle className="shrink-0" />
-                <p>
-                    Nota: La búsqueda automática (Reverb/eBay) puede fallar si los sitios detectan tráfico automatizado (Error 403).
-                    Usa esta función con moderación. Próximamente se añadirán fuentes más estables.
-                </p>
+            {/* Warning Callout */}
+            <div className="bg-ios-orange/5 border border-ios-orange/10 rounded-2xl p-6 flex gap-4">
+                <AlertCircle className="shrink-0 text-ios-orange" />
+                <div className="space-y-1">
+                    <p className="text-sm font-bold text-ios-orange">Aviso de Scraping</p>
+                    <p className="text-xs text-ios-orange/80 leading-relaxed">
+                        El escaneo automático depende de la estabilidad de las plataformas externas. 
+                        Usa la función "Scan" con moderación para evitar bloqueos temporales de IP.
+                    </p>
+                </div>
             </div>
         </div>
     );

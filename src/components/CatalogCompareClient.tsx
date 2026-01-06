@@ -1,11 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { ArrowLeft, GitCompare, Download } from 'lucide-react';
+import { GitCompare, Download, RotateCcw, Box, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import Link from 'next/link';
 import CatalogInstrumentSelector from '@/components/CatalogInstrumentSelector';
 import CatalogComparisonTable from '@/components/CatalogComparisonTable';
+import { cn } from '@/lib/utils';
 
 interface CatalogCompareClientProps {
     instruments: any[];
@@ -28,36 +28,26 @@ export default function CatalogCompareClient({ instruments }: CatalogCompareClie
         setSelectedIds([]);
     };
 
-    return (
-        <>
-            {/* Header */}
-            <div className="flex items-center justify-between mb-12">
-                <div className="flex items-center gap-4">
-                    <Link href="/instruments">
-                        <Button variant="secondary" icon={ArrowLeft}>
-                            Volver al Catálogo
-                        </Button>
-                    </Link>
-                    <div>
-                        <h1 className="text-4xl font-bold tracking-tight">Comparador de Catálogo</h1>
-                        <p className="text-gray-500">Compara hasta 4 instrumentos del catálogo</p>
-                    </div>
-                </div>
-                {showComparison && (
-                    <div className="flex gap-3">
-                        <Button variant="secondary" onClick={handleReset}>
-                            Nueva Comparación
-                        </Button>
-                        <Button variant="secondary" icon={Download}>
-                            Exportar PDF
-                        </Button>
-                    </div>
-                )}
+    if (instruments.length === 0) {
+        return (
+            <div className="glass-panel rounded-[2.5rem] p-20 text-center border-dashed border-2 flex flex-col items-center">
+                <Box className="w-16 h-16 text-gray-300 mb-6" />
+                <h3 className="text-2xl font-bold tracking-tight mb-2">El catálogo está vacío</h3>
+                <p className="text-gray-500 font-medium">No hay instrumentos disponibles para comparar.</p>
             </div>
+        );
+    }
 
+    return (
+        <div className="space-y-8 animate-in fade-in duration-500">
             {!showComparison ? (
-                /* Selection Mode */
-                <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-8">
+                /* SELECTION MODE */
+                <div className="glass-panel rounded-[2.5rem] p-8 md:p-12 shadow-apple-lg border-black/5 dark:border-white/5">
+                    <div className="flex items-center gap-3 mb-10 px-2">
+                        <div className="w-2 h-2 rounded-full bg-ios-blue animate-pulse" />
+                        <h2 className="apple-label m-0">Selección de Instrumentos (Max. 4)</h2>
+                    </div>
+
                     <CatalogInstrumentSelector
                         instruments={instruments}
                         selectedIds={selectedIds}
@@ -65,49 +55,53 @@ export default function CatalogCompareClient({ instruments }: CatalogCompareClie
                         maxSelection={4}
                     />
 
-                    {/* Compare Button */}
-                    <div className="mt-8 flex justify-center">
+                    {/* Compare Action */}
+                    <div className="mt-12 flex flex-col items-center gap-4 border-t border-black/5 dark:border-white/5 pt-10">
                         <Button
                             onClick={handleCompare}
                             disabled={selectedIds.length < 2}
                             icon={GitCompare}
-                            className="px-8 py-4 text-lg"
+                            className={cn(
+                                "px-12 h-16 text-lg transition-all duration-500",
+                                selectedIds.length >= 2 ? "shadow-apple-glow" : "opacity-50"
+                            )}
                         >
-                            Comparar {selectedIds.length > 0 && `(${selectedIds.length})`}
+                            Generar Comparativa {selectedIds.length > 0 && `(${selectedIds.length})`}
                         </Button>
+                        
+                        {selectedIds.length === 1 && (
+                            <p className="text-sm font-bold text-ios-orange uppercase tracking-wider animate-bounce">
+                                Selecciona un instrumento más para continuar
+                            </p>
+                        )}
                     </div>
-
-                    {selectedIds.length === 1 && (
-                        <p className="text-center text-sm text-gray-500 mt-4">
-                            Selecciona al menos 2 instrumentos para comparar
-                        </p>
-                    )}
                 </div>
             ) : (
-                /* Comparison Mode */
-                <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-8">
-                    <div className="flex items-center justify-between mb-6">
-                        <h2 className="text-2xl font-bold">
-                            Comparando {selectedItems.length} instrumentos
-                        </h2>
+                /* COMPARISON MODE */
+                <div className="space-y-8">
+                    <div className="flex flex-col sm:flex-row justify-between items-center gap-6 px-4">
+                        <div className="flex items-center gap-3">
+                            <span className="px-3 py-1 bg-ios-blue text-white text-[10px] font-bold rounded-full uppercase tracking-widest">
+                                Reporte Activo
+                            </span>
+                            <h2 className="text-2xl font-bold tracking-tight">Comparando {selectedItems.length} modelos</h2>
+                        </div>
+                        
+                        <div className="flex items-center gap-3 w-full sm:w-auto">
+                            <Button variant="secondary" size="sm" icon={RotateCcw} onClick={handleReset} className="flex-1 sm:flex-none">
+                                Nueva
+                            </Button>
+                            <Button variant="secondary" size="sm" icon={Download} className="flex-1 sm:flex-none">
+                                Exportar
+                            </Button>
+                        </div>
                     </div>
 
-                    <CatalogComparisonTable items={selectedItems} />
+                    <div className="glass-panel rounded-[2.5rem] p-4 md:p-8 shadow-apple-lg overflow-hidden border-black/5 dark:border-white/5 bg-white/50 dark:bg-black/20">
+                        <CatalogComparisonTable items={selectedItems} />
+                    </div>
                 </div>
             )}
-
-            {/* Empty State */}
-            {instruments.length === 0 && (
-                <div className="text-center py-20">
-                    <GitCompare className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                        No hay instrumentos en el catálogo
-                    </h3>
-                    <p className="text-gray-500 mb-6">
-                        El catálogo está vacío
-                    </p>
-                </div>
-            )}
-        </>
+        </div>
     );
 }

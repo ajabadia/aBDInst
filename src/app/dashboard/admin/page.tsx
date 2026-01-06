@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import { getUsers } from '@/actions/admin';
 import UserTable from '@/components/admin/UserTable';
-import { Users, ShieldCheck, UserX, Search } from 'lucide-react';
+import { Users, Search, Bot, Tag, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
 
 export default function AdminPage() {
     const [users, setUsers] = useState<any[]>([]);
@@ -18,10 +20,6 @@ export default function AdminPage() {
         const res = await getUsers(page, 20, search);
         if (res.success) {
             setUsers(res.users);
-            // Quick client-side stats calc (ideally server side but this is faster for now)
-            // Note: This only counts current page stats if not careful, but for MVP we will stick to basic display
-            // To do real global stats we should add it to the getUsers response.
-            // For now, let's just show total count from response.
             setStats(prev => ({ ...prev, total: (res as any).total || 0 }));
         } else {
             toast.error(res.error);
@@ -32,76 +30,138 @@ export default function AdminPage() {
     useEffect(() => {
         const timeout = setTimeout(() => {
             fetchUsers();
-        }, 300); // Debounce search
+        }, 300);
         return () => clearTimeout(timeout);
     }, [search, page]);
 
     return (
-        <div className="max-w-7xl mx-auto space-y-8">
-            <header>
-                <h1 className="text-3xl font-bold tracking-tight text-gray-900 dark:text-white mb-2">Panel de Administración</h1>
-                <p className="text-gray-500">Gestión de usuarios y permisos del sistema.</p>
+        <div className="max-w-7xl mx-auto px-6 space-y-12 pb-20">
+            {/* Header Section */}
+            <header className="space-y-2">
+                <h1 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white leading-tight">Panel de Administración</h1>
+                <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">Gestión de usuarios y permisos maestros del ecosistema.</p>
             </header>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="apple-card p-6 bg-blue-50/50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30">
-                    <div className="flex items-center gap-4">
-                        <div className="p-3 bg-blue-500 text-white rounded-xl shadow-lg shadow-blue-500/20">
-                            <Users size={24} />
+            {/* Main Action Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* User Count Stat */}
+                <div className="glass-panel p-8 rounded-[2rem] shadow-apple-sm relative overflow-hidden group border-black/5 dark:border-white/5">
+                    <div className="flex items-center gap-5">
+                        <div className="p-4 bg-ios-blue text-white rounded-[1.25rem] shadow-lg shadow-ios-blue/30 transition-transform group-hover:scale-110 duration-500">
+                            <Users size={28} />
                         </div>
                         <div>
-                            <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Total Usuarios</p>
-                            <p className="text-3xl font-bold text-gray-900 dark:text-white">{stats.total}</p>
+                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1.5">Usuarios Totales</p>
+                            <p className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white leading-none">{stats.total}</p>
                         </div>
                     </div>
                 </div>
-                {/* Placeholder stats as we don't have separate counts yet without extra queries */}
+
+                {/* AI Config Link Card */}
+                <Link href="/dashboard/admin/ai" className="glass-panel p-8 rounded-[2rem] shadow-apple-sm group border-black/5 dark:border-white/5 hover:border-ios-indigo/20 transition-all">
+                    <div className="flex items-center gap-5 h-full">
+                        <div className="p-4 bg-ios-indigo/10 text-ios-indigo rounded-[1.25rem] group-hover:bg-ios-indigo group-hover:text-white transition-all duration-500">
+                            <Bot size={28} />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Configuración IA</h3>
+                            <p className="text-xs text-ios-indigo font-bold uppercase tracking-wider mt-1 opacity-70 group-hover:opacity-100 transition-opacity">Modelos & Prompts</p>
+                        </div>
+                    </div>
+                </Link>
+
+                {/* Metadata Link Card */}
+                <Link href="/dashboard/admin/metadata" className="glass-panel p-8 rounded-[2rem] shadow-apple-sm group border-black/5 dark:border-white/5 hover:border-ios-green/20 transition-all">
+                    <div className="flex items-center gap-5 h-full">
+                        <div className="p-4 bg-ios-green/10 text-ios-green rounded-[1.25rem] group-hover:bg-ios-green group-hover:text-white transition-all duration-500">
+                            <Tag size={28} />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Arquitectura</h3>
+                            <p className="text-xs text-ios-green font-bold uppercase tracking-wider mt-1 opacity-70 group-hover:opacity-100 transition-opacity">Marcas & Categorías</p>
+                        </div>
+                    </div>
+                </Link>
+
+                {/* Contacts Link Card */}
+                <Link href="/dashboard/admin/contacts" className="glass-panel p-8 rounded-[2rem] shadow-apple-sm group border-black/5 dark:border-white/5 hover:border-ios-orange/20 transition-all">
+                    <div className="flex items-center gap-5 h-full">
+                        <div className="p-4 bg-ios-orange/10 text-ios-orange rounded-[1.25rem] group-hover:bg-ios-orange group-hover:text-white transition-all duration-500">
+                            <MessageSquare size={28} />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Buzón</h3>
+                            <p className="text-xs text-ios-orange font-bold uppercase tracking-wider mt-1 opacity-70 group-hover:opacity-100 transition-opacity">Mensajes & Soporte</p>
+                        </div>
+                    </div>
+                </Link>
+
+                {/* Settings Link Card */}
+                <Link href="/dashboard/admin/settings" className="glass-panel p-8 rounded-[2rem] shadow-apple-sm group border-black/5 dark:border-white/5 hover:border-gray-500/20 transition-all">
+                    <div className="flex items-center gap-5 h-full">
+                        <div className="p-4 bg-gray-100 text-gray-500 rounded-[1.25rem] group-hover:bg-gray-800 group-hover:text-white transition-all duration-500 dark:bg-white/10 dark:text-gray-300">
+                            {/* Assuming Settings icon is imported if not I'll use Tag as placeholder or import it */}
+                            {/* I need to check imports in admin page. Lucide icons are imported. I need to add Settings to imports if not there. */}
+                            <div className="w-7 h-7 flex items-center justify-center">⚙️</div>
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Ajustes</h3>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-1 opacity-70 group-hover:opacity-100 transition-opacity">Sistema & Mantenimiento</p>
+                        </div>
+                    </div>
+                </Link>
             </div>
 
-            {/* Main Content */}
-            <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                    <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Usuarios Registrados</h2>
-                    <div className="relative w-64">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            {/* User List Management Area */}
+            <div className="space-y-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 px-2">
+                    <h2 className="text-2xl font-bold tracking-tight">Usuarios Registrados</h2>
+                    <div className="relative w-full sm:w-80 group">
+                        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-ios-blue transition-colors" size={18} />
                         <input
                             type="text"
                             placeholder="Buscar por nombre o email..."
                             value={search}
                             onChange={(e) => setSearch(e.target.value)}
-                            className="apple-input w-full pl-10 h-10 text-sm"
+                            className="apple-input-field pl-12 h-12 text-[15px]"
                         />
                     </div>
                 </div>
 
-                {loading ? (
-                    <div className="space-y-4">
-                        {[...Array(5)].map((_, i) => (
-                            <div key={i} className="h-16 w-full bg-gray-100 dark:bg-white/5 rounded-xl animate-pulse" />
-                        ))}
-                    </div>
-                ) : (
-                    <UserTable users={users} onRefresh={fetchUsers} />
-                )}
+                <div className="glass-panel rounded-[2.5rem] overflow-hidden shadow-apple-lg border-black/5 dark:border-white/5">
+                    {loading ? (
+                        <div className="p-20 space-y-6">
+                            {[...Array(4)].map((_, i) => (
+                                <div key={i} className="h-16 w-full bg-black/5 dark:bg-white/5 rounded-2xl animate-pulse" />
+                            ))}
+                        </div>
+                    ) : (
+                        <UserTable users={users} onRefresh={fetchUsers} />
+                    )}
+                </div>
 
-                {/* Pagination (Basic) */}
-                <div className="flex justify-center gap-2 mt-4">
-                    <button
+                {/* Apple Style Pagination */}
+                <div className="flex items-center justify-center gap-6 pt-4">
+                    <Button
                         disabled={page === 1}
                         onClick={() => setPage(p => p - 1)}
-                        className="px-4 py-2 bg-white dark:bg-white/5 rounded-lg disabled:opacity-50 text-sm font-medium"
+                        variant="secondary"
+                        size="sm"
+                        icon={<ChevronLeft />}
                     >
                         Anterior
-                    </button>
-                    <span className="px-4 py-2 text-sm text-gray-500">Página {page}</span>
-                    <button
-                        // Logic for next page disable would need total pages from backend
+                    </Button>
+                    <span className="text-sm font-bold text-gray-400 uppercase tracking-widest">Página {page}</span>
+                    <Button
                         onClick={() => setPage(p => p + 1)}
-                        className="px-4 py-2 bg-white dark:bg-white/5 rounded-lg text-sm font-medium"
+                        disabled={users.length < 20}
+                        variant="secondary"
+                        size="sm"
+                        className="flex-row-reverse"
                     >
-                        Siguiente
-                    </button>
+                        <span className="ml-2">Siguiente</span>
+                        <ChevronRight size={16} />
+                    </Button>
                 </div>
             </div>
         </div>

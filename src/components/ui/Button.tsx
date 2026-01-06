@@ -2,12 +2,13 @@
 import { LucideIcon, Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
+import { isValidElement, cloneElement } from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'danger';
     size?: 'default' | 'sm' | 'lg' | 'icon';
     isLoading?: boolean;
-    icon?: LucideIcon;
+    icon?: LucideIcon | React.ReactNode;
     children?: React.ReactNode;
 }
 
@@ -20,7 +21,7 @@ export function Button({
     className = '',
     ...props
 }: ButtonProps) {
-    
+
     const variants = {
         primary: "apple-btn-primary",
         secondary: "apple-btn-secondary",
@@ -37,14 +38,17 @@ export function Button({
         icon: "p-2.5 aspect-square"
     };
 
+    const iconSize = size === 'sm' ? 14 : 19;
+    const iconClass = cn("shrink-0", size === 'sm' ? "stroke-[2]" : "stroke-[2.2px]");
+
     return (
         <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.97 }}
             className={cn(
-                "apple-btn", 
-                variants[variant] || variants.primary, 
-                sizes[size] || sizes.default, 
+                "apple-btn",
+                variants[variant] || variants.primary,
+                sizes[size] || sizes.default,
                 className
             )}
             disabled={isLoading || props.disabled}
@@ -53,7 +57,12 @@ export function Button({
             {isLoading ? (
                 <Loader2 className="animate-spin w-5 h-5" />
             ) : (
-                Icon && <Icon size={size === 'sm' ? 14 : 19} className={cn("shrink-0", size === 'sm' ? "stroke-[2]" : "stroke-[2.2px]")} />
+                isValidElement(Icon) ?
+                    cloneElement(Icon as React.ReactElement, {
+                        size: iconSize || (Icon.props as any).size,
+                        className: cn(iconClass, (Icon.props as any).className)
+                    } as any) :
+                    (Icon && <Icon size={iconSize} className={iconClass} />)
             )}
             {children && <span>{children}</span>}
         </motion.button>

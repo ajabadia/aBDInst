@@ -13,53 +13,50 @@ export default function RegisterForm() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
-    // Use standard form submission instead of Server Action binding for loading state control
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
         setLoading(true);
 
         const formData = new FormData(event.currentTarget);
-
         const res = await registerUser(formData);
 
         if (res.success) {
-            toast.success('Cuenta creada correctamente. Iniciando sesión...');
-            // Redirect to signin
-            router.push('/api/auth/signin');
+            toast.success('Cuenta creada', { description: 'Ya puedes iniciar sesión.' });
+            router.push('/login');
         } else {
-            toast.error('Error: ' + res.error);
+            toast.error('Error', { description: res.error });
             setLoading(false);
         }
     }
 
     return (
-        <div className="w-full max-w-md">
-            <div className="bg-white/70 dark:bg-white/5 backdrop-blur-2xl p-10 md:p-12 rounded-[3rem] border border-gray-200/50 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
+        <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
+            <div className="glass-panel p-10 md:p-14 rounded-[3rem] shadow-apple-lg border-white/20">
 
-                {/* Header del Registro */}
-                <div className="flex flex-col items-center mb-10">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-green-500 to-teal-500 flex items-center justify-center mb-6 shadow-xl shadow-green-500/20">
-                        <Music className="text-white w-8 h-8" strokeWidth={2.5} />
+                {/* Header */}
+                <div className="flex flex-col items-center mb-12">
+                    <div className="w-20 h-20 rounded-2xl bg-ios-indigo flex items-center justify-center mb-6 shadow-lg shadow-ios-indigo/30 scale-110">
+                        <Music className="text-white w-10 h-10" strokeWidth={2.5} />
                     </div>
-                    <h2 className="text-3xl font-semibold tracking-tighter text-gray-900 dark:text-white">
+                    <h2 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
                         Crear Cuenta
                     </h2>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2 text-center">
-                        Únete y empieza a organizar.
+                    <p className="text-gray-500 dark:text-gray-400 mt-3 text-center font-medium">
+                        Tu viaje como coleccionista empieza aquí.
                     </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     <Input
-                        label="Nombre"
+                        label="Nombre completo"
                         name="name"
                         type="text"
-                        placeholder="Tu Nombre"
+                        placeholder="Nombre y apellidos"
                         icon={User}
                         required
                     />
                     <Input
-                        label="Email"
+                        label="Correo electrónico"
                         name="email"
                         type="email"
                         placeholder="tu@email.com"
@@ -67,7 +64,7 @@ export default function RegisterForm() {
                         required
                     />
                     <Input
-                        label="Contraseña"
+                        label="Establecer contraseña"
                         name="password"
                         type="password"
                         placeholder="••••••••"
@@ -75,7 +72,7 @@ export default function RegisterForm() {
                         required
                     />
                     <Input
-                        label="Confirmar Contraseña"
+                        label="Repetir contraseña"
                         name="confirmPassword"
                         type="password"
                         placeholder="••••••••"
@@ -83,26 +80,25 @@ export default function RegisterForm() {
                         required
                     />
 
-                    <div className="pt-4">
-                        <Button type="submit" isLoading={loading} className="w-full py-4 text-lg bg-gradient-to-tr from-teal-500 to-green-500 hover:from-teal-600 hover:to-green-600 border-none">
-                            Registrarse ahora
+                    <div className="pt-6">
+                        <Button type="submit" variant="primary" isLoading={loading} className="w-full py-4 text-lg bg-ios-indigo hover:bg-ios-indigo/90 shadow-ios-indigo/20">
+                            Registrarse
                         </Button>
                     </div>
                 </form>
 
-                <div className="mt-10 text-center">
-                    <p className="text-sm text-gray-500">
-                        ¿Ya tienes cuenta?{' '}
-                        <Link href="/api/auth/signin" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline decoration-2 underline-offset-4">
+                <div className="mt-12 text-center">
+                    <p className="text-sm text-gray-500 font-medium">
+                        ¿Ya tienes una cuenta?{' '}
+                        <Link href="/login" className="text-ios-indigo font-bold hover:underline decoration-2 underline-offset-4">
                             Inicia sesión
                         </Link>
                     </p>
                 </div>
             </div>
 
-            {/* Footer sutil */}
-            <p className="mt-8 text-center text-xs text-gray-400 font-medium px-10 leading-relaxed">
-                Únete a la comunidad de coleccionistas más organizada del mundo.
+            <p className="mt-10 text-center text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em] px-10 leading-relaxed opacity-60">
+                Privacidad absoluta • Sin anuncios
             </p>
         </div>
     );

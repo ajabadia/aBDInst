@@ -10,7 +10,7 @@ import dbConnect from '@/lib/db';
 
 export async function getStorageProvider(userId: string): Promise<IStorageProvider> {
     await dbConnect();
-    const user = await User.findById(userId).select('+storageProvider.credentials storageProvider');
+    const user = await User.findById(userId).select('+storageProvider.credentials');
 
     if (!user?.storageProvider || user.storageProvider.type === 'none' || user.storageProvider.type === 'cloudinary' && !user.storageProvider.credentials) {
         // Default fallback to environment env Cloudinary if configured, or fail

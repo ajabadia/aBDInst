@@ -34,7 +34,7 @@ export default function GlobalError({
 
                         <div className="flex flex-col gap-3">
                             <Button
-                                onClick={() => reset()}
+                                onClick={() => typeof reset === 'function' ? reset() : window.location.reload()}
                                 className="w-full py-4 text-lg bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center gap-2"
                             >
                                 <RefreshCcw size={20} />

@@ -97,3 +97,55 @@ export async function deleteMetadata(id: string) {
         return { success: false, error: error.message };
     }
 }
+
+export async function uploadMetadataAsset(formData: FormData) {
+    try {
+        const session = await auth();
+        // Strict Admin check for metadata
+        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
+            throw new Error('Unauthorized');
+        }
+
+        const userId = (session.user as any).id;
+        const file = formData.get('file') as File;
+        if (!file) throw new Error('No file provided');
+
+        // Optimize SVG if needed
+        let buffer = Buffer.from(await file.arrayBuffer());
+
+        if (file.type === 'image/svg+xml') {
+            const svgContent = buffer.toString('utf-8');
+            // Simplified optimization: Replace typical black/hardcoded fills with currentColor or remove them to allow css coloring
+            // This is a naive regex approach. For robust handling, use an SVG parser/optimizer llike SVGO in future.
+            // For now, we mainly want to ensure no weird dimensions lock it.
+
+            // Note: Cloudinary sanitizes SVGs on upload usually.
+            // We just ensure we upload it. Modification in-flight is risky without a parser.
+            // Let's rely on CSS 'fill-current' in the frontend for now, 
+            // but we can try to strip width/height if present to ensure scaling.
+            // const optimizedSvg = svgContent.replace(/width="\d+"/, '').replace(/height="\d+"/, '');
+            // buffer = Buffer.from(optimizedSvg);
+        }
+
+        const { getStorageProvider } = await import('@/lib/storage-providers/factory');
+        const provider = await getStorageProvider(userId);
+
+        // Force 'instrument-collector/metadata' folder
+        // Note: provider interface usually takes userId. 
+        // We will assume the provider implementation respects customPath if we modified it (we did in step 1 if we pass it).
+        // Wait, CloudinaryProvider.upload signature is (file, userId, customPath).
+
+        const url = await provider.upload(
+            new File([buffer], file.name, { type: file.type }),
+            userId,
+            'instrument-collector/metadata'
+        );
+
+        console.log('Provider returned URL:', url);
+
+        return { success: true, url };
+    } catch (error: any) {
+        console.error('Upload Metadata Error:', error);
+        return { success: false, error: error.message };
+    }
+}

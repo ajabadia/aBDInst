@@ -107,9 +107,33 @@ export async function getSystemConfig(key: string) {
 
 export async function updateSystemConfig(key: string, value: any, description?: string) {
     try {
-        await checkAdmin();
-        const update: any = { value };
+        const admin = await checkAdmin();
+
+        // Find existing config to track history
+        const existing = await SystemConfig.findOne({ key });
+        console.log(`[updateSystemConfig] Key: ${key}, Existing found: ${!!existing}`);
+
+        let historyEntry = null;
+        if (existing) {
+            historyEntry = {
+                value: existing.value,
+                updatedAt: new Date(),
+                updatedBy: admin._id.toString()
+            };
+            console.log(`[updateSystemConfig] History entry created:`, historyEntry);
+        }
+
+        const update: any = {
+            value,
+            $push: historyEntry ? { history: historyEntry } : {}
+        };
+
         if (description) update.description = description;
+
+        // Clean up empty $push if no history
+        if (!historyEntry) delete update.$push;
+
+        console.log(`[updateSystemConfig] Update object:`, JSON.stringify(update, null, 2));
 
         await SystemConfig.findOneAndUpdate(
             { key },
@@ -117,6 +141,7 @@ export async function updateSystemConfig(key: string, value: any, description?: 
             { upsert: true, new: true }
         );
 
+        revalidatePath('/dashboard/admin/ai');
         return { success: true };
     } catch (error: any) {
         return { success: false, error: error.message };

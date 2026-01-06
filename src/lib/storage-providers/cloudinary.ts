@@ -23,6 +23,18 @@ export class CloudinaryProvider implements IStorageProvider {
             // Convert File to Buffer if needed
             const buffer = file instanceof File ? Buffer.from(await file.arrayBuffer()) : file;
 
+            // Determine MIME type
+            let mimeType = 'application/octet-stream';
+            if (file instanceof File) {
+                mimeType = file.type;
+            } else {
+                // Basic magic number check or default
+                // This is a simplified check, for production verify-magic-bytes is better
+                mimeType = 'image/jpeg';
+            }
+
+            const isSvg = mimeType === 'image/svg+xml';
+
             // Upload to Cloudinary with user-specific folder
             // Upload to Cloudinary with user-specific folder and unique suffix
             const filenameRegex = /(.+?)(\.[^.]*$|$)/;
@@ -32,21 +44,27 @@ export class CloudinaryProvider implements IStorageProvider {
 
             const folder = customPath || `users/${userId}/collection`;
 
+            const uploadOptions: any = {
+                folder,
+                public_id: publicId, // Manually set unique public_id
+                resource_type: 'auto',
+            };
+
+            // Only apply transformations for non-vector images
+            if (!isSvg) {
+                uploadOptions.transformation = [
+                    { width: 2000, crop: 'limit' }, // Max width
+                    { quality: 'auto:good' },
+                    { fetch_format: 'auto' }
+                ];
+            }
+
             const result = await cloudinary.uploader.upload(
-                `data:image/jpeg;base64,${buffer.toString('base64')}`,
-                {
-                    folder,
-                    public_id: publicId, // Manually set unique public_id
-                    resource_type: 'auto',
-                    // use_filename: true, // Removed to avoid conflicts
-                    // unique_filename: true, // Removed, handling manually
-                    transformation: [
-                        { width: 2000, crop: 'limit' }, // Max width
-                        { quality: 'auto:good' },
-                        { fetch_format: 'auto' }
-                    ]
-                }
+                `data:${mimeType};base64,${buffer.toString('base64')}`,
+                uploadOptions
             );
+
+            console.log('Cloudinary Upload Result:', { public_id: result.public_id, secure_url: result.secure_url, url: result.url });
 
             return result.secure_url;
         } catch (error: any) {

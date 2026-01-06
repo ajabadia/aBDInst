@@ -67,7 +67,8 @@ export async function getInstruments(
     query?: string,
     category?: string | null,
     sortBy: 'brand' | 'model' | 'year' | 'type' = 'brand',
-    sortOrder: 'asc' | 'desc' = 'asc'
+    sortOrder: 'asc' | 'desc' = 'asc',
+    brand?: string | null
 ) {
     try {
         await dbConnect();
@@ -85,6 +86,11 @@ export async function getInstruments(
         if (category) {
             const safeCategory = escapeRegExp(category);
             filter.type = { $regex: new RegExp(`^${safeCategory}$`, 'i') };
+        }
+
+        if (brand) {
+            const safeBrand = escapeRegExp(brand);
+            filter.brand = { $regex: new RegExp(`^${safeBrand}$`, 'i') };
         }
 
         // Determine Sort Object
@@ -123,6 +129,17 @@ export async function getInstruments(
         }));
     } catch (error) {
         console.error('Get Instruments Error:', error);
+        return [];
+    }
+}
+
+export async function getBrands() {
+    try {
+        await dbConnect();
+        const brands = await Instrument.distinct('brand');
+        return brands.sort();
+    } catch (error) {
+        console.error('Get Brands Error:', error);
         return [];
     }
 }

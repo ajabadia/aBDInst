@@ -1,5 +1,7 @@
 "use client";
 
+'use client';
+
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
 import { Filter, X, ArrowDownAZ, ArrowUpAZ, Calendar, Tag, Music } from 'lucide-react';
@@ -15,7 +17,7 @@ const SORT_OPTIONS = [
     { id: 'type', label: 'Tipo', icon: Music },
 ];
 
-export default function InstrumentFilter() {
+export default function InstrumentFilter({ availableBrands = [] }: { availableBrands?: string[] }) {
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const { replace } = useRouter();
@@ -32,15 +34,20 @@ export default function InstrumentFilter() {
     };
 
     const toggleSort = (field: string) => {
-        const currentSort = searchParams?.get('sortBy') || 'brand';
-        const currentOrder = searchParams?.get('sortOrder') || 'asc';
+        const params = new URLSearchParams(searchParams?.toString());
+        const currentSort = params.get('sortBy') || 'brand';
+        const currentOrder = params.get('sortOrder') || 'asc';
 
         if (currentSort === field) {
-            handleFilter('sortOrder', currentOrder === 'asc' ? 'desc' : 'asc');
+            // Toggle order
+            params.set('sortOrder', currentOrder === 'asc' ? 'desc' : 'asc');
         } else {
-            handleFilter('sortBy', field);
-            handleFilter('sortOrder', 'asc');
+            // Set new sort field and reset order
+            params.set('sortBy', field);
+            params.set('sortOrder', 'asc');
         }
+
+        replace(`${pathname}?${params.toString()}`, { scroll: false });
     };
 
     const clearFilters = () => {
@@ -49,9 +56,10 @@ export default function InstrumentFilter() {
     };
 
     const currentCategory = searchParams?.get('category');
+    const currentBrand = searchParams?.get('brand');
     const sortBy = searchParams?.get('sortBy') || 'brand';
     const sortOrder = searchParams?.get('sortOrder') || 'asc';
-    const hasFilters = !!currentCategory || !!searchParams?.get('query');
+    const hasFilters = !!currentCategory || !!currentBrand || !!searchParams?.get('query');
 
     return (
         <div className="mb-6 space-y-4">
@@ -61,7 +69,7 @@ export default function InstrumentFilter() {
                     <Button
                         variant={isOpen ? "primary" : "secondary"}
                         size="sm"
-                        icon={Filter}
+                        icon={<Filter />}
                         onClick={() => setIsOpen(!isOpen)}
                         className={cn(isOpen && "shadow-apple-glow")}
                     >
@@ -102,40 +110,70 @@ export default function InstrumentFilter() {
 
             {/* Filter Panel (Apple Menu Style) */}
             {isOpen && (
-                <div className="glass-panel rounded-[1.5rem] p-6 shadow-apple-lg animate-in fade-in zoom-in-95 duration-200 z-10">
-                    <div className="flex items-center justify-between mb-6">
-                        <h3 className="apple-label m-0">Categorías</h3>
+                <div className="glass-panel rounded-[1.5rem] p-6 shadow-apple-lg animate-in fade-in zoom-in-95 duration-200 z-10 space-y-8">
+                    <div className="flex items-center justify-between">
+                        <h3 className="apple-label m-0 text-lg">Filtrar Colección</h3>
                         <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="rounded-full">
                             <X size={18} />
                         </Button>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
-                        <button
-                            onClick={() => handleFilter('category', null)}
-                            className={cn(
-                                "px-4 py-2 rounded-xl text-sm font-semibold transition-all border",
-                                !currentCategory
-                                    ? "bg-ios-blue text-white border-ios-blue shadow-md shadow-ios-blue/20"
-                                    : "bg-white dark:bg-white/5 text-gray-600 dark:text-gray-400 border-black/5 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10"
+                    {/* Brands Section */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Marcas</h4>
+                            {currentBrand && (
+                                <button onClick={() => handleFilter('brand', null)} className="text-[10px] font-bold text-ios-blue hover:underline uppercase">
+                                    Limpiar
+                                </button>
                             )}
-                        >
-                            Todas
-                        </button>
-                        {CATEGORIES.map((cat) => (
-                            <button
-                                key={cat}
-                                onClick={() => handleFilter('category', cat)}
-                                className={cn(
-                                    "px-4 py-2 rounded-xl text-sm font-semibold transition-all border",
-                                    currentCategory === cat
-                                        ? "bg-ios-blue text-white border-ios-blue shadow-md shadow-ios-blue/20"
-                                        : "bg-white dark:bg-white/5 text-gray-600 dark:text-gray-400 border-black/5 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10"
-                                )}
-                            >
-                                {cat}
-                            </button>
-                        ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {availableBrands.map((brand) => (
+                                <button
+                                    key={brand}
+                                    onClick={() => handleFilter('brand', currentBrand === brand ? null : brand)}
+                                    className={cn(
+                                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                                        currentBrand === brand
+                                            ? "bg-ios-blue text-white border-ios-blue shadow-md shadow-ios-blue/20"
+                                            : "bg-white dark:bg-white/5 text-gray-600 dark:text-gray-400 border-black/5 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10"
+                                    )}
+                                >
+                                    {brand}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="h-[1px] bg-black/5 dark:bg-white/5 w-full" />
+
+                    {/* Categories Section */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Categorías</h4>
+                            {currentCategory && (
+                                <button onClick={() => handleFilter('category', null)} className="text-[10px] font-bold text-ios-blue hover:underline uppercase">
+                                    Limpiar
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                            {CATEGORIES.map((cat) => (
+                                <button
+                                    key={cat}
+                                    onClick={() => handleFilter('category', currentCategory === cat ? null : cat)}
+                                    className={cn(
+                                        "px-3 py-1.5 rounded-lg text-xs font-bold transition-all border",
+                                        currentCategory === cat
+                                            ? "bg-ios-blue text-white border-ios-blue shadow-md shadow-ios-blue/20"
+                                            : "bg-white dark:bg-white/5 text-gray-600 dark:text-gray-400 border-black/5 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/10"
+                                    )}
+                                >
+                                    {cat}
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )}

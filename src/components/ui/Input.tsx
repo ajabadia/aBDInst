@@ -1,31 +1,26 @@
 import * as React from "react"
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
+import { cn } from "@/lib/utils"
 
 export interface InputProps
     extends React.InputHTMLAttributes<HTMLInputElement> {
     label?: string;
-    icon?: React.ElementType; // Lucide icon or similar
+    icon?: React.ElementType;
 }
 
 const Input = React.forwardRef<HTMLInputElement, InputProps>(
     ({ className, type, label, icon: Icon, ...props }, ref) => {
         const inputElement = (
-            <div className="relative w-full">
+            <div className="relative w-full group">
                 {Icon && (
-                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                        <Icon className="w-4 h-4" />
+                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-ios-blue transition-colors pointer-events-none">
+                        <Icon className="w-4 h-4 stroke-[2.2]" />
                     </div>
                 )}
                 <input
                     type={type}
                     className={cn(
-                        "apple-input w-full",
-                        Icon && "pl-10",
+                        "apple-input-field w-full",
+                        Icon && "pl-11",
                         className
                     )}
                     ref={ref}
@@ -36,8 +31,8 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
         if (label) {
             return (
-                <div className="w-full space-y-1.5">
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-300 pointer-events-none">
+                <div className="w-full space-y-2">
+                    <label className="apple-label !mb-0 ml-1">
                         {label}
                     </label>
                     {inputElement}

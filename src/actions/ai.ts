@@ -215,3 +215,31 @@ export async function analyzeBulkList(textList: string) {
         return { success: false, error: error.message };
     }
 }
+
+export async function fetchAvailableModels() {
+    const session = await auth();
+    if (!session || (session.user as any).role !== 'admin') {
+        return { success: false, error: 'No autorizado' };
+    }
+
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) return { success: false, error: 'API Key no configurada' };
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`);
+        if (!response.ok) throw new Error(`Error fetching models: ${response.status}`);
+
+        const data = await response.json();
+        // Filter for generateContent support
+        const models = (data.models || [])
+            .filter((m: any) => m.supportedGenerationMethods?.includes('generateContent'))
+            .map((m: any) => ({
+                value: m.name.replace('models/', ''),
+                label: `${m.displayName} (${m.name.replace('models/', '')})`
+            }));
+
+        return { success: true, models };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}

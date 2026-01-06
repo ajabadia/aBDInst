@@ -1,9 +1,12 @@
 'use client';
 
 import { useState, ReactNode, Children, isValidElement } from 'react';
+import { cn } from '@/lib/utils';
+import { motion } from 'framer-motion';
 
 interface TabProps {
     label: string;
+    icon?: React.ElementType;
     children: ReactNode;
 }
 
@@ -14,43 +17,66 @@ export function Tab({ children }: TabProps) {
 interface TabsProps {
     children: ReactNode;
     defaultTab?: number;
+    className?: string;
 }
 
-export function Tabs({ children, defaultTab = 0 }: TabsProps) {
+export function Tabs({ children, defaultTab = 0, className }: TabsProps) {
     const [activeTab, setActiveTab] = useState(defaultTab);
     const tabs = Children.toArray(children).filter(child => isValidElement(child)) as React.ReactElement<TabProps>[];
 
     return (
         <div className="flex flex-col w-full">
-            <div
-                className="flex border-b border-gray-100 dark:border-white/10 mb-8 overflow-x-auto"
-                style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-            >
-                {/* Hide scrollbar for Chrome/Safari/Opera */}
-                <style jsx>{`
-                    div::-webkit-scrollbar {
-                        display: none;
-                    }
-                `}</style>
-                {tabs.map((tab, index) => (
-                    <button
-                        key={index}
-                        type="button"
-                        onClick={() => setActiveTab(index)}
-                        className={`px-6 py-3 text-sm font-medium whitespace-nowrap border-b-[2px] transition-all duration-300 focus:outline-none ${activeTab === index
-                            ? 'border-ios-blue text-ios-blue'
-                            : 'border-transparent text-gray-400 hover:text-gray-900 dark:hover:text-white hover:border-gray-200'
-                            }`}
-                    >
-                        {tab.props.label}
-                    </button>
-                ))}
+            {/* Apple Segmented Control Style Tabs */}
+            <div className={cn(
+                "flex items-center gap-1 p-1.5 bg-black/[0.03] dark:bg-white/5 rounded-2xl w-fit mb-8 border border-black/5 dark:border-white/5 mx-auto md:mx-0",
+                className
+            )}>
+                {tabs.map((tab, index) => {
+                    const isActive = activeTab === index;
+                    const Icon = tab.props.icon;
+                    
+                    return (
+                        <button
+                            key={index}
+                            type="button"
+                            onClick={() => setActiveTab(index)}
+                            className={cn(
+                                "relative flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-300 whitespace-nowrap outline-none",
+                                isActive
+                                    ? "text-ios-blue dark:text-white"
+                                    : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                            )}
+                        >
+                            {/* Animated Background Indicator */}
+                            {isActive && (
+                                <motion.div
+                                    layoutId="activeTab"
+                                    className="absolute inset-0 bg-white dark:bg-white/10 rounded-xl shadow-apple-sm border border-black/5 dark:border-white/5"
+                                    transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                                />
+                            )}
+                            
+                            <span className="relative z-10 flex items-center gap-2">
+                                {Icon && <Icon size={16} className={cn("stroke-[2.5]", isActive ? "text-ios-blue dark:text-white" : "text-gray-400")} />}
+                                {tab.props.label}
+                            </span>
+                        </button>
+                    );
+                })}
             </div>
+
+            {/* Content Area with smooth transition */}
             <div className="flex-1">
                 {tabs.map((tab, index) => (
-                    <div key={index} className={activeTab === index ? 'block' : 'hidden'}>
+                    <motion.div 
+                        key={index}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: activeTab === index ? 1 : 0, y: activeTab === index ? 0 : 10 }}
+                        transition={{ duration: 0.3 }}
+                        className={activeTab === index ? 'block' : 'hidden'}
+                    >
                         {tab}
-                    </div>
+                    </motion.div>
                 ))}
             </div>
         </div>

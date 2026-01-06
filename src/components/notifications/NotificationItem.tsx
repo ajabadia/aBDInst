@@ -3,9 +3,10 @@
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
-import { UserPlus, MessageSquare, Reply, AlertCircle, Heart } from 'lucide-react';
+import { UserPlus, MessageSquare, Reply, AlertCircle, Heart, Mail, Bell, ShieldCheck } from 'lucide-react';
 import { markAsRead } from '@/actions/notifications';
 import { useRouter } from 'next/navigation';
+import { cn } from '@/lib/utils';
 
 interface NotificationItemProps {
     notification: any;
@@ -24,76 +25,100 @@ export default function NotificationItem({ notification, onClose }: Notification
         if (onClose) onClose();
     };
 
-    let Icon = AlertCircle;
-    let colorClass = 'text-gray-500 bg-gray-100 dark:bg-gray-800';
-    let content = null;
-    let href = '#';
+    // Mapping notification types to Apple-style visuals
+    const configs: Record<string, { icon: any, color: string, bg: string, href: string }> = {
+        follow: {
+            icon: UserPlus,
+            color: 'text-ios-indigo',
+            bg: 'bg-ios-indigo/10',
+            href: `/profile/${data.actorId}`
+        },
+        comment: {
+            icon: MessageSquare,
+            color: 'text-ios-blue',
+            bg: 'bg-ios-blue/10',
+            href: `/instruments/${data.instrumentId}#comments`
+        },
+        reply: {
+            icon: Reply,
+            color: 'text-ios-green',
+            bg: 'bg-ios-green/10',
+            href: `/instruments/${data.instrumentId}#comments`
+        },
+        wishlist_match: {
+            icon: Heart,
+            color: 'text-ios-pink',
+            bg: 'bg-ios-pink/10',
+            href: `/instruments/${data.instrumentId}`
+        },
+        contact_request: {
+            icon: Mail,
+            color: 'text-ios-orange',
+            bg: 'bg-ios-orange/10',
+            href: `/dashboard/admin/contacts/${data.requestId}`
+        },
+        contact_reply: {
+            icon: Reply,
+            color: 'text-ios-green',
+            bg: 'bg-ios-green/10',
+            href: `/dashboard/requests/${data.requestId}`
+        },
+        maintenance: {
+            icon: ShieldCheck,
+            color: 'text-ios-orange',
+            bg: 'bg-ios-orange/10',
+            href: `/dashboard/collection/${data.instrumentId}`
+        }
+    };
 
-    switch (type) {
-        case 'follow':
-            Icon = UserPlus;
-            colorClass = 'text-purple-600 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400';
-            href = `/profile/${data.actorId}`;
-            content = (
-                <span>
-                    <span className="font-bold">{data.actorName}</span> te ha empezado a seguir.
-                </span>
-            );
-            break;
-        case 'comment':
-            Icon = MessageSquare;
-            colorClass = 'text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400';
-            href = `/instruments/${data.instrumentId}#comments`;
-            content = (
-                <span>
-                    <span className="font-bold">{data.actorName}</span> comentó en <span className="font-bold">{data.instrumentName}</span>.
-                </span>
-            );
-            break;
-        case 'reply':
-            Icon = Reply;
-            colorClass = 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400';
-            href = `/instruments/${data.instrumentId}#comments`;
-            content = (
-                <span>
-                    <span className="font-bold">{data.actorName}</span> respondió a tu comentario en <span className="font-bold">{data.instrumentName}</span>.
-                </span>
-            );
-            break;
-        case 'wishlist_match':
-            Icon = Heart;
-            colorClass = 'text-pink-600 bg-pink-100 dark:bg-pink-900/30 dark:text-pink-400';
-            href = `/instruments/${data.instrumentId}`;
-            content = (
-                <span>
-                    ¡Un instrumento de tu wishlist (<span className="font-bold">{data.instrumentName}</span>) ha aparecido en el mercado!
-                </span>
-            );
-            break;
-        default:
-            content = "Tienes una nueva notificación.";
-    }
+    const config = configs[type] || {
+        icon: Bell,
+        color: 'text-gray-500',
+        bg: 'bg-gray-100',
+        href: '#'
+    };
+
+    const Icon = config.icon;
 
     return (
         <Link
-            href={href}
+            href={config.href}
             onClick={handleClick}
-            className={`flex gap-3 p-3 rounded-xl transition-all hover:bg-gray-50 dark:hover:bg-gray-800 ${!read ? 'bg-blue-50/50 dark:bg-blue-900/10' : ''}`}
-        >
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${colorClass}`}>
-                <Icon size={18} />
-            </div>
-            <div className="flex-1 min-w-0">
-                <p className="text-sm text-gray-900 dark:text-gray-200 leading-snug">
-                    {content}
-                </p>
-                <p className="text-xs text-gray-500 mt-1">
-                    {formatDistanceToNow(new Date(createdAt), { addSuffix: true, locale: es })}
-                </p>
-            </div>
-            {!read && (
-                <div className="w-2 h-2 rounded-full bg-blue-500 mt-2 flex-shrink-0" />
+            className={cn(
+                "flex gap-5 p-5 rounded-[1.5rem] transition-all duration-300 group",
+                !read
+                    ? "bg-ios-blue/[0.03] dark:bg-white/[0.02] border-l-4 border-ios-blue shadow-sm"
+                    : "hover:bg-black/[0.02] dark:hover:bg-white/[0.02]"
             )}
+        >
+            <div className={cn(
+                "w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:scale-110",
+                config.bg,
+                config.color
+            )}>
+                <Icon size={22} className="stroke-[2.2]" />
+            </div>
+
+            <div className="flex-1 min-w-0 space-y-1">
+                <p className="text-[15px] text-gray-900 dark:text-gray-200 leading-snug font-medium">
+                    {type === 'follow' && (<span><span className="font-bold">{data.actorName}</span> te ha empezado a seguir.</span>)}
+                    {type === 'comment' && (<span><span className="font-bold">{data.actorName}</span> comentó en <span className="font-bold">{data.instrumentName}</span>.</span>)}
+                    {type === 'reply' && (<span><span className="font-bold">{data.actorName}</span> respondió a tu comentario.</span>)}
+                    {type === 'wishlist_match' && (<span>¡Oportunidad! <span className="font-bold">{data.instrumentName}</span> está disponible.</span>)}
+                    {type === 'contact_request' && (<span>Consulta de <span className="font-bold">{data.senderName}</span>: {data.subject}</span>)}
+                    {type === 'contact_reply' && (<span>Nueva respuesta a tu consulta: <span className="font-bold">{data.subject}</span></span>)}
+                    {type === 'maintenance' && (<span>Revisión técnica pendiente para <span className="font-bold">{data.title}</span>.</span>)}
+                    {!configs[type] && "Tienes una nueva actualización en tu sistema."}
+                </p>
+                <div className="flex items-center gap-3">
+                    <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+                        {formatDistanceToNow(new Date(createdAt), { addSuffix: true, locale: es })}
+                    </p>
+                    {!read && (
+                        <span className="px-1.5 py-0.5 bg-ios-blue text-white text-[9px] font-black rounded uppercase tracking-tighter shadow-sm">Nuevo</span>
+                    )}
+                </div>
+            </div>
         </Link>
     );
 }

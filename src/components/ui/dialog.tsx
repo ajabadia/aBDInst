@@ -2,14 +2,9 @@
 
 import * as React from 'react';
 import { X } from 'lucide-react';
-
-// Inline cn utility to avoid dependency issues if lib/utils is missing or different
-import { clsx, type ClassValue } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-function cn(...inputs: ClassValue[]) {
-    return twMerge(clsx(inputs));
-}
+import { cn } from '@/lib/utils';
+import { Button } from './Button';
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface DialogProps {
     open?: boolean;
@@ -18,32 +13,59 @@ interface DialogProps {
 }
 
 export function Dialog({ open, onOpenChange, children }: DialogProps) {
-    if (!open) return null;
-
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
-            {/* Overlay click to close */}
-            <div
-                className="absolute inset-0"
-                onClick={() => onOpenChange?.(false)}
-            />
-            {children}
-        </div>
+        <AnimatePresence>
+            {open && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+                    {/* Overlay */}
+                    <motion.div
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        onClick={() => onOpenChange?.(false)}
+                        className="absolute inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm"
+                    />
+                    {/* Dialog Wrapper */}
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ type: "spring", damping: 25, stiffness: 350 }}
+                        className="relative z-10 w-full max-w-lg"
+                    >
+                        {children}
+                    </motion.div>
+                </div>
+            )}
+        </AnimatePresence>
     );
 }
 
-export function DialogContent({ children, className }: { children: React.ReactNode; className?: string }) {
+export function DialogContent({ children, className, onClose }: { children: React.ReactNode; className?: string; onClose?: () => void }) {
     return (
-        <div className={cn("relative bg-white dark:bg-gray-900 rounded-xl shadow-xl w-full max-w-lg border border-gray-200 dark:border-gray-800 p-6 animate-in zoom-in-95 duration-200", className)}>
+        <div className={cn(
+            "glass-panel rounded-[2.5rem] shadow-apple-lg border-white/20 dark:border-white/10 p-8 md:p-10 overflow-hidden",
+            className
+        )}>
+            {onClose && (
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={onClose}
+                    className="absolute top-6 right-6 rounded-full hover:bg-black/5 dark:hover:bg-white/5"
+                >
+                    <X size={20} />
+                </Button>
+            )}
             {children}
         </div>
     );
 }
 
 export function DialogHeader({ children, className }: { children: React.ReactNode; className?: string }) {
-    return <div className={cn("flex flex-col space-y-1.5 text-center sm:text-left mb-4", className)}>{children}</div>;
+    return <div className={cn("flex flex-col space-y-2 text-center sm:text-left mb-8", className)}>{children}</div>;
 }
 
 export function DialogTitle({ children, className }: { children: React.ReactNode; className?: string }) {
-    return <h2 className={cn("text-lg font-semibold leading-none tracking-tight", className)}>{children}</h2>;
+    return <h2 className={cn("text-3xl font-bold tracking-tight text-gray-900 dark:text-white leading-tight", className)}>{children}</h2>;
 }

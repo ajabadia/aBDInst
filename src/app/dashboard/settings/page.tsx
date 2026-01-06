@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import UserSettingsForm from '@/components/UserSettingsForm';
-import { Settings, Cloud, User as UserIcon, ChevronRight } from 'lucide-react';
+import { Settings, Cloud, User as UserIcon, ChevronRight, ShieldCheck } from 'lucide-react';
 import Link from 'next/link';
+import { cn } from '@/lib/utils';
 
 export default async function SettingsPage() {
     const session = await auth();
@@ -19,66 +20,100 @@ export default async function SettingsPage() {
         redirect('/login');
     }
 
-    // Convert MongoDB objects to plain JS for the client component
     const sanitizedUser = JSON.parse(JSON.stringify(user));
 
     return (
-        <div className="container mx-auto px-6 py-12 max-w-6xl">
-            <div className="flex items-center gap-4 mb-12">
-                <div className="w-12 h-12 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-gray-900 dark:text-white">
-                    <Settings size={28} />
-                </div>
-                <div>
-                    <h1 className="text-4xl font-bold tracking-tight">Ajustes</h1>
-                    <p className="text-gray-500">Gestiona tu cuenta y preferencias</p>
-                </div>
-            </div>
-
-            {/* Navigation Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-                {/* Profile Settings */}
-                <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-6 hover:border-blue-200 dark:hover:border-blue-900/50 transition-all">
-                    <div className="flex items-center gap-3 mb-3">
-                        <div className="w-10 h-10 rounded-full bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
-                            <UserIcon size={20} />
+        <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 space-y-12">
+            {/* Header Section */}
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                <div className="space-y-2">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-ios-gray/10 text-ios-gray rounded-xl shadow-sm">
+                            <Settings className="w-6 h-6" />
                         </div>
-                        <h3 className="font-bold text-lg">Perfil</h3>
+                        <h1 className="text-4xl font-bold tracking-tight">Ajustes</h1>
                     </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                        Actualiza tu información personal y preferencias de cuenta
+                    <p className="text-gray-500 dark:text-gray-400 font-medium ml-1">
+                        Gestiona tu identidad, preferencias y conectividad del sistema.
                     </p>
-                    <div className="text-sm text-gray-500">
-                        Configuración actual en esta página ↓
+                </div>
+            </header>
+
+            {/* Navigation Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {/* Profile Settings (Current) */}
+                <div className="glass-panel rounded-[2rem] p-8 border-ios-blue/20 bg-ios-blue/[0.02]">
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className="w-12 h-12 rounded-2xl bg-ios-blue/10 text-ios-blue flex items-center justify-center">
+                            <UserIcon size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold tracking-tight">Perfil Personal</h3>
+                            <p className="text-xs text-ios-blue font-bold uppercase tracking-wider">Configuración Activa</p>
+                        </div>
                     </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
+                        Actualiza tu biografía, ubicación y foto de perfil para la comunidad.
+                    </p>
                 </div>
 
-                {/* Storage Settings */}
-                <Link href="/dashboard/settings/storage">
-                    <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-6 hover:border-blue-200 dark:hover:border-blue-900/50 transition-all cursor-pointer group">
-                        <div className="flex items-center justify-between mb-3">
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
-                                    <Cloud size={20} />
+                {/* Storage Settings (Link) */}
+                <Link href="/dashboard/settings/storage" className="group">
+                    <div className="glass-panel rounded-[2rem] p-8 h-full transition-all group-hover:border-ios-indigo/30 group-hover:bg-ios-indigo/[0.02]">
+                        <div className="flex items-center justify-between mb-4">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-ios-indigo/10 text-ios-indigo flex items-center justify-center group-hover:bg-ios-indigo group-hover:text-white transition-all duration-500">
+                                    <Cloud size={24} />
                                 </div>
-                                <h3 className="font-bold text-lg">Almacenamiento</h3>
+                                <div>
+                                    <h3 className="text-xl font-bold tracking-tight">Almacenamiento</h3>
+                                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Nube & Archivos</p>
+                                </div>
                             </div>
-                            <ChevronRight className="text-gray-400 group-hover:text-blue-600 transition-colors" size={20} />
+                            <ChevronRight className="text-gray-300 group-hover:text-ios-indigo group-hover:translate-x-1 transition-all" size={24} />
                         </div>
-                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                            Configura dónde se guardarán las fotos de tu colección
+                        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
+                            Conecta tus cuentas de Cloudinary, Drive o Dropbox para guardar tus fotos.
                         </p>
-                        <div className="text-sm font-medium text-blue-600 dark:text-blue-400">
-                            Cloudinary • Google Drive • Dropbox • Terabox →
-                        </div>
                     </div>
                 </Link>
+
+                {/* Admin Settings Shortcut (Only for Admins) */}
+                {user.role === 'admin' && (
+                    <Link href="/dashboard/admin/settings" className="group md:col-span-2 lg:col-span-1">
+                        <div className="glass-panel rounded-[2rem] p-8 h-full transition-all group-hover:border-ios-red/30 group-hover:bg-ios-red/[0.02] border-dashed">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className="flex items-center gap-4">
+                                    <div className="w-12 h-12 rounded-2xl bg-ios-red/10 text-ios-red flex items-center justify-center group-hover:bg-ios-red group-hover:text-white transition-all duration-500">
+                                        <ShieldCheck size={24} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-xl font-bold tracking-tight">Administración</h3>
+                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Sistema Global</p>
+                                    </div>
+                                </div>
+                                <ChevronRight className="text-gray-300 group-hover:text-ios-red group-hover:translate-x-1 transition-all" size={24} />
+                            </div>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
+                                Accede al panel de control global, mantenimiento y configuración de seguridad.
+                            </p>
+                        </div>
+                    </Link>
+                )}
             </div>
 
-            {/* User Settings Form */}
-            <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-8">
-                <h2 className="text-2xl font-bold mb-6">Información Personal</h2>
-                <UserSettingsForm user={sanitizedUser} />
-            </div>
+            {/* User Settings Form - Integrated Panel */}
+            <section className="space-y-6">
+                <div className="flex items-center gap-3 px-2">
+                    <ShieldCheck size={20} className="text-ios-blue" />
+                    <h2 className="text-2xl font-bold tracking-tight">Información de la Cuenta</h2>
+                    <div className="h-[1px] flex-1 bg-black/5 dark:bg-white/5" />
+                </div>
+
+                <div className="glass-panel rounded-[2.5rem] p-8 md:p-12 shadow-apple-lg border-black/5 dark:border-white/5">
+                    <UserSettingsForm user={sanitizedUser} />
+                </div>
+            </section>
         </div>
     );
 }

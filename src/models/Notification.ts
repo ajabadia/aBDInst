@@ -2,7 +2,7 @@ import { Schema, model, models, type Document } from 'mongoose';
 
 export interface INotification extends Document {
     userId: Schema.Types.ObjectId;
-    type: 'follow' | 'comment' | 'reply' | 'like' | 'system' | 'maintenance' | 'price_alert' | 'wishlist_match';
+    type: 'follow' | 'comment' | 'reply' | 'like' | 'system' | 'maintenance' | 'price_alert' | 'wishlist_match' | 'contact_request' | 'contact_reply';
     data: any; // Dynamic: { actorId, actorName, instrumentId, instrumentName, etc. }
     read: boolean;
     createdAt: Date;
@@ -18,7 +18,7 @@ const NotificationSchema = new Schema<INotification>(
         },
         type: {
             type: String,
-            enum: ['follow', 'comment', 'reply', 'like', 'system', 'maintenance', 'price_alert', 'wishlist_match'],
+            enum: ['follow', 'comment', 'reply', 'like', 'system', 'maintenance', 'price_alert', 'wishlist_match', 'contact_request', 'contact_reply'],
             required: true
         },
         data: {

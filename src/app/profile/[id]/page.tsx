@@ -1,10 +1,10 @@
 import { getPublicProfile } from '@/actions/profile';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 import Image from 'next/image';
-import { MapPin, Calendar, Globe, Box, Heart } from 'lucide-react';
+import { MapPin, Calendar, Globe, Box, Heart, Users } from 'lucide-react';
 import FollowButton from '@/components/social/FollowButton';
-import Link from 'next/link';
-// import { Instrument } from '@/types/instrument';
+import InstrumentCard from '@/components/InstrumentCard';
+import { cn } from '@/lib/utils';
 
 export default async function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -13,9 +13,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
     if (!success || !data) {
         if (error === "Este perfil no está disponible.") {
             return (
-                <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-6">
-                    <h1 className="text-3xl font-bold mb-4 opacity-50">Perfil Restringido</h1>
-                    <p className="text-gray-500">Este perfil ha sido ocultado por moderación.</p>
+                <div className="flex flex-col items-center justify-center min-h-[70vh] text-center p-6">
+                    <div className="w-20 h-20 bg-ios-red/10 text-ios-red rounded-full flex items-center justify-center mb-6">
+                        <Box size={40} />
+                    </div>
+                    <h1 className="text-3xl font-bold tracking-tight mb-2">Perfil Restringido</h1>
+                    <p className="text-gray-500 max-w-sm">Este perfil ha sido ocultado por moderación o no existe.</p>
                 </div>
             );
         }
@@ -25,21 +28,23 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
     const { user, stats, collection, isFollowing } = data;
 
     return (
-        <div className="min-h-screen pb-20">
-            {/* Header / Cover */}
-            <div className="h-48 md:h-64 bg-gradient-to-r from-blue-900 to-slate-900 relative">
-                <div className="absolute inset-0 bg-black/20" />
+        <div className="min-h-screen pb-32">
+            {/* Apple Style Cover */}
+            <div className="h-64 md:h-80 bg-gradient-to-br from-ios-blue via-ios-indigo to-midnight-900 relative overflow-hidden">
+                <div className="absolute inset-0 bg-black/10 backdrop-blur-[2px]" />
+                <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-background to-transparent" />
             </div>
 
             <div className="max-w-6xl mx-auto px-6">
-                <div className="relative -mt-20 md:-mt-24 mb-6 flex flex-col md:flex-row items-end md:items-end gap-6">
+                {/* Header Section */}
+                <div className="relative -mt-24 md:-mt-32 mb-12 flex flex-col md:flex-row items-center md:items-end gap-8 text-center md:text-left">
                     {/* Avatar */}
-                    <div className="relative">
-                        <div className="w-32 h-32 md:w-40 md:h-40 rounded-3xl border-4 border-white dark:border-gray-950 bg-white shadow-xl overflow-hidden">
+                    <div className="relative group">
+                        <div className="w-40 h-40 md:w-48 md:h-48 rounded-[3rem] border-[6px] border-background bg-white dark:bg-black shadow-apple-lg overflow-hidden transition-transform duration-500 group-hover:scale-[1.02]">
                             {user.image ? (
-                                <Image src={user.image} alt={user.name} width={160} height={160} className="w-full h-full object-cover" />
+                                <Image src={user.image} alt={user.name} width={200} height={200} className="w-full h-full object-cover" />
                             ) : (
-                                <div className="w-full h-full bg-gray-200 flex items-center justify-center text-4xl font-bold text-gray-400">
+                                <div className="w-full h-full bg-ios-blue/10 flex items-center justify-center text-5xl font-bold text-ios-blue">
                                     {user.name?.[0]}
                                 </div>
                             )}
@@ -47,95 +52,82 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                     </div>
 
                     {/* Info */}
-                    <div className="flex-1 pb-4 text-center md:text-left">
-                        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">{user.name}</h1>
-                        <p className="text-gray-600 dark:text-gray-300 max-w-lg mb-4">{user.bio || "Coleccionista de instrumentos."}</p>
+                    <div className="flex-1 space-y-4 pb-2">
+                        <div className="space-y-1">
+                            <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 dark:text-white leading-none">
+                                {user.name}
+                            </h1>
+                            <p className="text-lg md:text-xl text-gray-500 dark:text-gray-400 font-medium leading-tight max-w-2xl">
+                                {user.bio || "Coleccionista de instrumentos musicales."}
+                            </p>
+                        </div>
 
-                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-5 text-[13px] font-bold text-gray-400 uppercase tracking-widest">
                             {user.location && (
-                                <span className="flex items-center gap-1">
-                                    <MapPin size={14} /> {user.location}
+                                <span className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 px-3 py-1 rounded-full">
+                                    <MapPin size={14} className="text-ios-blue" /> {user.location}
                                 </span>
                             )}
-                            <span className="flex items-center gap-1">
-                                <Calendar size={14} /> Se unió en {new Date(user.createdAt).getFullYear()}
+                            <span className="flex items-center gap-1.5">
+                                <Calendar size={14} /> Miembro desde {new Date(user.createdAt).getFullYear()}
                             </span>
                             {user.website && (
-                                <a href={user.website} target="_blank" className="flex items-center gap-1 hover:text-blue-500">
+                                <a href={user.website} target="_blank" className="flex items-center gap-1.5 text-ios-blue hover:underline">
                                     <Globe size={14} /> Website
                                 </a>
                             )}
                         </div>
                     </div>
 
-                    {/* Actions */}
-                    <div className="pb-4 flex flex-col gap-2 w-full md:w-auto">
+                    {/* Action Button */}
+                    <div className="pb-2 w-full md:w-auto shrink-0">
                         <FollowButton targetUserId={data.user._id} targetUserName={user.name} isFollowing={isFollowing} />
                     </div>
                 </div>
 
-                {/* Stats */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.collectionsCount}</div>
-                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Instrumentos</div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{stats.wishlistCount}</div>
-                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Deseados</div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{user.followers?.length || 0}</div>
-                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Seguidores</div>
-                    </div>
-                    <div className="bg-white dark:bg-gray-800 p-4 rounded-2xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
-                        <div className="text-2xl font-bold text-gray-900 dark:text-white">{user.following?.length || 0}</div>
-                        <div className="text-xs font-bold text-gray-500 uppercase tracking-wider">Siguiendo</div>
-                    </div>
-                </div>
-
-                {/* Content Tabs area (Simplified for now) */}
-                <h3 className="text-xl font-bold mb-6 flex items-center gap-2">
-                    <Box className="text-blue-500" />
-                    Colección Reciente
-                </h3>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {collection.map((item: any) => (
-                        <div key={item._id} className="group bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-lg transition-all">
-                            <div className="aspect-[4/3] bg-gray-100 relative overflow-hidden">
-                                {item.instrumentId?.images?.[0] ? (
-                                    <Image
-                                        src={item.instrumentId.images[0]}
-                                        alt={item.instrumentId.model}
-                                        fill
-                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
-                                    />
-                                ) : item.instrumentId?.genericImages?.[0] ? (
-                                    <Image
-                                        src={item.instrumentId.genericImages[0]}
-                                        alt={item.instrumentId.model}
-                                        fill
-                                        className="object-cover group-hover:scale-110 transition-transform duration-500"
-                                    />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-300 bg-gray-50">
-                                        <Box size={40} />
-                                    </div>
-                                )}
+                {/* Stats Panel (Segmented Style) */}
+                <div className="glass-panel rounded-[2rem] p-2 mb-16 flex flex-wrap shadow-apple-sm">
+                    {[
+                        { label: 'Instrumentos', value: stats.collectionsCount, icon: Box, color: 'text-ios-blue' },
+                        { label: 'En Wishlist', value: stats.wishlistCount, icon: Heart, color: 'text-ios-pink' },
+                        { label: 'Seguidores', value: user.followers?.length || 0, icon: Users, color: 'text-ios-indigo' },
+                        { label: 'Siguiendo', value: user.following?.length || 0, icon: Users, color: 'text-ios-teal' }
+                    ].map((s, i) => (
+                        <div key={i} className={cn(
+                            "flex-1 min-w-[120px] p-6 text-center space-y-1 relative",
+                            i < 3 && "after:absolute after:right-0 after:top-1/4 after:h-1/2 after:w-[1px] after:bg-black/5 dark:after:bg-white/5"
+                        )}>
+                            <div className="flex items-center justify-center gap-2 mb-1">
+                                <s.icon size={14} className={s.color} />
+                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{s.label}</span>
                             </div>
-                            <div className="p-4">
-                                <h4 className="font-bold text-gray-900 dark:text-white truncate">{item.instrumentId?.brand} {item.instrumentId?.model}</h4>
-                                <p className="text-sm text-gray-500">{item.instrumentId?.type}</p>
-                            </div>
+                            <div className="text-3xl font-bold tracking-tight">{s.value}</div>
                         </div>
                     ))}
-                    {collection.length === 0 && (
-                        <div className="col-span-full py-12 text-center text-gray-400 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-                            No hay instrumentos públicos.
-                        </div>
-                    )}
                 </div>
+
+                {/* Collection Area */}
+                <section className="space-y-8">
+                    <div className="flex items-center gap-4">
+                        <h3 className="text-2xl font-bold tracking-tight">Colección Pública</h3>
+                        <div className="h-[1px] flex-1 bg-black/5 dark:bg-white/5 rounded-full" />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+                        {collection.map((item: any) => (
+                            <div key={item._id} className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <InstrumentCard inst={item.instrumentId} />
+                            </div>
+                        ))}
+                        
+                        {collection.length === 0 && (
+                            <div className="col-span-full py-24 text-center glass-panel rounded-[2rem] border-dashed border-2">
+                                <Box className="w-12 h-12 mx-auto mb-4 text-gray-300 opacity-50" />
+                                <p className="text-gray-500 font-medium">Este coleccionista aún no ha publicado instrumentos.</p>
+                            </div>
+                        )}
+                    </div>
+                </section>
             </div>
         </div>
     );

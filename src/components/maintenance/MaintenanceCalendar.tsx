@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { formatDistanceToNow, isPast, isSameMonth, parseISO } from 'date-fns';
+import { formatDistanceToNow, isPast, isSameMonth } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Wrench, AlertCircle, CheckCircle, Clock } from 'lucide-react';
+import { Wrench, AlertCircle, CheckCircle, Clock, ChevronRight } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface MaintenanceItem {
     _id: string;
@@ -24,7 +25,11 @@ interface MaintenanceCalendarProps {
 }
 
 export default function MaintenanceCalendar({ items }: MaintenanceCalendarProps) {
-    // Group by status
+    const isSameDate = (d1: Date, d2: Date) => 
+        d1.getFullYear() === d2.getFullYear() &&
+        d1.getMonth() === d2.getMonth() &&
+        d1.getDate() === d2.getDate();
+
     const overdue = items.filter(i => isPast(new Date(i.nextMaintenanceDate)) && !isSameDate(new Date(i.nextMaintenanceDate), new Date()));
     const upcoming = items.filter(i => !isPast(new Date(i.nextMaintenanceDate)) || isSameDate(new Date(i.nextMaintenanceDate), new Date()));
 
@@ -34,77 +39,85 @@ export default function MaintenanceCalendar({ items }: MaintenanceCalendarProps)
             <Link
                 href={`/dashboard/collection/${item._id}`}
                 key={item._id}
-                className={`flex items-start gap-4 p-4 rounded-2xl border transition-all hover:shadow-md ${status === 'overdue'
-                        ? 'bg-red-50 border-red-100 dark:bg-red-900/10 dark:border-red-900/30'
-                        : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700'
-                    }`}
+                className={cn(
+                    "apple-card p-5 flex items-center gap-5 group hover:border-ios-blue/30",
+                    status === 'overdue' ? "bg-ios-red/[0.03] border-ios-red/10" : "bg-white dark:bg-white/5"
+                )}
             >
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${status === 'overdue' ? 'bg-red-100 text-red-600 dark:bg-red-900/50 dark:text-red-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/50 dark:text-blue-400'
-                    }`}>
-                    <Wrench size={20} />
+                {/* Icon Circle */}
+                <div className={cn(
+                    "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-transform group-hover:rotate-12",
+                    status === 'overdue' 
+                        ? "bg-ios-red text-white shadow-lg shadow-ios-red/20" 
+                        : "bg-ios-orange/10 text-ios-orange"
+                )}>
+                    <Wrench size={24} />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-gray-900 dark:text-white truncate">
+                    <h4 className="font-bold text-gray-900 dark:text-white truncate text-lg tracking-tight">
                         {item.instrumentId.brand} {item.instrumentId.model}
                     </h4>
-                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">
-                        {item.maintenanceNotes || "Mantenimiento regular programado"}
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1 font-medium">
+                        {item.maintenanceNotes || "Revisión técnica periódica"}
                     </p>
-                    <div className="flex items-center gap-2 mt-2 text-xs font-medium">
-                        <span className={`flex items-center gap-1 ${status === 'overdue' ? 'text-red-600 dark:text-red-400' : 'text-gray-500'}`}>
+                    
+                    <div className="flex items-center gap-3 mt-3">
+                        <div className={cn(
+                            "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
+                            status === 'overdue' ? "bg-ios-red text-white" : "bg-black/5 dark:bg-white/10 text-gray-500"
+                        )}>
                             <Clock size={12} />
-                            {status === 'overdue' ? 'Venció ' : 'Vence '}
                             {formatDistanceToNow(date, { addSuffix: true, locale: es })}
-                        </span>
-                        {item.maintenanceInterval !== 'none' && (
-                            <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-gray-500">
-                                Repite: {item.maintenanceInterval}
+                        </div>
+                        
+                        {item.maintenanceInterval && item.maintenanceInterval !== 'none' && (
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest px-2 py-1 bg-black/5 dark:bg-white/10 rounded-full">
+                                Cada {item.maintenanceInterval}
                             </span>
                         )}
                     </div>
                 </div>
+
+                <ChevronRight className="text-gray-300 group-hover:text-ios-blue group-hover:translate-x-1 transition-all" size={20} />
             </Link>
         );
     };
 
     return (
-        <div className="space-y-8">
+        <div className="p-8 space-y-16">
             {/* Overdue Section */}
             {overdue.length > 0 && (
-                <div>
-                    <h3 className="text-lg font-bold text-red-600 flex items-center gap-2 mb-4">
-                        <AlertCircle size={20} />
-                        Pendientes y Vencidos
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <section>
+                    <div className="flex items-center gap-3 mb-8">
+                        <AlertCircle className="text-ios-red" size={22} />
+                        <h3 className="text-2xl font-bold tracking-tight text-ios-red">Vencidos</h3>
+                        <div className="h-[2px] flex-1 bg-ios-red/5" />
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {overdue.map(i => renderItem(i, 'overdue'))}
                     </div>
-                </div>
+                </section>
             )}
 
             {/* Upcoming Section */}
-            <div>
-                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2 mb-4">
-                    <CheckCircle size={20} className="text-green-500" />
-                    Próximamente
-                </h3>
+            <section>
+                <div className="flex items-center gap-3 mb-8">
+                    <CheckCircle className="text-ios-green" size={22} />
+                    <h3 className="text-2xl font-bold tracking-tight">Programados</h3>
+                    <div className="h-[2px] flex-1 bg-black/5 dark:bg-white/5" />
+                </div>
                 {upcoming.length > 0 ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {upcoming.map(i => renderItem(i, 'upcoming'))}
                     </div>
                 ) : (
-                    <div className="text-center py-12 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-dashed border-gray-200 dark:border-gray-700">
-                        <p className="text-gray-500">No hay mantenimientos programados para el futuro cercano.</p>
+                    <div className="glass-panel rounded-[2rem] py-20 text-center border-dashed border-2">
+                        <Wrench className="w-12 h-12 mx-auto mb-4 text-gray-300 opacity-50" />
+                        <p className="text-gray-500 font-medium text-lg">No hay mantenimientos futuros.</p>
                     </div>
                 )}
-            </div>
+            </section>
         </div>
     );
-}
-
-function isSameDate(d1: Date, d2: Date) {
-    return d1.getFullYear() === d2.getFullYear() &&
-        d1.getMonth() === d2.getMonth() &&
-        d1.getDate() === d2.getDate();
 }

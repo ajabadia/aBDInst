@@ -6,7 +6,7 @@ import { signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import SettingsModal from './SettingsModal';
-import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, Shield, Heart, Activity, Wrench, Bell } from 'lucide-react';
+import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, Shield, Heart, Activity, Wrench, Bell, Tag, Mail, MessageSquare } from 'lucide-react';
 import NotificationBell from './notifications/NotificationBell';
 import { useVaultMode } from '@/context/VaultModeContext';
 import { useCommandPalette } from '@/context/CommandPaletteContext';
@@ -36,13 +36,14 @@ export default function Navbar({ session }: { session: any }) {
         { name: 'Alertas', href: '/dashboard/alerts', icon: Bell, authRequired: true },
         { name: 'Wishlist', href: '/dashboard/wishlist', icon: Heart, authRequired: true },
         { name: 'Mantenimiento', href: '/dashboard/maintenance', icon: Wrench, authRequired: true },
+        { name: 'Contacto', href: '/contact', icon: Mail },
     ];
 
     return (
         <nav className={cn(
             "fixed top-0 z-50 w-full transition-all duration-500",
-            scrolled 
-                ? "py-2 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-black/5 dark:border-white/10" 
+            scrolled
+                ? "py-2 bg-white/70 dark:bg-black/70 backdrop-blur-2xl border-b border-black/5 dark:border-white/10"
                 : "py-5 bg-transparent"
         )}>
             <div className="max-w-7xl mx-auto px-6 flex items-center justify-between h-12">
@@ -130,11 +131,25 @@ export default function Navbar({ session }: { session: any }) {
                                                     className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-ios-blue hover:text-white rounded-xl transition-all font-medium">
                                                     <Settings size={16} /> Ajustes
                                                 </Link>
+                                                <Link href="/dashboard/requests" onClick={() => setUserMenuOpen(false)}
+                                                    className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-ios-blue hover:text-white rounded-xl transition-all font-medium">
+                                                    <MessageSquare size={16} /> Mis Consultas
+                                                </Link>
                                                 {session.user.role === 'admin' && (
-                                                    <Link href="/admin" onClick={() => setUserMenuOpen(false)}
-                                                        className="flex items-center gap-3 px-3 py-2 text-sm text-ios-red hover:bg-ios-red hover:text-white rounded-xl transition-all font-semibold">
-                                                        <Shield size={16} /> Panel Admin
-                                                    </Link>
+                                                    <>
+                                                        <Link href="/dashboard/admin" onClick={() => setUserMenuOpen(false)}
+                                                            className="flex items-center gap-3 px-3 py-2 text-sm text-ios-red hover:bg-ios-red hover:text-white rounded-xl transition-all font-semibold">
+                                                            <Shield size={16} /> Panel Admin
+                                                        </Link>
+                                                        <Link href="/dashboard/admin/metadata" onClick={() => setUserMenuOpen(false)}
+                                                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-ios-blue hover:text-white rounded-xl transition-all font-medium">
+                                                            <Tag size={16} /> Metadatos
+                                                        </Link>
+                                                        <Link href="/dashboard/admin/contacts" onClick={() => setUserMenuOpen(false)}
+                                                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-ios-blue hover:text-white rounded-xl transition-all font-medium">
+                                                            <Mail size={16} /> Buzón
+                                                        </Link>
+                                                    </>
                                                 )}
                                                 <div className="h-[1px] bg-black/5 dark:bg-white/5 my-1" />
                                                 <button onClick={() => signOut()}
@@ -156,12 +171,12 @@ export default function Navbar({ session }: { session: any }) {
                                 </Link>
                             </div>
                         )}
-                        
+
                         {/* MOBILE MENU TRIGGER */}
-                        <Button 
-                            variant="secondary" 
-                            size="icon" 
-                            className="md:hidden" 
+                        <Button
+                            variant="secondary"
+                            size="icon"
+                            className="md:hidden"
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         >
                             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -202,15 +217,15 @@ export default function Navbar({ session }: { session: any }) {
 
 function ChevronDown({ size, className }: { size: number, className?: string }) {
     return (
-        <svg 
-            width={size} 
-            height={size} 
-            viewBox="0 0 24 24" 
-            fill="none" 
-            stroke="currentColor" 
-            strokeWidth="2.5" 
-            strokeLinecap="round" 
-            strokeLinejoin="round" 
+        <svg
+            width={size}
+            height={size}
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            strokeLinecap="round"
+            strokeLinejoin="round"
             className={className}
         >
             <path d="m6 9 6 6 6-6" />

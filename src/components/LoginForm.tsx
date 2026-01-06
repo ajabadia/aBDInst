@@ -25,8 +25,8 @@ export default function LoginForm() {
             const result = await signIn('credentials', { email, password, redirect: false });
 
             if (result?.error) {
-                toast.error('Credenciales incorrectas', {
-                    description: 'Por favor, revisa tu email y contraseña.'
+                toast.error('Acceso denegado', {
+                    description: 'Email o contraseña incorrectos.'
                 });
                 setLoading(false);
             } else {
@@ -41,28 +41,28 @@ export default function LoginForm() {
     }
 
     return (
-        <div className="w-full max-w-md">
-            <div className="bg-white/70 dark:bg-white/5 backdrop-blur-2xl p-10 md:p-12 rounded-[3rem] border border-gray-200/50 dark:border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.1)]">
+        <div className="w-full max-w-md animate-in fade-in zoom-in-95 duration-500">
+            <div className="glass-panel p-10 md:p-14 rounded-[3rem] shadow-apple-lg border-white/20">
 
-                {/* Header del Login */}
-                <div className="flex flex-col items-center mb-10">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center mb-6 shadow-xl shadow-blue-500/20">
-                        <Music className="text-white w-8 h-8" strokeWidth={2.5} />
+                {/* Apple ID Style Header */}
+                <div className="flex flex-col items-center mb-12">
+                    <div className="w-20 h-20 rounded-2xl bg-ios-blue flex items-center justify-center mb-6 shadow-lg shadow-ios-blue/30 scale-110">
+                        <Music className="text-white w-10 h-10" strokeWidth={2.5} />
                     </div>
-                    <h2 className="text-3xl font-semibold tracking-tighter text-gray-900 dark:text-white">
+                    <h2 className="text-4xl font-bold tracking-tight text-gray-900 dark:text-white">
                         Iniciar sesión
                     </h2>
-                    <p className="text-gray-500 dark:text-gray-400 mt-2 text-center">
-                        Gestiona tu colección personal.
+                    <p className="text-gray-500 dark:text-gray-400 mt-3 text-center font-medium">
+                        Accede a tu bóveda de instrumentos.
                     </p>
                 </div>
 
-                <form onSubmit={handleSubmit} className="space-y-5">
+                <form onSubmit={handleSubmit} className="space-y-6">
                     <Input
-                        label="Email"
+                        label="Correo electrónico"
                         name="email"
                         type="email"
-                        placeholder="tu@email.com"
+                        placeholder="ejemplo@icloud.com"
                         icon={Mail}
                         required
                     />
@@ -75,26 +75,25 @@ export default function LoginForm() {
                         required
                     />
 
-                    <div className="pt-4">
-                        <Button type="submit" isLoading={loading} className="w-full py-4 text-lg">
+                    <div className="pt-6">
+                        <Button type="submit" isLoading={loading} className="w-full py-4 text-lg shadow-apple-glow">
                             Entrar
                         </Button>
                     </div>
                 </form>
 
-                <div className="mt-10 text-center">
-                    <p className="text-sm text-gray-500">
-                        ¿No tienes cuenta?{' '}
-                        <Link href="/register" className="text-blue-600 dark:text-blue-400 font-semibold hover:underline decoration-2 underline-offset-4">
-                            Regístrate gratis
+                <div className="mt-12 text-center">
+                    <p className="text-sm text-gray-500 font-medium">
+                        ¿Nuevo en el coleccionismo?{' '}
+                        <Link href="/register" className="text-ios-blue font-bold hover:underline decoration-2 underline-offset-4">
+                            Crear una cuenta
                         </Link>
                     </p>
                 </div>
             </div>
 
-            {/* Footer sutil estilo Apple */}
-            <p className="mt-8 text-center text-xs text-gray-400 font-medium px-10 leading-relaxed">
-                Tus datos están protegidos con cifrado de grado industrial. Al entrar, aceptas nuestros términos.
+            <p className="mt-10 text-center text-[11px] text-gray-400 font-bold uppercase tracking-[0.2em] px-10 leading-relaxed opacity-60">
+                Seguridad de grado militar • Cifrado extremo
             </p>
         </div>
     );

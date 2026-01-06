@@ -9,16 +9,19 @@ import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
 export default async function DashboardPage() {
     const session = await auth();
-    if (!session) redirect('/api/auth/signin');
+    if (!session) redirect('/login');
 
-    const rawCollection = await getUserCollection();
+    const [rawCollection, allTags, feed, financeData] = await Promise.all([
+        getUserCollection(),
+        getAllUserTags(),
+        getUserFeed(),
+        getFinanceDashboardData()
+    ]);
+
     const collection = cleanData(rawCollection);
-    const allTags = await getAllUserTags();
-    const feed = await getUserFeed();
-    const financeData = await getFinanceDashboardData();
 
     return (
-        <div className="container mx-auto px-4 py-6 max-w-7xl">
+        <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20">
             <DashboardLayout
                 collection={collection}
                 tags={allTags}
@@ -29,4 +32,3 @@ export default async function DashboardPage() {
         </div>
     );
 }
-

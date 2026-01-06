@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { getSystemConfig } from "@/actions/admin";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -19,6 +22,7 @@ import { Toaster } from "@/components/Toaster";
 import { VaultModeProvider } from '@/context/VaultModeContext';
 import { CommandPaletteProvider } from '@/context/CommandPaletteContext';
 import CommandPalette from '@/components/CommandPalette';
+import SessionWrapper from '@/components/SessionWrapper';
 
 export const metadata: Metadata = {
   title: "Instrument Collector",
@@ -46,7 +50,20 @@ export default async function RootLayout({
     console.error("Auth error in RootLayout:", e);
     session = null;
   }
+  const headersList = await headers();
+  const pathname = headersList.get('x-pathname') || "";
 
+  // Check Maintenance Mode
+  const isMaintenance = await getSystemConfig('maintenance_mode');
+
+  if (isMaintenance) {
+    const isAdmin = session?.user?.role === 'admin';
+    const isExempt = isAdmin || pathname === '/maintenance' || pathname === '/login' || pathname.startsWith('/auth') || pathname === '/manifest.json';
+
+    if (!isExempt) {
+      redirect('/maintenance');
+    }
+  }
   return (
     <html lang="es" suppressHydrationWarning>
       <body
@@ -58,16 +75,18 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <VaultModeProvider>
-            <CommandPaletteProvider>
-              <CommandPalette />
-              <Navbar session={session} />
-              <main className="pt-24 pb-16 md:pb-0">
-                {children}
-              </main>
-              <Toaster position="top-center" />
-            </CommandPaletteProvider>
-          </VaultModeProvider>
+          <SessionWrapper session={session}>
+            <VaultModeProvider>
+              <CommandPaletteProvider>
+                <CommandPalette />
+                <Navbar session={session} />
+                <main className="pt-24 pb-16 md:pb-0">
+                  {children}
+                </main>
+                <Toaster position="top-center" />
+              </CommandPaletteProvider>
+            </VaultModeProvider>
+          </SessionWrapper>
         </ThemeProvider>
       </body>
     </html>
