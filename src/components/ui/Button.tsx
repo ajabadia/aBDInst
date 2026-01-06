@@ -1,14 +1,14 @@
 "use client";
-import { LucideIcon, Loader2 } from 'lucide-react';
+import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
-import { isValidElement, cloneElement } from 'react';
+import React from 'react';
 
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
     variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'destructive' | 'danger';
     size?: 'default' | 'sm' | 'lg' | 'icon';
     isLoading?: boolean;
-    icon?: LucideIcon | React.ReactNode;
+    icon?: any;
     children?: React.ReactNode;
 }
 
@@ -21,14 +21,14 @@ export function Button({
     className = '',
     ...props
 }: ButtonProps) {
-
+    
     const variants = {
         primary: "apple-btn-primary",
         secondary: "apple-btn-secondary",
         outline: "apple-btn-outline",
         ghost: "apple-btn-ghost",
         destructive: "apple-btn-destructive",
-        danger: "apple-btn-destructive" // legacy support
+        danger: "apple-btn-destructive"
     };
 
     const sizes = {
@@ -39,32 +39,35 @@ export function Button({
     };
 
     const iconSize = size === 'sm' ? 14 : 19;
-    const iconClass = cn("shrink-0", size === 'sm' ? "stroke-[2]" : "stroke-[2.2px]");
 
     return (
         <motion.button
             whileHover={{ scale: 1.01 }}
             whileTap={{ scale: 0.97 }}
             className={cn(
-                "apple-btn",
-                variants[variant] || variants.primary,
-                sizes[size] || sizes.default,
+                "apple-btn", 
+                variants[variant] || variants.primary, 
+                sizes[size] || sizes.default, 
                 className
             )}
             disabled={isLoading || props.disabled}
             {...props as any}
         >
-            {isLoading ? (
-                <Loader2 className="animate-spin w-5 h-5" />
-            ) : (
-                isValidElement(Icon) ?
-                    cloneElement(Icon as React.ReactElement, {
-                        size: iconSize || (Icon.props as any).size,
-                        className: cn(iconClass, (Icon.props as any).className)
-                    } as any) :
-                    (Icon && <Icon size={iconSize} className={iconClass} />)
+            {isLoading && <Loader2 className="animate-spin w-5 h-5 shrink-0" />}
+            
+            {!isLoading && Icon && (
+                <span className="shrink-0 flex items-center justify-center">
+                    {React.isValidElement(Icon) ? (
+                        React.cloneElement(Icon as React.ReactElement<any>, { size: iconSize })
+                    ) : (
+                        typeof Icon === 'function' || (typeof Icon === 'object' && 'render' in Icon) ? (
+                            <Icon size={iconSize} className="stroke-[2.2px]" />
+                        ) : null
+                    )}
+                </span>
             )}
-            {children && <span>{children}</span>}
+            
+            {children}
         </motion.button>
     );
 }

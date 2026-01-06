@@ -8,7 +8,6 @@ import VirtualizedInstrumentGrid from './VirtualizedInstrumentGrid';
 import { useState, useMemo } from 'react';
 import { LayoutGrid, List, Tag, Calendar, Music } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from './ui/Button';
 import Image from 'next/image';
 
 interface InstrumentGridProps {
@@ -35,10 +34,8 @@ const itemVariant: Variants = {
 export default function InstrumentGrid({ instruments, sortBy = 'brand', metadata = {} }: InstrumentGridProps) {
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
-    // Grouping Logic
     const groupedData = useMemo(() => {
         if (!['brand', 'type', 'year'].includes(sortBy)) return null;
-
         const groups: Record<string, any[]> = {};
 
         instruments.forEach(inst => {
@@ -49,90 +46,72 @@ export default function InstrumentGrid({ instruments, sortBy = 'brand', metadata
                 const year = inst.years?.[0];
                 key = year ? `${year.substring(0, 3)}0s` : 'Unknown';
             }
-
             if (!groups[key]) groups[key] = [];
             groups[key].push(inst);
         });
-
         return groups;
     }, [instruments, sortBy]);
 
-    // Performance Optimization: Use Virtualization for large lists (>100 items) IF not grouped
-    // Virtualization is tricky with groups, so we skip it for grouped view for now unless very large
     if (instruments.length > 100 && !groupedData) {
         return <VirtualizedInstrumentGrid instruments={instruments} />;
     }
 
     return (
         <div className="space-y-8">
-            {/* View Toggle */}
             <div className="flex justify-end mb-4">
                 <div className="bg-white/50 dark:bg-black/20 backdrop-blur-md p-1 rounded-xl flex gap-1 border border-black/5 dark:border-white/5">
-                    <button
-                        onClick={() => setViewMode('grid')}
-                        className={cn(
-                            "p-2 rounded-lg transition-all",
-                            viewMode === 'grid'
-                                ? "bg-white dark:bg-white/10 shadow-sm text-blue-600 dark:text-blue-400"
-                                : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                        )}
-                    >
+                    <button onClick={() => setViewMode('grid')} className={cn("p-2 rounded-lg transition-all", viewMode === 'grid' ? "bg-white dark:bg-white/10 shadow-sm text-ios-blue" : "text-gray-400")}>
                         <LayoutGrid size={20} />
                     </button>
-                    <button
-                        onClick={() => setViewMode('list')}
-                        className={cn(
-                            "p-2 rounded-lg transition-all",
-                            viewMode === 'list'
-                                ? "bg-white dark:bg-white/10 shadow-sm text-blue-600 dark:text-blue-400"
-                                : "text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                        )}
-                    >
+                    <button onClick={() => setViewMode('list')} className={cn("p-2 rounded-lg transition-all", viewMode === 'list' ? "bg-white dark:bg-white/10 shadow-sm text-ios-blue" : "text-gray-400")}>
                         <List size={20} />
                     </button>
                 </div>
             </div>
 
             {groupedData ? (
-                // RENDER GROUPED
                 Object.entries(groupedData).map(([groupKey, groupItems]) => {
-                    const normalizedKey = groupKey.toLowerCase();
-                    const metaKey = sortBy === 'year' ? `decade:${normalizedKey}` : `${sortBy}:${normalizedKey}`;
-                    const meta = metadata[metaKey] || metadata[normalizedKey]; // Fallback for direct key match
+                    // NORMALIZACIÓN PARA EL MATCH
+                    const normalizedKey = groupKey.toLowerCase().trim();
+                    const typeKey = sortBy === 'year' ? 'decade' : sortBy;
+                    
+                    const meta = metadata[typeKey]?.[normalizedKey];
 
                     return (
-                        <div key={groupKey} className="space-y-4">
-                            {/* Section Header */}
-                            <div className="flex items-center gap-3 pb-2 border-b border-gray-100 dark:border-white/5">
+                        <div key={groupKey} className="space-y-6 pt-4">
+                            <div className="flex items-center gap-4 pb-4 border-b border-black/5 dark:border-white/5">
                                 {meta?.assetUrl ? (
-                                    <div className="relative w-8 h-8 md:w-10 md:h-10">
-                                        <Image src={meta.assetUrl} alt={groupKey} fill className="object-contain" />
+                                    <div className="relative w-10 h-10 md:w-14 md:h-14 bg-white dark:bg-white/5 rounded-2xl p-2 shadow-apple-sm border border-black/5 flex items-center justify-center overflow-hidden">
+                                        <Image 
+                                            src={meta.assetUrl} 
+                                            alt={groupKey} 
+                                            fill 
+                                            className="object-contain p-2 transition-transform hover:scale-110 duration-500" 
+                                        />
                                     </div>
                                 ) : (
-                                    <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-gray-500">
-                                        {sortBy === 'type' && <Music size={20} />}
-                                        {sortBy === 'brand' && <Tag size={20} />}
-                                        {sortBy === 'year' && <Calendar size={20} />}
+                                    <div className="p-3 bg-black/5 dark:bg-white/10 rounded-2xl text-gray-400">
+                                        {sortBy === 'type' && <Music size={24} />}
+                                        {sortBy === 'brand' && <Tag size={24} />}
+                                        {sortBy === 'year' && <Calendar size={24} />}
                                     </div>
                                 )}
-                                <h2 className="text-xl md:text-2xl font-bold tracking-tight">
-                                    {meta?.label || groupKey.replace('_', ' ')}
-                                    <span className="text-sm font-normal text-gray-400 ml-2">({groupItems.length})</span>
-                                </h2>
+                                <div className="space-y-0.5">
+                                    <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-gray-900 dark:text-white leading-tight">
+                                        {meta?.label || groupKey}
+                                    </h2>
+                                    <p className="text-[10px] font-black text-ios-blue uppercase tracking-[0.2em] opacity-60">
+                                        {groupItems.length} Instrumentos
+                                    </p>
+                                </div>
                             </div>
 
-                            {/* Grid/List for this Group */}
                             <motion.div
                                 variants={container}
                                 initial="hidden"
                                 whileInView="show"
                                 viewport={{ once: true, margin: "-50px" }}
-                                className={cn(
-                                    "grid gap-4",
-                                    viewMode === 'grid'
-                                        ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10"
-                                        : "grid-cols-1"
-                                )}
+                                className={cn("grid gap-4", viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10" : "grid-cols-1")}
                             >
                                 {groupItems.map((inst) => (
                                     <motion.div key={inst._id} variants={itemVariant} layout>
@@ -144,46 +123,14 @@ export default function InstrumentGrid({ instruments, sortBy = 'brand', metadata
                     );
                 })
             ) : (
-                // RENDER NORMAL (Flat)
-                <motion.div
-                    key={viewMode}
-                    variants={container}
-                    initial="hidden"
-                    animate="show"
-                    className={cn(
-                        "grid gap-4 py-4",
-                        viewMode === 'grid'
-                            ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10"
-                            : "grid-cols-1"
-                    )}
-                >
+                <motion.div key={viewMode} variants={container} initial="hidden" animate="show" className={cn("grid gap-4 py-4", viewMode === 'grid' ? "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10" : "grid-cols-1")}>
                     <AnimatePresence mode="popLayout">
                         {instruments.map((inst) => (
-                            <motion.div
-                                key={inst._id}
-                                variants={itemVariant}
-                                layout
-                            >
+                            <motion.div key={inst._id} variants={itemVariant} layout>
                                 <InstrumentCard inst={inst} variant={viewMode} />
                             </motion.div>
                         ))}
                     </AnimatePresence>
-
-                    {instruments.length === 0 && (
-                        <motion.div
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            className="col-span-full"
-                        >
-                            <EmptyState
-                                title="No se encontraron instrumentos"
-                                description="Prueba con otros términos de búsqueda o añade una nueva joya a tu catálogo."
-                                actionLabel="Añadir Instrumento"
-                                actionHref="/instruments/new"
-                                icon="🎸"
-                            />
-                        </motion.div>
-                    )}
                 </motion.div>
             )}
         </div>

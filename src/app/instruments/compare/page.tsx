@@ -1,15 +1,16 @@
-import { getInstruments } from '@/actions/instrument';
+import { getInstruments } from '@/actions/catalog';
 import CatalogCompareClient from '@/components/CatalogCompareClient';
 import { cleanData } from '@/lib/utils';
 import { GitCompare } from 'lucide-react';
 
 export default async function CatalogComparePage() {
-    const rawInstruments = await getInstruments();
+    // CRITICAL FIX: We need to pass 'true' to the 'full' parameter 
+    // to fetch the 'specs' and 'description' fields for comparison.
+    const rawInstruments = await getInstruments(undefined, null, 'brand', 'asc', undefined, true);
     const instruments = cleanData(rawInstruments);
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 space-y-12">
-            {/* Standard Apple Header */}
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                 <div className="space-y-2">
                     <div className="flex items-center gap-3">

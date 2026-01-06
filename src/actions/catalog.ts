@@ -5,13 +5,20 @@ import Instrument from '@/models/Instrument';
 import { revalidatePath } from 'next/cache';
 import { InstrumentSchema } from '@/lib/schemas';
 import { escapeRegExp } from '@/lib/utils';
-import Metadata from '@/models/Config'; 
+import CatalogMetadata from '@/models/CatalogMetadata'; // CORREGIDO
 import Resource from '@/models/Resource';
 import { auth } from '@/auth';
 
 /* --- INSTRUMENTS --- */
 
-export async function getInstruments(query?: string, category?: string | null, sortBy = 'brand', sortOrder: 'asc' | 'desc' = 'asc') {
+export async function getInstruments(
+    query?: string, 
+    category?: string | null, 
+    sortBy = 'brand', 
+    sortOrder: 'asc' | 'desc' = 'asc',
+    limit?: number,
+    full = false
+) {
     try {
         await dbConnect();
         const filter: any = {};
@@ -21,38 +28,42 @@ export async function getInstruments(query?: string, category?: string | null, s
         }
         if (category) filter.type = { $regex: new RegExp(`^${escapeRegExp(category)}$`, 'i') };
 
-        const instruments = await Instrument.find(filter)
-            .select('brand model type subtype genericImages years')
+        let queryBuilder = Instrument.find(filter);
+        if (!full) queryBuilder = queryBuilder.select('brand model type subtype genericImages years');
+        if (limit) queryBuilder = queryBuilder.limit(limit);
+
+        const instruments = await queryBuilder
             .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
             .lean();
 
-        return instruments.map((inst: any) => ({ ...inst, _id: inst._id.toString(), id: inst._id.toString() }));
+        return instruments.map((inst: any) => ({ 
+            ...inst, 
+            _id: inst._id.toString(), 
+            id: inst._id.toString() 
+        }));
     } catch (error) { return []; }
 }
 
-export async function createInstrument(data: FormData) {
-    const session = await auth();
-    if (!['admin', 'editor'].includes((session?.user as any)?.role)) throw new Error('Unauthorized');
-    
-    await dbConnect();
-    // Logic for creation... (simplified for the domain merge)
-    const rawData = Object.fromEntries(data.entries());
-    const instrument = await Instrument.create({ ...rawData, createdBy: session?.user?.id });
-    revalidatePath('/instruments');
-    return { success: true, id: instrument._id.toString() };
+export async function getMetadataMap() {
+    try {
+        await dbConnect();
+        // Usamos el modelo correcto: CatalogMetadata
+        const metadata = await CatalogMetadata.find({}).lean();
+        const plainMetadata = JSON.parse(JSON.stringify(metadata));
+        
+        return plainMetadata.reduce((acc: any, curr: any) => {
+            const type = curr.type; // 'brand', 'type', 'decade'
+            const key = String(curr.key).toLowerCase().trim();
+            
+            if (!acc[type]) acc[acc[type]] = {}; // Fix typo acc[type]
+            if (!acc[type]) acc[type] = {};
+            acc[type][key] = curr;
+            return acc;
+        }, {});
+    } catch (error) { return {}; }
 }
 
-export async function updateInstrument(id: string, data: FormData) {
-    const session = await auth();
-    if (!['admin', 'editor'].includes((session?.user as any)?.role)) throw new Error('Unauthorized');
-    
-    await dbConnect();
-    // Logic for update...
-    await Instrument.findByIdAndUpdate(id, Object.fromEntries(data.entries()));
-    revalidatePath(`/instruments/${id}`);
-    return { success: true };
-}
-
+/* --- OTRAS FUNCIONES --- */
 export async function getInstrumentById(id: string) {
     try {
         await dbConnect();
@@ -69,12 +80,10 @@ export async function getRelatedGear(id: string) {
     } catch (error) { return []; }
 }
 
-/* --- METADATA & TAGS --- */
-
 export async function getCatalogMetadata(type: string) {
     try {
         await dbConnect();
-        const data = await Metadata.find({ type }).sort({ label: 1 }).lean();
+        const data = await CatalogMetadata.find({ type }).sort({ label: 1 }).lean();
         return JSON.parse(JSON.stringify(data));
     } catch (error) { return []; }
 }
@@ -83,23 +92,17 @@ export async function upsertMetadata(data: any) {
     const session = await auth();
     if ((session?.user as any)?.role !== 'admin') throw new Error('Unauthorized');
     await dbConnect();
-    await Metadata.findOneAndUpdate({ type: data.type, key: data.key }, data, { upsert: true });
+    await CatalogMetadata.findOneAndUpdate({ type: data.type, key: data.key }, data, { upsert: true });
     return { success: true };
 }
 
-export async function getMetadataMap() {
-    try {
-        await dbConnect();
-        const metadata = await Metadata.find({}).lean();
-        return metadata.reduce((acc: any, curr: any) => {
-            if (!acc[curr.type]) acc[curr.type] = {};
-            acc[curr.type][curr.key] = curr;
-            return acc;
-        }, {});
-    } catch (error) { return {}; }
+export async function deleteMetadata(id: string) {
+    const session = await auth();
+    if ((session?.user as any)?.role !== 'admin') throw new Error('Unauthorized');
+    await dbConnect();
+    await CatalogMetadata.findByIdAndDelete(id);
+    return { success: true };
 }
-
-/* --- RESOURCES --- */
 
 export async function getResources(filter: any) {
     try {
@@ -107,10 +110,4 @@ export async function getResources(filter: any) {
         const resources = await Resource.find(filter).sort({ createdAt: -1 }).lean();
         return JSON.parse(JSON.stringify(resources));
     } catch (error) { return []; }
-}
-
-export async function uploadResource(data: any) {
-    await dbConnect();
-    const res = await Resource.create(data);
-    return { success: true, id: res._id };
 }
