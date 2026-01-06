@@ -27,7 +27,7 @@ export default async function InstrumentsPage(props: {
 
     const session = await auth();
     const [rawInstruments, metadata, brands] = await Promise.all([
-        getInstruments(query, category, sortBy, sortOrder, undefined, true),
+        getInstruments(query, category, sortBy, sortOrder, undefined, false, brand),
         getMetadataMap(),
         getBrands()
     ]);
