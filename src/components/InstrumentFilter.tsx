@@ -148,6 +148,56 @@ export default function InstrumentFilter({ availableBrands = [] }: { availableBr
 
                     <div className="h-[1px] bg-black/5 dark:bg-white/5 w-full" />
 
+
+
+                    <div className="h-[1px] bg-black/5 dark:bg-white/5 w-full" />
+
+                    {/* Year Range Section */}
+                    <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Año de Lanzamiento</h4>
+                            {(searchParams?.get('minYear') || searchParams?.get('maxYear')) && (
+                                <button onClick={() => {
+                                    const params = new URLSearchParams(searchParams?.toString());
+                                    params.delete('minYear');
+                                    params.delete('maxYear');
+                                    replace(`${pathname}?${params.toString()}`, { scroll: false });
+                                }} className="text-[10px] font-bold text-ios-blue hover:underline uppercase">
+                                    Limpiar
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex gap-4 items-center">
+                            <div className="relative flex-1">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">Desde</span>
+                                <input
+                                    type="number"
+                                    min="1960"
+                                    max="2030"
+                                    placeholder="1970"
+                                    value={searchParams?.get('minYear') || ''}
+                                    onChange={(e) => handleFilter('minYear', e.target.value)}
+                                    className="w-full pl-12 pr-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ios-blue/50"
+                                />
+                            </div>
+                            <span className="text-gray-300 font-bold">-</span>
+                            <div className="relative flex-1">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xs font-bold">Hasta</span>
+                                <input
+                                    type="number"
+                                    min="1960"
+                                    max="2030"
+                                    placeholder="2025"
+                                    value={searchParams?.get('maxYear') || ''}
+                                    onChange={(e) => handleFilter('maxYear', e.target.value)}
+                                    className="w-full pl-12 pr-3 py-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ios-blue/50"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="h-[1px] bg-black/5 dark:bg-white/5 w-full" />
+
                     {/* Categories Section */}
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
@@ -175,8 +225,9 @@ export default function InstrumentFilter({ availableBrands = [] }: { availableBr
                             ))}
                         </div>
                     </div>
-                </div>
-            )}
-        </div>
+                </div >
+            )
+            }
+        </div >
     );
 }

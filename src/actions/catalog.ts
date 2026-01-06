@@ -17,16 +17,34 @@ export async function getInstruments(
     sortBy = 'brand',
     sortOrder: 'asc' | 'desc' = 'asc',
     limit?: number,
-    full = false
+    full = false,
+    brand?: string | null,
+    minYear?: number | null,
+    maxYear?: number | null
 ) {
     try {
         await dbConnect();
         const filter: any = {};
+
+        // Search Query
         if (query) {
             const safeQuery = escapeRegExp(query);
             filter.$or = [{ brand: { $regex: safeQuery, $options: 'i' } }, { model: { $regex: safeQuery, $options: 'i' } }];
         }
+
+        // Category Filter
         if (category) filter.type = { $regex: new RegExp(`^${escapeRegExp(category)}$`, 'i') };
+
+        // Brand Filter (Fix: Explicitly added)
+        if (brand) filter.brand = { $regex: new RegExp(`^${escapeRegExp(brand)}$`, 'i') };
+
+        // Year Range Filter
+        if (minYear || maxYear) {
+            filter.years = {};
+            // Assuming years are stored as 4-digit strings "YYYY"
+            if (minYear) filter.years.$gte = String(minYear);
+            if (maxYear) filter.years.$lte = String(maxYear);
+        }
 
         let queryBuilder = Instrument.find(filter);
         if (!full) queryBuilder = queryBuilder.select('brand model type subtype genericImages years');
