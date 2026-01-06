@@ -12,9 +12,9 @@ import { auth } from '@/auth';
 /* --- INSTRUMENTS --- */
 
 export async function getInstruments(
-    query?: string, 
-    category?: string | null, 
-    sortBy = 'brand', 
+    query?: string,
+    category?: string | null,
+    sortBy = 'brand',
     sortOrder: 'asc' | 'desc' = 'asc',
     limit?: number,
     full = false
@@ -36,12 +36,23 @@ export async function getInstruments(
             .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
             .lean();
 
-        return instruments.map((inst: any) => ({ 
-            ...inst, 
-            _id: inst._id.toString(), 
-            id: inst._id.toString() 
+        return instruments.map((inst: any) => ({
+            ...inst,
+            _id: inst._id.toString(),
+            id: inst._id.toString()
         }));
     } catch (error) { return []; }
+}
+
+export async function getBrands() {
+    try {
+        await dbConnect();
+        const brands = await Instrument.distinct('brand');
+        return brands.sort();
+    } catch (error) {
+        console.error("getBrands error:", error);
+        return [];
+    }
 }
 
 export async function getMetadataMap() {
@@ -50,11 +61,11 @@ export async function getMetadataMap() {
         // Usamos el modelo correcto: CatalogMetadata
         const metadata = await CatalogMetadata.find({}).lean();
         const plainMetadata = JSON.parse(JSON.stringify(metadata));
-        
+
         return plainMetadata.reduce((acc: any, curr: any) => {
             const type = curr.type; // 'brand', 'type', 'decade'
             const key = String(curr.key).toLowerCase().trim();
-            
+
             if (!acc[type]) acc[acc[type]] = {}; // Fix typo acc[type]
             if (!acc[type]) acc[type] = {};
             acc[type][key] = curr;

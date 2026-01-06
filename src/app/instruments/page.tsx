@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { getInstruments, getMetadataMap } from '@/actions/catalog';
+import { getInstruments, getMetadataMap, getBrands } from '@/actions/catalog';
 import Link from 'next/link';
 import Search from '@/components/Search';
 import InstrumentFilter from '@/components/InstrumentFilter';
@@ -26,17 +26,18 @@ export default async function InstrumentsPage(props: {
     const sortOrder = searchParams?.sortOrder || 'asc';
 
     const session = await auth();
-    const [rawInstruments, metadata] = await Promise.all([
-        getInstruments(query, category, sortBy, sortOrder, undefined, true), // Fetch full for brand extraction if needed
-        getMetadataMap()
+    const [rawInstruments, metadata, brands] = await Promise.all([
+        getInstruments(query, category, sortBy, sortOrder, undefined, true),
+        getMetadataMap(),
+        getBrands()
     ]);
 
     const instruments = cleanData(rawInstruments);
     const role = (session?.user as any)?.role;
     const canEdit = ['admin', 'editor'].includes(role || '');
 
-    // Extract unique brands from ALL instruments for the filter
-    const availableBrands = Array.from(new Set(instruments.map((i: any) => i.brand))).sort() as string[];
+    // Use server-fetched brands instead of client-side derivation
+    const availableBrands = brands;
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20">
