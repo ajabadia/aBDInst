@@ -24,7 +24,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export default async function EditItemPage({ params }: { params: { id: string } }) {
+export default async function EditItemPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
     const session = await auth();
     if (!session?.user?.id) redirect('/login');
@@ -141,7 +141,7 @@ export default async function EditItemPage({ params }: { params: { id: string } 
                 <div className="lg:col-span-8">
                     <div className="apple-card bg-white dark:bg-black/40 min-h-[600px] overflow-hidden">
                         <Tabs className="px-6 pt-6 border-b border-black/5 dark:border-white/5 bg-gray-50/30 dark:bg-white/5">
-                            <Tab label="Información">
+                            <Tab label="Información" icon={<Settings />}>
                                 <div className="p-6">
                                     <div className="flex items-center gap-2 mb-8 text-ios-blue">
                                         <ShieldCheck size={20} />
@@ -150,7 +150,7 @@ export default async function EditItemPage({ params }: { params: { id: string } 
                                     <EditCollectionItemForm item={item} />
                                 </div>
                             </Tab>
-                            <Tab label="Mantenimiento">
+                            <Tab label="Mantenimiento" icon={<Wrench />}>
                                 <div className="p-6">
                                     <div className="flex items-center gap-2 mb-8 text-ios-orange">
                                         <Clock size={20} />
@@ -166,7 +166,7 @@ export default async function EditItemPage({ params }: { params: { id: string } 
                                     />
                                 </div>
                             </Tab>
-                            <Tab label="Archivos">
+                            <Tab label="Archivos" icon={<FileText />}>
                                 <div className="p-6">
                                     <div className="flex items-center gap-2 mb-8 text-ios-indigo">
                                         <Archive size={20} />

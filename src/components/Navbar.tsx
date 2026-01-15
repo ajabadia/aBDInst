@@ -36,6 +36,7 @@ export default function Navbar({ session }: { session: any }) {
         { name: 'Alertas', href: '/dashboard/alerts', icon: Bell, authRequired: true },
         { name: 'Wishlist', href: '/dashboard/wishlist', icon: Heart, authRequired: true },
         { name: 'Mantenimiento', href: '/dashboard/maintenance', icon: Wrench, authRequired: true },
+        { name: 'Analytics', href: '/dashboard/analytics', icon: Activity, authRequired: true },
         { name: 'Contacto', href: '/contact', icon: Mail },
     ];
 

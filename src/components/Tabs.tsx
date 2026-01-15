@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, ReactNode, Children, isValidElement } from 'react';
+import React, { useState, ReactNode, Children, isValidElement, cloneElement, ReactElement, ElementType } from 'react';
 import { cn } from '@/lib/utils';
 import { motion } from 'framer-motion';
 
 interface TabProps {
     label: string;
-    icon?: React.ElementType;
+    icon?: ElementType | ReactElement;
     children: ReactNode;
 }
 
@@ -22,7 +22,7 @@ interface TabsProps {
 
 export function Tabs({ children, defaultTab = 0, className }: TabsProps) {
     const [activeTab, setActiveTab] = useState(defaultTab);
-    const tabs = Children.toArray(children).filter(child => isValidElement(child)) as React.ReactElement<TabProps>[];
+    const tabs = Children.toArray(children).filter(child => isValidElement(child)) as ReactElement<TabProps>[];
 
     return (
         <div className="flex flex-col w-full">
@@ -34,7 +34,7 @@ export function Tabs({ children, defaultTab = 0, className }: TabsProps) {
                 {tabs.map((tab, index) => {
                     const isActive = activeTab === index;
                     const Icon = tab.props.icon;
-                    
+
                     return (
                         <button
                             key={index}
@@ -55,9 +55,12 @@ export function Tabs({ children, defaultTab = 0, className }: TabsProps) {
                                     transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                                 />
                             )}
-                            
+
                             <span className="relative z-10 flex items-center gap-2">
-                                {Icon && <Icon size={16} className={cn("stroke-[2.5]", isActive ? "text-ios-blue dark:text-white" : "text-gray-400")} />}
+                                {isValidElement(Icon)
+                                    ? cloneElement(Icon as ReactElement<any>, { size: 16, className: cn("stroke-[2.5]", isActive ? "text-ios-blue dark:text-white" : "text-gray-400") })
+                                    : (Icon && <Icon size={16} className={cn("stroke-[2.5]", isActive ? "text-ios-blue dark:text-white" : "text-gray-400")} />)
+                                }
                                 {tab.props.label}
                             </span>
                         </button>
@@ -68,7 +71,7 @@ export function Tabs({ children, defaultTab = 0, className }: TabsProps) {
             {/* Content Area with smooth transition */}
             <div className="flex-1">
                 {tabs.map((tab, index) => (
-                    <motion.div 
+                    <motion.div
                         key={index}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: activeTab === index ? 1 : 0, y: activeTab === index ? 0 : 10 }}

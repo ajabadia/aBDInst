@@ -5,8 +5,9 @@ import Image from 'next/image';
 import { ShieldCheck, Calendar } from 'lucide-react';
 import UserAvatar from '@/components/UserAvatar';
 
-export default async function PublicProfilePage({ params }: { params: { id: string } }) {
-    const data = await getPublicProfile(params.id);
+export default async function PublicProfilePage({ params }: { params: Promise<{ id: string }> }) {
+    const { id } = await params;
+    const data = await getPublicProfile(id);
 
     if (!data) {
         return notFound();
