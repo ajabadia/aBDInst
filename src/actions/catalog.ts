@@ -20,7 +20,9 @@ export async function getInstruments(
     full = false,
     brand?: string | null,
     minYear?: number | null,
-    maxYear?: number | null
+    maxYear?: number | null,
+    condition?: string | null,
+    location?: string | null
 ) {
     try {
         await dbConnect();
@@ -45,6 +47,10 @@ export async function getInstruments(
             if (minYear) filter.years.$gte = String(minYear);
             if (maxYear) filter.years.$lte = String(maxYear);
         }
+
+        // Physical Inventory Filters
+        if (condition) filter.condition = condition;
+        if (location) filter.location = { $regex: new RegExp(`^${escapeRegExp(location)}`, 'i') };
 
         let queryBuilder = Instrument.find(filter);
         if (!full) queryBuilder = queryBuilder.select('brand model type subtype genericImages years variantLabel websites');

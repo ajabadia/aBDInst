@@ -16,6 +16,8 @@ export default async function InstrumentsPage(props: {
         brand?: string;
         minYear?: string;
         maxYear?: string;
+        condition?: string;
+        location?: string;
         sortBy?: 'brand' | 'model' | 'year' | 'type';
         sortOrder?: 'asc' | 'desc';
     }>;
@@ -26,12 +28,14 @@ export default async function InstrumentsPage(props: {
     const brand = searchParams?.brand || null;
     const minYear = searchParams?.minYear ? parseInt(searchParams.minYear) : null;
     const maxYear = searchParams?.maxYear ? parseInt(searchParams.maxYear) : null;
+    const condition = searchParams?.condition || null;
+    const location = searchParams?.location || null;
     const sortBy = searchParams?.sortBy || 'brand';
     const sortOrder = searchParams?.sortOrder || 'asc';
 
     const session = await auth();
     const [rawInstruments, metadata, brands] = await Promise.all([
-        getInstruments(query, category, sortBy, sortOrder, undefined, false, brand, minYear, maxYear),
+        getInstruments(query, category, sortBy, sortOrder, undefined, false, brand, minYear, maxYear, condition, location),
         getMetadataMap(),
         getBrands()
     ]);

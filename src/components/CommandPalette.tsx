@@ -1,20 +1,46 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import { Command } from 'cmdk';
 import { useVaultMode } from '@/context/VaultModeContext';
 import { useCommandPalette } from '@/context/CommandPaletteContext';
-import { Search, Plus, Music, LayoutDashboard, Sun, Moon, Laptop, Shield, ShieldOff, X } from 'lucide-react';
+import { Search, Plus, Music, LayoutDashboard, Sun, Moon, Shield, ShieldOff, X, Guitar, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { cn } from '@/lib/utils';
+import { getInstruments } from '@/actions/catalog';
 
 export default function CommandPalette() {
     const { isOpen: open, setIsOpen: setOpen } = useCommandPalette();
     const router = useRouter();
     const { setTheme } = useTheme();
     const { isVaultMode: vaultActive, toggleVaultMode: toggleVault } = useVaultMode();
+
+    const [query, setQuery] = useState('');
+    const [results, setResults] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        const fetchResults = async () => {
+            if (!query || query.length < 2) {
+                setResults([]);
+                return;
+            }
+            setIsLoading(true);
+            try {
+                const data = await getInstruments(query, null, 'brand', 'asc', 5);
+                setResults(data);
+            } catch (error) {
+                console.error("Search error", error);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        const timer = setTimeout(fetchResults, 300);
+        return () => clearTimeout(timer);
+    }, [query]);
 
     const runCommand = (command: () => void) => {
         setOpen(false);
@@ -40,21 +66,49 @@ export default function CommandPalette() {
                 </div>
 
                 <Command className="glass-panel rounded-[2rem] shadow-apple-lg overflow-hidden animate-in zoom-in-95 duration-200 border-white/20 dark:border-white/10">
-                    <div className="flex items-center border-b border-black/5 dark:border-white/5 px-4">
+                    <div className="flex items-center border-b border-black/5 dark:border-white/5 px-4 relative">
                         <Search className="mr-3 h-5 w-5 shrink-0 text-ios-blue" />
                         <Command.Input
-                            placeholder="¿Qué necesitas?..."
+                            placeholder="Buscar instrumentos, acciones..."
                             className="flex h-16 w-full rounded-md bg-transparent py-4 outline-none placeholder:text-gray-400 dark:text-gray-500 text-lg font-semibold tracking-tight"
+                            value={query}
+                            onValueChange={setQuery}
                         />
+                        {isLoading && <Loader2 className="animate-spin text-gray-400 absolute right-4" size={20} />}
                     </div>
 
                     <Command.List
                         className="max-h-[450px] overflow-y-auto overflow-x-hidden p-3 [&::-webkit-scrollbar]:hidden"
                         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                     >
-                        <Command.Empty className="py-12 text-center text-sm text-gray-500 font-medium">
-                            No se encontraron resultados para tu búsqueda.
-                        </Command.Empty>
+                        {!isLoading && results.length === 0 && query.length > 2 && (
+                            <Command.Empty className="py-12 text-center text-sm text-gray-500 font-medium">
+                                No se encontraron instrumentos.
+                            </Command.Empty>
+                        )}
+
+                        {results.length > 0 && (
+                            <Command.Group heading="Instrumentos encontrados" className="apple-label px-3 pt-4 pb-2">
+                                {results.map((inst) => (
+                                    <CommandItem
+                                        key={inst.id}
+                                        onSelect={() => runCommand(() => router.push(`/instruments/${inst.id}`))}
+                                    >
+                                        <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg mr-3 shadow-sm border border-black/5">
+                                            {inst.genericImages?.[0] ? (
+                                                <img src={inst.genericImages[0]} className="w-5 h-5 object-contain" alt="" />
+                                            ) : (
+                                                <Guitar size={18} className="text-gray-500" />
+                                            )}
+                                        </div>
+                                        <div className="flex flex-col gap-0.5">
+                                            <span className="font-bold">{inst.brand} {inst.model}</span>
+                                            {inst.variantLabel && <span className="text-[10px] text-gray-400 font-medium uppercase tracking-wide">{inst.variantLabel}</span>}
+                                        </div>
+                                    </CommandItem>
+                                ))}
+                            </Command.Group>
+                        )}
 
                         <Command.Group heading="Navegación" className="apple-label px-3 pt-4 pb-2">
                             <CommandItem onSelect={() => runCommand(() => router.push('/dashboard'))}>
