@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  quality:
+    name: Quality & Tests
+    runs-on: ubuntu-latest
+    
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd mongosh
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install Dependencies
+      run: npm ci
+
+    - name: Lint Code
+      run: npm run lint
+
+    - name: Build (Type Check)
+      run: npm run build
+
+    - name: Unit Tests
+      run: npm run test
+
+    - name: Seed Database
+      run: npm run seed
+      env:
+        MONGODB_URI: mongodb://localhost:27017/instrument-collector
+        AUTH_SECRET: test-secret-123
+
+    - name: Install Playwright Browsers
+      run: npx playwright install --with-deps
+
+    - name: Run E2E Tests
+      run: npx playwright test
+      env:
+        MONGODB_URI: mongodb://localhost:27017/instrument-collector
+        AUTH_SECRET: test-secret-123
+        NEXTAUTH_URL: http://localhost:3000
+        NODE_ENV: test

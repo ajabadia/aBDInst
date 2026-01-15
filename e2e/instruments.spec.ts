@@ -17,11 +17,38 @@ test.describe('Instruments', () => {
         await expect(page.locator('input[placeholder*="Buscar"]')).toBeVisible();
     });
 
-    test('should open Add Instrument form', async ({ page }) => {
+    test('should allow creating a new instrument', async ({ page }) => {
+        const testInstrument = {
+            brand: 'Test Brand ' + Date.now(),
+            model: 'E2E Model',
+            type: 'Synthesizer'
+        };
+
+        await page.goto('/instruments/new');
+
+        // Fill basic info
+        await page.fill('input[name="brand"]', testInstrument.brand);
+        await page.fill('input[name="model"]', testInstrument.model);
+        await page.fill('input[name="type"]', testInstrument.type);
+
+        // Submit form
+        await page.click('button[type="submit"]');
+
+        // Expect redirect to catalog or detail
+        // Wait for URL to change (either to /instruments/ID or /instruments)
+        await page.waitForURL(/\/instruments(\/.*)?/);
+
+        // Allow some time for the list to refresh/server action to complete revalidation
         await page.goto('/instruments');
-        // Using a more specific selector for the button
-        await page.getByRole('button', { name: /añadir nuevo/i }).click();
-        await expect(page).toHaveURL(/.*instruments\/new/);
-        await expect(page.locator('h1')).toHaveText(/instrumento/i);
+
+        // Verify item exists in list
+        // We search for it to filter the grid
+        const searchInput = page.locator('input[placeholder*="Buscar"]');
+        await searchInput.fill(testInstrument.brand);
+
+        // Wait for debounce/filter
+        await page.waitForTimeout(1000);
+
+        await expect(page.locator('body')).toContainText(testInstrument.brand);
     });
 });
