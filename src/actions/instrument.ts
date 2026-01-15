@@ -167,7 +167,7 @@ export async function getInstrumentById(id: string) {
         let effectiveInstrument = JSON.parse(JSON.stringify(instrument));
         let currentParentId = (instrument as any).parentId?._id || (instrument as any).parentId;
 
-        const hierarchy = [];
+        const hierarchy: any[] = [];
 
         while (currentParentId) {
             // Prevent infinite loops if database has cycles
