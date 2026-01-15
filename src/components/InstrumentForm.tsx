@@ -735,6 +735,36 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                     </div>
                 </Tab>
 
+                <Tab label="Detalles Físicos">
+                    <div className="space-y-6 pt-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="apple-label">Condición</label>
+                                <select name="condition" defaultValue={initialData?.condition || "Good"} className="apple-select">
+                                    <option value="Mint">Mint (Perfecto)</option>
+                                    <option value="Excellent">Excelente</option>
+                                    <option value="Good">Bueno</option>
+                                    <option value="Fair">Aceptable</option>
+                                    <option value="Poor">Pobre</option>
+                                    <option value="Non-Functional">No Funcional</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="apple-label">Ubicación Física</label>
+                                <input type="text" name="location" defaultValue={initialData?.location} className="apple-input" placeholder="Ej: Estudio A, Rack 2" />
+                            </div>
+                        </div>
+
+                        <div className="border-t border-black/5 dark:border-white/5 pt-6">
+                            <h4 className="apple-label mb-4">Estado del Instrumento</h4>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                                Utiliza esta sección para detallar cualquier desperfecto cosmético o necesidad de reparación.
+                            </p>
+                            {/* Reusing description field logic if needed, or adding a specific notes field later */}
+                        </div>
+                    </div>
+                </Tab>
+
                 <Tab label="Especificaciones Técnicas">
                     <div className="pt-4">
                         <div className="flex justify-between items-center mb-4">

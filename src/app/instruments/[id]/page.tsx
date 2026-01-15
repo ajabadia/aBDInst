@@ -13,6 +13,7 @@ import PersonalInventoryManager from '@/components/inventory/PersonalInventoryMa
 import UserUnitDetails from '@/components/inventory/UserUnitDetails';
 import ResourceSection from '@/components/resources/ResourceSection';
 import QRCodeGenerator from '@/components/QRCodeGenerator';
+import QrLabelGenerator from '@/components/QrLabelGenerator';
 import PdfPreviewModal from '@/components/PdfPreviewModal';
 
 import { getRelatedGear } from '@/actions/instrument';
@@ -138,6 +139,31 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                     </section>
 
                     {/* Quick Metadata Panel */}
+                    <div className="bg-gray-50 dark:bg-zinc-900 rounded-3xl p-8 space-y-8">
+                        <div className="flex justify-between items-center">
+                            <h3 className="text-sm font-bold text-gray-900 dark:text-white uppercase tracking-wider">Ficha Técnica</h3>
+                            <QrLabelGenerator
+                                instrumentId={instrument._id || instrument.id}
+                                brand={instrument.brand}
+                                model={instrument.model}
+                                year={instrument.specs?.find((s: any) => s.key.toLowerCase().includes('year'))?.value}
+                                location={instrument.location}
+                            />
+                        </div>
+                        {instrument.condition && (
+                            <div className="flex justify-between border-b pb-2 border-dashed border-gray-200 dark:border-gray-800">
+                                <span className="text-gray-500">Condición Actual</span>
+                                <span className="font-medium text-gray-900 dark:text-white">{instrument.condition}</span>
+                            </div>
+                        )}
+                        {instrument.location && (
+                            <div className="flex justify-between border-b pb-2 border-dashed border-gray-200 dark:border-gray-800">
+                                <span className="text-gray-500">Ubicación</span>
+                                <span className="font-medium text-gray-900 dark:text-white">{instrument.location}</span>
+                            </div>
+                        )}
+                    </div>
+
                     <div className="glass-panel rounded-3xl p-6 space-y-6">
                         {instrument.years && instrument.years.length > 0 && (
                             <div className="flex items-center justify-between">
@@ -379,6 +405,6 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                     </div>
                 </footer>
             </div>
-        </div>
+        </div >
     );
 }

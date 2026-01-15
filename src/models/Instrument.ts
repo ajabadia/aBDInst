@@ -60,6 +60,14 @@ const InstrumentSchema = new Schema({
         }]
     },
 
+    // Physical Inventory
+    condition: {
+        type: String,
+        enum: ['Mint', 'Excellent', 'Good', 'Fair', 'Poor', 'Non-Functional'],
+        default: 'Good'
+    },
+    location: { type: String }, // e.g., "Main Studio Rack 1", "Storage Box B"
+
     relatedTo: [{ type: Schema.Types.ObjectId, ref: 'Instrument' }],
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
 

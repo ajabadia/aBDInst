@@ -30,6 +30,8 @@ export const InstrumentSchema = z.object({
         })
     ).optional(),
     relatedTo: z.array(z.string()).optional(),
+    condition: z.enum(['Mint', 'Excellent', 'Good', 'Fair', 'Poor', 'Non-Functional']).optional(),
+    location: z.string().optional(),
     parentId: z.string().optional(),
     variantLabel: z.string().optional(),
     excludedImages: z.array(z.string()).optional(),
