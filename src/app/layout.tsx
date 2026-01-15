@@ -24,6 +24,8 @@ import { CommandPaletteProvider } from '@/context/CommandPaletteContext';
 import CommandPalette from '@/components/CommandPalette';
 import SessionWrapper from '@/components/SessionWrapper';
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Instrument Collector",
   description: "Gestiona tu colección de instrumentos musicales",
@@ -43,13 +45,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  let session;
-  try {
-    session = await auth();
-  } catch (e) {
-    console.error("Auth error in RootLayout:", e);
-    session = null;
-  }
+  const session = await auth();
   const headersList = await headers();
   const pathname = headersList.get('x-pathname') || "";
 
