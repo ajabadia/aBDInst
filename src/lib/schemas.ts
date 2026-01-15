@@ -29,7 +29,11 @@ export const InstrumentSchema = z.object({
             type: z.string().optional(),
         })
     ).optional(),
-    relatedTo: z.string().optional(),
+    relatedTo: z.array(z.string()).optional(),
+    parentId: z.string().optional(),
+    variantLabel: z.string().optional(),
+    excludedImages: z.array(z.string()).optional(),
+    isBaseModel: z.boolean().default(false),
     marketValue: z.object({
         original: z.object({
             price: z.number().optional(),

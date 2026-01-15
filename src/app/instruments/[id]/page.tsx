@@ -18,7 +18,7 @@ import PdfPreviewModal from '@/components/PdfPreviewModal';
 import { getRelatedGear } from '@/actions/instrument';
 import { getComments } from '@/actions/comments';
 import { getResources } from '@/actions/resource';
-import { ArrowLeft, FileText, Box, ChevronRight, Layers, Globe, ExternalLink } from 'lucide-react';
+import { ArrowLeft, FileText, Box, ChevronRight, Layers, Globe, ExternalLink, Star } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { cn } from '@/lib/utils';
@@ -62,7 +62,7 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
         if (currentUserFull) {
             currentUserFull = JSON.parse(JSON.stringify(currentUserFull));
             (currentUserFull as any).id = (currentUserFull as any)._id.toString();
-            
+
             const UserCollection = (await import('@/models/UserCollection')).default;
             ownedItems = await UserCollection.find({
                 userId: (currentUserFull as any)._id,
@@ -83,14 +83,14 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-12 lg:py-24">
-            
+
             {/* Navigation & Header */}
             <div className="mb-16">
                 <Link href="/instruments" className="inline-flex items-center text-sm font-semibold text-ios-blue hover:underline mb-8 group">
                     <ArrowLeft className="w-4 h-4 mr-2 transition-transform group-hover:-translate-x-1" />
                     Catálogo Maestro
                 </Link>
-                
+
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
                     <div className="space-y-2">
                         <p className="text-ios-blue font-bold text-sm uppercase tracking-[0.2em]">{instrument.brand}</p>
@@ -118,7 +118,7 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
             <PrintSpecSheet instrument={instrument} />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24">
-                
+
                 {/* Visuals Column */}
                 <div className="lg:col-span-7">
                     <div className="sticky top-28">
@@ -128,7 +128,7 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
 
                 {/* Information Column */}
                 <div className="lg:col-span-5 space-y-12">
-                    
+
                     {/* Narrative Description */}
                     <section>
                         <h3 className="apple-label">Historia y Detalles</h3>
@@ -155,23 +155,89 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                             </div>
                         )}
 
-                        {instrument.relatedTo && (
-                            <Link
-                                href={`/instruments/${instrument.relatedTo.id || instrument.relatedTo._id || instrument.relatedTo}`}
-                                className="flex items-center gap-4 p-4 rounded-2xl bg-ios-blue/5 border border-ios-blue/10 hover:bg-ios-blue/10 transition-all group mt-2"
-                            >
-                                <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center shadow-sm text-ios-blue">
-                                    <Box size={20} />
+                        {/* Variant Hierarchy (The Chain) */}
+                        {(instrument._hierarchy?.length > 0 || instrument._variants?.length > 0) && (
+                            <div className="border-t border-black/5 dark:border-white/5 pt-6 space-y-4">
+                                <h4 className="apple-label text-blue-600 flex items-center gap-2">
+                                    <Layers size={14} /> Árbol de Versiones
+                                </h4>
+
+                                <div className="space-y-3">
+                                    {/* Parent Chain (Ancestors) */}
+                                    {instrument._hierarchy?.map((parent: any, idx: number) => (
+                                        <Link
+                                            key={parent._id}
+                                            href={`/instruments/${parent._id}`}
+                                            className="flex items-center gap-3 p-3 rounded-xl bg-ios-blue/5 border border-ios-blue/10 hover:bg-ios-blue/10 transition-all group"
+                                            style={{ marginLeft: `${(instrument._hierarchy.length - 1 - idx) * 12}px` }}
+                                        >
+                                            <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/5 flex items-center justify-center shadow-sm text-ios-blue">
+                                                <ArrowLeft size={16} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] text-ios-blue font-bold uppercase tracking-widest leading-none mb-1">Evolución de</p>
+                                                <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-ios-blue transition-colors">
+                                                    {parent.brand} {parent.model} {parent.variantLabel ? `(${parent.variantLabel})` : ''}
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    ))}
+
+                                    {/* Current Instrument (Indicator) */}
+                                    <div className="flex items-center gap-3 p-3 rounded-xl bg-gray-100 dark:bg-white/10" style={{ marginLeft: `${instrument._hierarchy?.length * 12}px` }}>
+                                        <div className="w-8 h-8 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center shadow-sm">
+                                            <Star size={16} className="text-ios-blue fill-current" />
+                                        </div>
+                                        <div className="flex-1">
+                                            <p className="text-[9px] text-gray-400 font-bold uppercase tracking-widest leading-none mb-1">Estás viendo</p>
+                                            <p className="text-sm font-bold text-gray-900 dark:text-white">
+                                                {instrument.model} {instrument.variantLabel ? `(${instrument.variantLabel})` : ''}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Direct Children (Variants) */}
+                                    {instrument._variants?.map((variant: any) => (
+                                        <Link
+                                            key={variant._id}
+                                            href={`/instruments/${variant._id}`}
+                                            className="flex items-center gap-3 p-3 rounded-xl bg-white dark:bg-black/20 border border-black/5 dark:border-white/5 hover:border-ios-blue/30 transition-all group"
+                                            style={{ marginLeft: `${(instrument._hierarchy?.length + 1) * 12}px` }}
+                                        >
+                                            <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-700 flex items-center justify-center shadow-sm text-gray-400 group-hover:text-ios-blue transition-colors">
+                                                <ChevronRight size={16} />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] text-gray-400 group-hover:text-ios-blue font-bold uppercase tracking-widest leading-none mb-1 transition-colors">Variante / Revisión</p>
+                                                <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-ios-blue transition-colors">
+                                                    {variant.variantLabel || `${variant.brand} ${variant.model}`}
+                                                </p>
+                                            </div>
+                                        </Link>
+                                    ))}
                                 </div>
-                                <div className="flex-1">
-                                    <p className="text-[10px] text-ios-blue font-bold uppercase tracking-widest leading-none mb-1.5">Equipo Principal</p>
-                                    <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-ios-blue transition-colors">
-                                        {instrument.relatedTo.brand} {instrument.relatedTo.model}
-                                    </p>
-                                </div>
-                                <ChevronRight className="w-4 h-4 text-ios-blue/40 group-hover:translate-x-1 transition-transform" />
-                            </Link>
+                            </div>
                         )}
+
+                        {instrument.relatedTo && (Array.isArray(instrument.relatedTo) ? instrument.relatedTo : [instrument.relatedTo]).filter(Boolean).map((rel: any, idx: number) => (
+                            <div key={rel._id || idx} className={cn("border-t border-black/5 dark:border-white/5 pt-4", idx > 0 && "mt-2 pt-2")}>
+                                <Link
+                                    href={`/instruments/${rel.id || rel._id || rel}`}
+                                    className="flex items-center gap-4 p-4 rounded-2xl bg-gray-50 dark:bg-white/5 border border-black/5 hover:bg-black/5 transition-all group"
+                                >
+                                    <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/5 flex items-center justify-center shadow-sm text-gray-400">
+                                        <Box size={20} />
+                                    </div>
+                                    <div className="flex-1">
+                                        <p className="text-[10px] text-gray-500 font-bold uppercase tracking-widest leading-none mb-1.5">Vinculado con</p>
+                                        <p className="text-sm font-bold text-gray-900 dark:text-white group-hover:text-ios-blue transition-colors">
+                                            {rel.brand} {rel.model} {rel.variantLabel ? `(${rel.variantLabel})` : ''}
+                                        </p>
+                                    </div>
+                                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+                                </Link>
+                            </div>
+                        ))}
                     </div>
 
                     {/* Secondary Info: Accessories & Websites */}
@@ -201,8 +267,8 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                                         <a key={idx} href={ws.url.startsWith('http') ? ws.url : `https://${ws.url}`} target="_blank" rel="noopener noreferrer"
                                             className={cn(
                                                 "flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all",
-                                                ws.isPrimary 
-                                                    ? "bg-ios-blue text-white shadow-md shadow-ios-blue/20 hover:bg-ios-blue/90" 
+                                                ws.isPrimary
+                                                    ? "bg-ios-blue text-white shadow-md shadow-ios-blue/20 hover:bg-ios-blue/90"
                                                     : "bg-black/5 dark:bg-white/5 text-gray-600 dark:text-gray-300 hover:bg-black/10 dark:hover:bg-white/10"
                                             )}>
                                             <Globe size={14} />
@@ -219,7 +285,7 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
 
             {/* Bottom Sections: Technical Content */}
             <div className="mt-32 space-y-32">
-                
+
                 {/* Technical Specifications */}
                 {Object.keys(groupedSpecs).length > 0 && (
                     <section>
@@ -269,7 +335,7 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                                             </div>
                                         </div>
                                     );
-                                    return isPdf 
+                                    return isPdf
                                         ? <PdfPreviewModal key={idx} url={doc.url} title={doc.title}>{Content}</PdfPreviewModal>
                                         : <a key={idx} href={doc.url} target="_blank" rel="noopener noreferrer">{Content}</a>;
                                 })}

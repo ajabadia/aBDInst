@@ -43,12 +43,57 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
     // Market Value State (Centralized)
     const [marketValue, setMarketValue] = useState(initialData?.marketValue || { original: {}, current: {}, history: [] });
 
-    // State for all instruments (to populate relatedTo selector)
+    // State for all instruments (to populate parentId selector)
     const [allInstruments, setAllInstruments] = useState<any[]>([]);
+
+    // Multiple Relationships
+    const [relatedGearIds, setRelatedGearIds] = useState<string[]>(
+        Array.isArray(initialData?.relatedTo)
+            ? initialData.relatedTo.map((i: any) => i._id || i)
+            : (initialData?.relatedTo ? [initialData.relatedTo._id || initialData.relatedTo] : [])
+    );
+
+    // Inheritance States
+    const [parentId, setParentId] = useState<string>(initialData?.parentId?._id || initialData?.parentId || '');
+    const [excludedImages, setExcludedImages] = useState<string[]>(initialData?.excludedImages || []);
+    const [parentImages, setParentImages] = useState<string[]>([]);
 
     useEffect(() => {
         getInstruments().then(setAllInstruments);
     }, []);
+
+    const addRelatedGear = (id: string) => {
+        if (id && !relatedGearIds.includes(id)) {
+            setRelatedGearIds([...relatedGearIds, id]);
+        }
+    };
+
+    const removeRelatedGear = (id: string) => {
+        setRelatedGearIds(relatedGearIds.filter(i => i !== id));
+    };
+
+    // Effect to fetch parent images when parentId changes
+    useEffect(() => {
+        if (parentId) {
+            const parent = allInstruments.find(i => i._id === parentId);
+            if (parent?.genericImages) {
+                setParentImages(parent.genericImages);
+            } else {
+                // If not found in current list (maybe because only basic fields were fetched), 
+                // we could do a more specific fetch, but for now let's assume all instruments list has them.
+                // Wait, getInstruments in InstrumentForm.tsx (src/actions/instrument.ts) selects genericImages. 
+            }
+        } else {
+            setParentImages([]);
+            setExcludedImages([]);
+        }
+    }, [parentId, allInstruments]);
+
+    const toggleImageExclusion = (url: string) => {
+        setExcludedImages(prev =>
+            prev.includes(url) ? prev.filter(u => u !== url) : [...prev, url]
+        );
+    };
 
     const addWebsite = () => {
         setWebsites(prev => [...prev, { url: '', isPrimary: prev.length === 0 }]);
@@ -293,24 +338,77 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                             </div>
                         </div>
 
-                        <div>
-                            <label className="apple-label">Versión</label>
-                            <input name="version" defaultValue={initialData?.version} className="apple-input" placeholder="Ej. MkII, Rev 3" />
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label className="apple-label">Versión</label>
+                                <input name="version" defaultValue={initialData?.version} className="apple-input" placeholder="Ej. MkII, Rev 3" />
+                            </div>
+                            <div>
+                                <label className="apple-label">Etiqueta de Variante</label>
+                                <input name="variantLabel" defaultValue={initialData?.variantLabel} className="apple-input" placeholder="Ej. Black Edition" />
+                            </div>
                         </div>
 
                         <div>
-                            <label className="apple-label">Equipo Principal (Relacionado con)</label>
-                            <select name="relatedTo" defaultValue={initialData?.relatedTo?._id || initialData?.relatedTo} className="apple-select">
-                                <option value="">-- Ninguno (Equipo Principal) --</option>
+                            <label className="apple-label font-bold flex items-center gap-2">
+                                Heredar de (Equipo Principal)
+                                <span className="px-2 py-0.5 text-[9px] bg-ios-blue text-white rounded-full uppercase">Nuevo</span>
+                            </label>
+                            <select
+                                name="parentId"
+                                value={parentId}
+                                onChange={(e) => setParentId(e.target.value)}
+                                className="apple-select border-ios-blue"
+                            >
+                                <option value="">-- Ninguno (Equipo Independiente) --</option>
                                 {allInstruments.filter(inst => inst._id !== initialData?._id).map(inst => (
                                     <option key={inst._id} value={inst._id}>
-                                        {inst.brand} {inst.model}
+                                        {inst.brand} {inst.model} {inst.variantLabel ? `(${inst.variantLabel})` : ''}
                                     </option>
                                 ))}
                             </select>
                             <p className="text-[10px] text-gray-400 mt-1 px-1">
-                                Úsalo para vincular Decksavers, maletas, módulos o expansiones con su equipo principal.
+                                Si seleccionas un equipo, este heredará automáticamente sus especificaciones, descripción y archivos.
                             </p>
+                        </div>
+
+                        <div>
+                            <label className="apple-label">Equipos Relacionados (Accesorios, expansiones...)</label>
+                            <div className="space-y-3">
+                                <div className="flex flex-wrap gap-2">
+                                    {relatedGearIds.map(id => {
+                                        const item = allInstruments.find(i => i._id === id);
+                                        return (
+                                            <div key={id} className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/30 text-ios-blue px-3 py-1.5 rounded-full text-xs font-bold border border-blue-100 dark:border-blue-800 animate-in fade-in zoom-in duration-200">
+                                                {item ? `${item.brand} ${item.model}` : 'Instrumento'}
+                                                <button type="button" onClick={() => removeRelatedGear(id)} className="hover:text-red-500 transition-colors">
+                                                    <X size={14} />
+                                                </button>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                                <select
+                                    className="apple-select"
+                                    onChange={(e) => {
+                                        if (e.target.value) {
+                                            addRelatedGear(e.target.value);
+                                            e.target.value = "";
+                                        }
+                                    }}
+                                    value=""
+                                >
+                                    <option value="">+ Añadir equipo relacionado...</option>
+                                    {allInstruments
+                                        .filter(inst => inst._id !== (initialData?._id || instrumentId) && !relatedGearIds.includes(inst._id))
+                                        .map(inst => (
+                                            <option key={inst._id} value={inst._id}>
+                                                {inst.brand} {inst.model} {inst.variantLabel ? `(${inst.variantLabel})` : ''}
+                                            </option>
+                                        ))
+                                    }
+                                </select>
+                            </div>
                         </div>
 
                         <div>
@@ -370,7 +468,7 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
 
                         <div>
                             <label className="apple-label">Descripción General</label>
-                            <textarea name="description" rows={4} defaultValue={initialData?.description} className="apple-input min-h-[120px]" placeholder="Breve historia, características sonoras..."></textarea>
+                            <textarea name="description" rows={12} defaultValue={initialData?.description} className="apple-input min-h-[350px]" placeholder="Breve historia, características sonoras, detalles técnicos..."></textarea>
                         </div>
 
                         {/* Original Price Section moved here */}
@@ -424,7 +522,7 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                             <label className="apple-label">Imágenes</label>
                             <div className="mb-4 space-y-2">
                                 {images.map((img, idx) => (
-                                    <div key={img} className="flex items-center gap-4 bg-gray-50 dark:bg-gray-700 p-2 rounded">
+                                    <div key={`${img}-${idx}`} className="flex items-center gap-4 bg-gray-50 dark:bg-gray-700 p-2 rounded">
                                         <img src={img} alt={`Preview ${idx}`} className="w-16 h-16 object-cover rounded" />
                                         <div className="flex-1">
                                             {idx === 0 && <span className="text-[10px] font-bold text-white uppercase bg-green-500 px-2 py-0.5 rounded-full tracking-wide">Principal</span>}
@@ -459,6 +557,39 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                                     label="Subir Imágenes"
                                     context="catalog"
                                 />
+
+                                {/* Inherited Images Section */}
+                                {parentImages.length > 0 && (
+                                    <div className="mt-6 p-4 bg-blue-50/30 dark:bg-blue-900/10 rounded-xl border border-blue-100 dark:border-blue-900/30">
+                                        <h4 className="flex items-center gap-2 font-bold text-ios-blue text-sm mb-3">
+                                            <Save size={14} /> Imágenes Heredadas del Principal
+                                        </h4>
+                                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                            {parentImages.map((img, idx) => {
+                                                const isExcluded = excludedImages.includes(img);
+                                                return (
+                                                    <div key={idx} className={`relative group cursor-pointer rounded-lg overflow-hidden border-2 transition-all ${isExcluded ? 'border-gray-200 opacity-50 grayscale' : 'border-ios-blue shadow-md'}`}
+                                                        onClick={() => toggleImageExclusion(img)}>
+                                                        <img src={img} alt="Inherited" className="w-full aspect-square object-cover" />
+                                                        <div className={`absolute inset-0 flex items-center justify-center bg-black/40 transition-opacity ${isExcluded ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+                                                            <span className="text-[10px] font-bold text-white uppercase px-2 py-1 rounded-full border border-white">
+                                                                {isExcluded ? 'Restaurar' : 'No usar'}
+                                                            </span>
+                                                        </div>
+                                                        {!isExcluded && (
+                                                            <div className="absolute top-1 right-1">
+                                                                <Star size={14} className="text-ios-blue fill-current" />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                        <p className="text-[10px] text-gray-500 mt-3 italic">
+                                            Pulsa sobre una imagen para excluirla de esta versión específica.
+                                        </p>
+                                    </div>
+                                )}
 
                                 {/* Manual Image URL Input */}
                                 <div className="flex gap-2 items-center flex-1 w-full md:w-auto">
@@ -692,6 +823,8 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
             <input type="hidden" name="websites" value={JSON.stringify(websites.filter(w => w.url.trim()))} />
             <input type="hidden" name="genericImages" value={JSON.stringify(images)} />
             <input type="hidden" name="documents" value={JSON.stringify(documents)} />
+            <input type="hidden" name="excludedImages" value={JSON.stringify(excludedImages)} />
+            <input type="hidden" name="relatedTo" value={JSON.stringify(relatedGearIds)} />
 
             {/* Unified Market Value Object from STATE */}
             <input type="hidden" name="marketValue" value={JSON.stringify(marketValue)} />

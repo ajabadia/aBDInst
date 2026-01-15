@@ -100,8 +100,8 @@ export default function InstrumentCard({ inst, variant = 'grid' }: { inst: any, 
                             </div>
 
                             {!isList && (
-                                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-4 flex-grow">
-                                    {inst.description || "Sin descripción disponible."}
+                                <p className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2 mb-4 flex-grow italic">
+                                    {inst.description || inst.variantLabel || inst.websites?.find((w: any) => w.isPrimary)?.url || ""}
                                 </p>
                             )}
 

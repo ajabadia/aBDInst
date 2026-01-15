@@ -36,7 +36,13 @@ export async function createInstrument(data: FormData) {
             specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [],
             genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
-            relatedTo: data.get('relatedTo')?.toString() || undefined,
+            relatedTo: data.get('relatedTo') ? JSON.parse(data.get('relatedTo') as string) : [],
+
+            // Variants
+            parentId: data.get('parentId')?.toString() || undefined,
+            variantLabel: data.get('variantLabel')?.toString() || undefined,
+            excludedImages: data.get('excludedImages') ? JSON.parse(data.get('excludedImages') as string) : [],
+            isBaseModel: data.get('isBaseModel') === 'true',
         };
 
         // Validate with Zod
@@ -117,12 +123,13 @@ export async function getInstruments(
 
         // Optimize: Select only necessary fields and use lean()
         const instruments = await Instrument.find(filter)
-            .select('brand model type subtype genericImages years description')
+            .select('brand model type subtype genericImages years description variantLabel websites')
             .sort(sort)
             .lean();
 
         // Efficient transformation to plain objects for Server Components
-        return instruments.map((inst: Record<string, any>) => ({
+        const safeInstruments = JSON.parse(JSON.stringify(instruments));
+        return safeInstruments.map((inst: Record<string, any>) => ({
             ...inst,
             _id: inst._id.toString(),
             id: inst._id.toString()
@@ -144,15 +151,55 @@ export async function getBrands() {
     }
 }
 
+import { mergeInstruments } from '@/lib/inheritance';
+
 export async function getInstrumentById(id: string) {
     try {
         await dbConnect();
-        const instrument = await Instrument.findById(id).populate('relatedTo', 'brand model').lean();
+        const instrument = await Instrument.findById(id)
+            .populate('relatedTo', 'brand model variantLabel')
+            .populate('parentId', 'brand model variantLabel')
+            .lean();
+
         if (!instrument) return null;
 
-        // Deep sanitize by serializing to JSON
-        // This handles _id inside arrays (specs) and other nested paths
-        return JSON.parse(JSON.stringify(instrument));
+        // Recursive inheritance
+        let effectiveInstrument = JSON.parse(JSON.stringify(instrument));
+        let currentParentId = (instrument as any).parentId?._id || (instrument as any).parentId;
+
+        const hierarchy = [];
+
+        while (currentParentId) {
+            // Prevent infinite loops if database has cycles
+            if (currentParentId.toString() === id.toString()) break;
+
+            // Prevent duplicates in hierarchy
+            if (hierarchy.some((p: any) => p._id.toString() === currentParentId.toString())) break;
+
+            const parent = await Instrument.findById(currentParentId).lean() as any;
+            if (!parent) break;
+
+            effectiveInstrument = mergeInstruments(effectiveInstrument, JSON.parse(JSON.stringify(parent)));
+
+            // Add to hierarchy
+            hierarchy.push(JSON.parse(JSON.stringify(parent)));
+
+            currentParentId = parent.parentId;
+        }
+
+        const variants = await Instrument.find({ parentId: id }).select('brand model variantLabel genericImages').lean();
+
+        // Enforce uniqueness in hierarchy to prevent React duplicate key errors
+        const uniqueHierarchy = Array.from(new Map(hierarchy.map((item: any) => [item._id.toString(), item])).values());
+
+        // Safe return (ensure full serialization)
+        const safeResult = JSON.parse(JSON.stringify({
+            ...effectiveInstrument,
+            _hierarchy: uniqueHierarchy,
+            _variants: variants
+        }));
+
+        return safeResult;
     } catch (error) {
         console.error('Get Instrument Error:', error);
         return null;
@@ -183,8 +230,14 @@ export async function updateInstrument(id: string, data: FormData) {
             genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
 
-            relatedTo: data.get('relatedTo')?.toString() || undefined,
+            relatedTo: data.get('relatedTo') ? JSON.parse(data.get('relatedTo') as string) : [],
             marketValue: data.get('marketValue') ? JSON.parse(data.get('marketValue') as string) : undefined,
+
+            // Variants
+            parentId: data.get('parentId')?.toString() || undefined,
+            variantLabel: data.get('variantLabel')?.toString() || undefined,
+            excludedImages: data.get('excludedImages') ? JSON.parse(data.get('excludedImages') as string) : [],
+            isBaseModel: data.get('isBaseModel') === 'true',
         };
 
         // Remove undefined fields

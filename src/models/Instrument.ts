@@ -60,8 +60,14 @@ const InstrumentSchema = new Schema({
         }]
     },
 
-    relatedTo: { type: Schema.Types.ObjectId, ref: 'Instrument' },
+    relatedTo: [{ type: Schema.Types.ObjectId, ref: 'Instrument' }],
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
+
+    // Inheritance & Variants
+    parentId: { type: Schema.Types.ObjectId, ref: 'Instrument' },
+    variantLabel: { type: String }, // e.g., "Indigo Edition"
+    excludedImages: [{ type: String }], // URLs of parent images to hide
+    isBaseModel: { type: Boolean, default: false },
 }, {
     timestamps: true,
     // ensure unique combination of brand + model + version? 
@@ -80,11 +86,7 @@ InstrumentSchema.index({ 'marketValue.current.value': 1 });
 
 // Generic hotfix for Next.js dev mode: reload model if schema changed
 if (process.env.NODE_ENV === 'development' && models.Instrument) {
-    // If we're in dev and the model is already registered, 
-    // we could check for specific markers or just trust the standard Next.js HMR
-    // However, if we know we are evolving the schema frequently, this manual clear 
-    // ensures the latest Schema is always used.
-    // delete (models as any).Instrument; 
+    delete (models as any).Instrument;
 }
 
 const Instrument = models?.Instrument || model('Instrument', InstrumentSchema);

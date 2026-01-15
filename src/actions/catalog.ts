@@ -47,14 +47,15 @@ export async function getInstruments(
         }
 
         let queryBuilder = Instrument.find(filter);
-        if (!full) queryBuilder = queryBuilder.select('brand model type subtype genericImages years');
+        if (!full) queryBuilder = queryBuilder.select('brand model type subtype genericImages years variantLabel websites');
         if (limit) queryBuilder = queryBuilder.limit(limit);
 
         const instruments = await queryBuilder
             .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
             .lean();
 
-        return instruments.map((inst: Record<string, any>) => ({
+        const safeInstruments = JSON.parse(JSON.stringify(instruments));
+        return safeInstruments.map((inst: Record<string, any>) => ({
             ...inst,
             _id: inst._id.toString(),
             id: inst._id.toString()
@@ -97,12 +98,57 @@ export async function getMetadataMap() {
     }
 }
 
+import { mergeInstruments } from '@/lib/inheritance';
+
 /* --- OTRAS FUNCIONES --- */
 export async function getInstrumentById(id: string) {
     try {
         await dbConnect();
-        const instrument = await Instrument.findById(id).populate('relatedTo', 'brand model').lean();
-        return instrument ? JSON.parse(JSON.stringify(instrument)) : null;
+
+        // Fetch current instrument
+        const instrument = await Instrument.findById(id)
+            .populate('relatedTo', 'brand model variantLabel')
+            .populate('parentId', 'brand model variantLabel') // For hierarchy info
+            .lean();
+
+        if (!instrument) return null;
+
+        // Recursive inheritance fetching
+        let effectiveInstrument = JSON.parse(JSON.stringify(instrument));
+        let currentParentId = (instrument as any).parentId?._id || (instrument as any).parentId;
+
+        const hierarchy = []; // To track the chain
+
+        while (currentParentId) {
+            // Prevent infinite loops if database has cycles
+            if (currentParentId.toString() === id.toString()) break;
+
+            // Prevent duplicates in hierarchy
+            if (hierarchy.some((p: any) => p._id.toString() === currentParentId.toString())) break;
+
+            const parent = await Instrument.findById(currentParentId).lean() as any;
+            if (!parent) break;
+
+            // Merge: Parent is the base, child (effective) overrides
+            effectiveInstrument = mergeInstruments(effectiveInstrument, JSON.parse(JSON.stringify(parent)));
+
+            // Add to hierarchy
+            hierarchy.push(JSON.parse(JSON.stringify(parent)));
+
+            currentParentId = parent.parentId;
+        }
+
+        // Fetch children (variants) for bidirectional view
+        const variants = await Instrument.find({ parentId: id }).select('brand model variantLabel genericImages').lean();
+
+        // Enforce uniqueness in hierarchy to prevent React duplicate key errors
+        const uniqueHierarchy = Array.from(new Map(hierarchy.map((item: any) => [item._id.toString(), item])).values());
+
+        return {
+            ...effectiveInstrument,
+            _hierarchy: uniqueHierarchy, // Parents
+            _variants: JSON.parse(JSON.stringify(variants)) // Children
+        };
     } catch (error) {
         console.error("getInstrumentById error:", error);
         return null;
