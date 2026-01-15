@@ -8,7 +8,7 @@ import { InstrumentSchema } from '@/lib/schemas';
 import { escapeRegExp } from '@/lib/utils';
 
 // Helper to sanitize Mongoose documents for client
-function sanitize(doc: any) {
+function sanitize(doc: Record<string, any>) {
     const { _id, ...rest } = doc.toObject ? doc.toObject() : doc;
     return { id: _id.toString(), ...rest };
 }
@@ -50,7 +50,7 @@ export async function createInstrument(data: FormData) {
 
         const instrumentData = {
             ...validatedData.data,
-            createdBy: (session.user as any).id,
+            createdBy: session.user.id,
         };
 
         const instrument = await Instrument.create(instrumentData);
@@ -73,7 +73,7 @@ export async function getInstruments(
     try {
         await dbConnect();
 
-        const filter: any = {};
+        const filter: Record<string, any> = {};
 
         if (query) {
             const safeQuery = escapeRegExp(query);
@@ -94,7 +94,7 @@ export async function getInstruments(
         }
 
         // Determine Sort Object
-        let sort: any = {};
+        let sort: Record<string, any> = {};
         const dir = sortOrder === 'asc' ? 1 : -1;
 
         switch (sortBy) {
@@ -122,7 +122,7 @@ export async function getInstruments(
             .lean();
 
         // Efficient transformation to plain objects for Server Components
-        return instruments.map((inst: any) => ({
+        return instruments.map((inst: Record<string, any>) => ({
             ...inst,
             _id: inst._id.toString(),
             id: inst._id.toString()
@@ -188,7 +188,7 @@ export async function updateInstrument(id: string, data: FormData) {
         };
 
         // Remove undefined fields
-        Object.keys(rawUpdateData).forEach(key => (rawUpdateData as any)[key] === undefined && delete (rawUpdateData as any)[key]);
+        Object.keys(rawUpdateData).forEach(key => (rawUpdateData as Record<string, any>)[key] === undefined && delete (rawUpdateData as Record<string, any>)[key]);
 
         const validatedData = InstrumentSchema.partial().safeParse(rawUpdateData);
 

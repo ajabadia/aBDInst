@@ -1,8 +1,0 @@
---- Reverb Scraper Debugger (Enhanced) ---
-Proxy Configured: NO
-Fetching: https://reverb.com/marketplace?query=Roland%20TB-303&sort=price_with_sale%7Casc
-Response Status: 403 Forbidden
-Duration: 434ms
-Content Length: 96484 chars
-Saved HTML to debug_page.html
-!!! BLOCKED (403/401) !!!

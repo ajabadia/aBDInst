@@ -14,12 +14,13 @@ export default async function SettingsPage() {
     }
 
     await dbConnect();
-    const user = await User.findById(session.user.id).lean();
+    const userResult = await User.findById(session.user.id).lean();
 
-    if (!user) {
+    if (!userResult) {
         redirect('/login');
     }
 
+    const user = userResult && (Array.isArray(userResult) ? userResult[0] : userResult);
     const sanitizedUser = JSON.parse(JSON.stringify(user));
 
     return (
@@ -79,7 +80,7 @@ export default async function SettingsPage() {
                 </Link>
 
                 {/* Admin Settings Shortcut (Only for Admins) */}
-                {user.role === 'admin' && (
+                {(user as any)?.role === 'admin' && (
                     <Link href="/dashboard/admin/settings" className="group md:col-span-2 lg:col-span-1">
                         <div className="glass-panel rounded-[2rem] p-8 h-full transition-all group-hover:border-ios-red/30 group-hover:bg-ios-red/[0.02] border-dashed">
                             <div className="flex items-center justify-between mb-4">

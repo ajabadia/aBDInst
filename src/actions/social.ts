@@ -12,11 +12,12 @@ import { createNotification } from './notifications';
 export async function logActivity(type: string, data: any) {
     try {
         const session = await auth();
-        if (!session?.user) return;
+        const userId = (session?.user as any)?.id;
+        if (!userId) return;
 
         await dbConnect();
         await Activity.create({
-            userId: (session.user as any).id,
+            userId,
             type,
             data
         });
@@ -31,9 +32,9 @@ export async function logActivity(type: string, data: any) {
 export async function followUser(targetUserId: string) {
     try {
         const session = await auth();
-        if (!session?.user) return { success: false, error: "Debes iniciar sesión" };
+        const currentUserId = (session?.user as any)?.id;
+        if (!currentUserId) return { success: false, error: "Debes iniciar sesión" };
 
-        const currentUserId = (session.user as any).id;
         if (currentUserId === targetUserId) return { success: false, error: "No puedes seguirte a ti mismo" };
 
         await dbConnect();
@@ -48,18 +49,14 @@ export async function followUser(targetUserId: string) {
             $addToSet: { followers: currentUserId }
         });
 
-
-
-        // ... inside followUser (success block)
-
         // 3. Log activity
         await logActivity('follow', { targetUserId });
 
         // 4. Notify user
         await createNotification(targetUserId, 'follow', {
             actorId: currentUserId,
-            actorName: (session.user as any).name,
-            actorImage: (session.user as any).image
+            actorName: (session?.user as any)?.name || 'Usuario',
+            actorImage: (session?.user as any)?.image
         });
 
         revalidatePath(`/profile/${targetUserId}`); // Assuming we will have profiles
@@ -73,9 +70,8 @@ export async function followUser(targetUserId: string) {
 export async function unfollowUser(targetUserId: string) {
     try {
         const session = await auth();
-        if (!session?.user) return { success: false, error: "Debes iniciar sesión" };
-
-        const currentUserId = (session.user as any).id;
+        const currentUserId = (session?.user as any)?.id;
+        if (!currentUserId) return { success: false, error: "Debes iniciar sesión" };
 
         await dbConnect();
 
@@ -100,12 +96,14 @@ export async function unfollowUser(targetUserId: string) {
 export async function getFollowStatus(targetUserId: string) {
     try {
         const session = await auth();
-        if (!session?.user) return { isFollowing: false };
+        const userId = (session?.user as any)?.id;
+        if (!userId) return { isFollowing: false };
 
         await dbConnect();
-        const user = await User.findById((session.user as any).id).select('following');
+        const userResult = await User.findById(userId).select('following').lean();
+        const user = userResult && (Array.isArray(userResult) ? userResult[0] : userResult);
 
-        const isFollowing = user?.following?.includes(targetUserId);
+        const isFollowing = (user as any)?.following?.includes(targetUserId);
         return { isFollowing: !!isFollowing };
     } catch (error) {
         return { isFollowing: false };
@@ -117,16 +115,15 @@ export async function getFollowStatus(targetUserId: string) {
 export async function getUserFeed(page = 1, limit = 20) {
     try {
         const session = await auth();
-        if (!session?.user) return { success: false, error: "Debes iniciar sesión" };
+        const userId = (session?.user as any)?.id;
+        if (!userId) return { success: false, error: "Debes iniciar sesión" };
 
         await dbConnect();
 
         // 1. Get List of people I follow
-        const currentUser = await User.findById((session.user as any).id).select('following');
-        const followingIds = currentUser?.following || [];
-
-        // Include my own activities? Maybe. Let's stick to following for now.
-        // followingIds.push((session.user as any).id); 
+        const currentUserResult = await User.findById(userId).select('following').lean();
+        const currentUser = currentUserResult && (Array.isArray(currentUserResult) ? currentUserResult[0] : currentUserResult);
+        const followingIds = (currentUser as any)?.following || [];
 
         if (followingIds.length === 0) {
             return { success: true, data: [] };

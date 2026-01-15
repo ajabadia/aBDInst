@@ -70,10 +70,10 @@ export async function bulkImport(items: any[]) {
     try {
         await dbConnect();
         const session = await auth();
-        if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
+        const userId = (session?.user as any)?.id;
+        if (!userId) return { success: false, error: 'Unauthorized' };
 
-        const userId = session.user.id;
-        let createdCount = 0;
+        const createdIds: string[] = [];
         let masterAddedCount = 0;
 
         // Process in a single loop but use a Map to cache Master Instrument IDs and avoid redundant DB hits
@@ -90,8 +90,10 @@ export async function bulkImport(items: any[]) {
                     model: { $regex: new RegExp(`^${item.model.trim()}$`, 'i') }
                 }).select('_id').lean();
 
-                if (existing) {
-                    instrumentId = existing._id.toString();
+                const doc = existing && (Array.isArray(existing) ? existing[0] : existing);
+
+                if (doc) {
+                    instrumentId = (doc as any)._id.toString();
                 } else {
                     // Create in Master Catalog
                     const master = await Instrument.create({
@@ -108,7 +110,7 @@ export async function bulkImport(items: any[]) {
             }
 
             // Add to User Collection
-            await UserCollection.create({
+            const newCollectionItem = await UserCollection.create({
                 userId,
                 instrumentId,
                 status: 'active',
@@ -122,7 +124,7 @@ export async function bulkImport(items: any[]) {
                 serialNumber: item.serialNumber || '',
                 notes: `Importado masivamente. ${item.notes || ''}`
             });
-            createdCount++;
+            createdIds.push(newCollectionItem._id.toString());
         }
 
         revalidatePath('/dashboard');
@@ -131,7 +133,8 @@ export async function bulkImport(items: any[]) {
 
         return { 
             success: true, 
-            count: createdCount, 
+            ids: createdIds, 
+            count: createdIds.length, 
             masterAdded: masterAddedCount 
         };
 

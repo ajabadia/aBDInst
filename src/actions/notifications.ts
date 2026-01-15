@@ -25,20 +25,20 @@ async function checkDueReminders(userId: string) {
 
         // 2. Find which of these already have a notification to avoid duplicates
         // We only care about 'maintenance' type notifications for these reminder IDs
-        const reminderIds = dueReminders.map(r => r._id);
+        const reminderIds = dueReminders.map((r: any) => r._id);
         const existingNotifications = await Notification.find({
             userId,
             type: 'maintenance',
             'data.reminderId': { $in: reminderIds }
         }).select('data.reminderId').lean();
 
-        const alreadyNotifiedIds = new Set(existingNotifications.map(n => n.data.reminderId.toString()));
+        const alreadyNotifiedIds = new Set(existingNotifications.map((n: any) => n.data.reminderId.toString()));
 
         // 3. Filter reminders that haven't been notified yet
-        const toNotify = dueReminders.filter(r => !alreadyNotifiedIds.has(r._id.toString()));
+        const toNotify = dueReminders.filter(r => !alreadyNotifiedIds.has((r as any)._id.toString()));
 
         if (toNotify.length > 0) {
-            const newNotifications = toNotify.map(reminder => ({
+            const newNotifications = toNotify.map((reminder: any) => ({
                 userId,
                 type: 'maintenance',
                 data: {

@@ -14,7 +14,6 @@ export default function CommandPalette() {
     const { isOpen: open, setIsOpen: setOpen } = useCommandPalette();
     const router = useRouter();
     const { setTheme } = useTheme();
-    const { isVaultMode, toggleVaultMode } = useCommandPalette(); // Re-getting it from context to ensure reactive toggle
     const { isVaultMode: vaultActive, toggleVaultMode: toggleVault } = useVaultMode();
 
     const runCommand = (command: () => void) => {

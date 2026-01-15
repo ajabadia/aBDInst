@@ -3,6 +3,8 @@ import { getUserCollection } from '@/actions/collection';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
+export const dynamic = 'force-dynamic';
+
 export async function GET(req: NextRequest) {
     try {
         const collection = await getUserCollection();

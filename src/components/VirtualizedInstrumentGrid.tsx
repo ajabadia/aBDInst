@@ -6,8 +6,6 @@ import InstrumentCard from '@/components/InstrumentCard';
 import { useRef } from 'react';
 
 const Grid = (ReactWindow as any).FixedSizeGrid || (ReactWindow as any).default?.FixedSizeGrid;
-
-// Cast AutoSizer to avoid strict children type checks
 const AutoSizerAny = AutoSizer as any;
 
 interface VirtualizedGridProps {
@@ -34,12 +32,12 @@ export default function VirtualizedInstrumentGrid({ instruments }: VirtualizedGr
                         <Grid
                             columnCount={columnCount}
                             columnWidth={columnWidth + GUTTER_SIZE}
-                            height={height}
+                            height={height || 800}
                             rowCount={rowCount}
                             rowHeight={rowHeight + GUTTER_SIZE}
-                            width={width}
+                            width={width || 1200}
                         >
-                            {({ columnIndex, rowIndex, style }: { columnIndex: number; rowIndex: number; style: React.CSSProperties }) => {
+                            {({ columnIndex, rowIndex, style }: any) => {
                                 const index = rowIndex * columnCount + columnIndex;
                                 if (index >= instruments.length) return null;
                                 const inst = instruments[index];

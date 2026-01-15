@@ -14,12 +14,13 @@ import Instrument from '@/models/Instrument';
 export async function postComment(instrumentId: string, content: string, parentId?: string) {
     try {
         const session = await auth();
-        if (!session?.user?.email) return { success: false, error: "Debes iniciar sesión" };
+        const userId = (session?.user as any)?.id;
+        if (!userId) return { success: false, error: "Debes iniciar sesión" };
 
         await dbConnect();
 
         // Check user status
-        const user = await User.findById((session.user as any).id).select('isBanned');
+        const user = await User.findById(userId).select('isBanned');
         if (!user || user.isBanned) {
             return { success: false, error: "Tu cuenta está restringida y no puedes publicar comentarios." };
         }
@@ -30,17 +31,11 @@ export async function postComment(instrumentId: string, content: string, parentI
 
         const newComment = await Comment.create({
             instrumentId,
-            userId: (session.user as any).id,
+            userId,
             content: content.trim(),
             parentId: parentId || null,
         });
 
-
-
-        // ... existing imports
-
-        // ... inside postComment
-        // ...
         revalidatePath(`/instruments/${instrumentId}`);
 
         // Log activity
@@ -53,10 +48,11 @@ export async function postComment(instrumentId: string, content: string, parentI
             });
 
             // Notify Application Owner (Instrument Owner)
-            if (instrument.userId && instrument.userId.toString() !== (session.user as any).id) {
-                await createNotification(instrument.userId.toString(), 'comment', {
-                    actorId: (session.user as any).id,
-                    actorName: (session.user as any).name,
+            const instrumentOwnerId = (instrument.userId as any)?.toString();
+            if (instrumentOwnerId && instrumentOwnerId !== userId) {
+                await createNotification(instrumentOwnerId, 'comment', {
+                    actorId: userId,
+                    actorName: (session?.user as any)?.name || 'Usuario',
                     instrumentId,
                     instrumentName: `${instrument.brand} ${instrument.model}`,
                     commentId: newComment._id
@@ -65,11 +61,12 @@ export async function postComment(instrumentId: string, content: string, parentI
 
             // Notify Parent Comment Author (if reply)
             if (parentId) {
-                const parentComment = await Comment.findById(parentId);
-                if (parentComment && parentComment.userId.toString() !== (session.user as any).id) {
-                    await createNotification(parentComment.userId.toString(), 'reply', {
-                        actorId: (session.user as any).id,
-                        actorName: (session.user as any).name,
+                const parentComment = await Comment.findById(parentId).lean();
+                const parentUserId = (parentComment as any)?.userId?.toString();
+                if (parentUserId && parentUserId !== userId) {
+                    await createNotification(parentUserId, 'reply', {
+                        actorId: userId,
+                        actorName: (session?.user as any)?.name || 'Usuario',
                         instrumentId,
                         instrumentName: `${instrument.brand} ${instrument.model}`,
                         commentId: newComment._id
@@ -116,14 +113,15 @@ export async function getComments(instrumentId: string) {
 export async function reportComment(commentId: string, reason: string) {
     try {
         const session = await auth();
-        if (!session?.user) return { success: false, error: "Debes iniciar sesión para reportar." };
+        const userId = (session?.user as any)?.id;
+        if (!userId) return { success: false, error: "Debes iniciar sesión para reportar." };
 
         await dbConnect();
 
         // Prevent duplicate reports from same user
         const alreadyReported = await Comment.findOne({
             _id: commentId,
-            'reports.userId': (session.user as any).id
+            'reports.userId': userId
         });
 
         if (alreadyReported) {
@@ -131,11 +129,9 @@ export async function reportComment(commentId: string, reason: string) {
         }
 
         await Comment.findByIdAndUpdate(commentId, {
-            $push: { reports: { userId: (session.user as any).id, reason, date: new Date() } },
+            $push: { reports: { userId: userId, reason, date: new Date() } },
             $inc: { reportCount: 1 }
         });
-
-        // Optional: Auto-hide if reports > 5 (Logic can be added here)
 
         return { success: true };
 
@@ -148,20 +144,17 @@ export async function reportComment(commentId: string, reason: string) {
 export async function deleteOwnComment(commentId: string) {
     try {
         const session = await auth();
-        if (!session?.user) return { success: false, error: "No autorizado" };
+        const userId = (session?.user as any)?.id;
+        if (!userId) return { success: false, error: "No autorizado" };
 
         await dbConnect();
         const comment = await Comment.findById(commentId);
 
         if (!comment) return { success: false, error: "Comentario no encontrado" };
 
-        if (comment.userId.toString() !== (session.user as any).id) {
+        if (comment.userId.toString() !== userId) {
             return { success: false, error: "No puedes borrar este comentario" };
         }
-
-        // Soft delete (hide) or Hard delete? 
-        // Let's do partial Hard delete but maybe keep if it has children?
-        // For simplicity: Hard delete for now, or if it has thread, just change content to "[Eliminado]"
 
         const hasChildren = await Comment.exists({ parentId: commentId });
 
@@ -171,10 +164,7 @@ export async function deleteOwnComment(commentId: string) {
             comment.isDeleted = true;
             await comment.save();
         } else {
-            comment.content = "[Comentario eliminado por el usuario]";
-            comment.status = 'hidden';
-            comment.isDeleted = true;
-            await comment.save();
+            await Comment.findByIdAndDelete(commentId);
         }
 
         revalidatePath(`/instruments/${comment.instrumentId}`);
@@ -187,11 +177,16 @@ export async function deleteOwnComment(commentId: string) {
 
 // --- ADMIN ACTIONS ---
 
+async function checkAdmin(session: any) {
+    if (!session || (session.user as any)?.role !== 'admin') {
+        throw new Error("No autorizado");
+    }
+}
+
 export async function moderateComment(commentId: string, action: 'hide' | 'visible' | 'delete') {
     try {
         const session = await auth();
-        if ((session?.user as any)?.role !== 'admin') return { success: false, error: "No autorizado" };
-
+        await checkAdmin(session);
         await dbConnect();
 
         if (action === 'delete') {
@@ -205,35 +200,33 @@ export async function moderateComment(commentId: string, action: 'hide' | 'visib
         }
 
         return { success: true };
-    } catch (error) {
-        return { success: false, error: "Error en moderación" };
+    } catch (error: any) {
+        return { success: false, error: error.message };
     }
 }
 
 export async function banUser(userId: string) {
     try {
         const session = await auth();
-        if ((session?.user as any)?.role !== 'admin') return { success: false, error: "No autorizado" };
-
+        await checkAdmin(session);
         await dbConnect();
 
         // Ban user
         await User.findByIdAndUpdate(userId, { isBanned: true });
 
-        // Hide all their comments? Optional. Let's do it for safety.
+        // Hide all their comments
         await Comment.updateMany({ userId }, { status: 'hidden' });
 
         return { success: true };
-    } catch (error) {
-        return { success: false, error: "Error al banear usuario" };
+    } catch (error: any) {
+        return { success: false, error: error.message };
     }
 }
 
 export async function getModerationQueue() {
     try {
         const session = await auth();
-        if ((session?.user as any)?.role !== 'admin') return { success: false, error: "No autorizado" };
-
+        await checkAdmin(session);
         await dbConnect();
 
         const reported = await Comment.find({ reportCount: { $gt: 0 }, isDeleted: false })
@@ -242,21 +235,20 @@ export async function getModerationQueue() {
             .lean();
 
         return { success: true, data: JSON.parse(JSON.stringify(reported)) };
-    } catch (error) {
-        return { success: false, error: "Error fetching queue" };
+    } catch (error: any) {
+        return { success: false, error: error.message };
     }
 }
 
 export async function dismissReports(commentId: string) {
     try {
         const session = await auth();
-        if ((session?.user as any)?.role !== 'admin') return { success: false, error: "No autorizado" };
-
+        await checkAdmin(session);
         await dbConnect();
         await Comment.findByIdAndUpdate(commentId, { reports: [], reportCount: 0 }); // Clear reports
 
         return { success: true };
-    } catch (error) {
-        return { success: false, error: "Error clearing reports" };
+    } catch (error: any) {
+        return { success: false, error: error.message };
     }
 }

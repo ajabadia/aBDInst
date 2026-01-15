@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { Switch } from '@/components/ui/Switch'; // Assuming Switch component exists or I mock it, actually I'll build a simple toggle if needed or check ui/Switch 
 import { updateSystemConfig } from '@/actions/admin';
 import { toast } from 'sonner';
 import { Loader2 } from 'lucide-react';

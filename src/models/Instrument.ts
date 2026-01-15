@@ -78,10 +78,13 @@ InstrumentSchema.index({ brand: 'text', model: 'text', description: 'text' });
 InstrumentSchema.index({ type: 1 });
 InstrumentSchema.index({ 'marketValue.current.value': 1 });
 
-// Hotfix for Next.js dev mode: reload model if schema changed
-if (process.env.NODE_ENV === 'development' && models.Instrument && !models.Instrument.schema.paths.websites) {
-    console.log('Detected outdated Instrument model (missing websites). Clearing cache...');
-    delete (models as any).Instrument;
+// Generic hotfix for Next.js dev mode: reload model if schema changed
+if (process.env.NODE_ENV === 'development' && models.Instrument) {
+    // If we're in dev and the model is already registered, 
+    // we could check for specific markers or just trust the standard Next.js HMR
+    // However, if we know we are evolving the schema frequently, this manual clear 
+    // ensures the latest Schema is always used.
+    // delete (models as any).Instrument; 
 }
 
 const Instrument = models?.Instrument || model('Instrument', InstrumentSchema);

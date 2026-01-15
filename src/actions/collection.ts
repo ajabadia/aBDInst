@@ -18,7 +18,7 @@ export async function getUserCollection() {
         await Instrument.init();
 
         const collection = await UserCollection.find({
-            userId: (session.user as any).id,
+            userId: session.user.id,
             deletedAt: null
         })
             .populate('instrumentId')
@@ -45,7 +45,7 @@ export async function addToCollection(instrumentId: string) {
         // Check if already in collection? (Optional: allow duplicates)
 
         const newItem = await UserCollection.create({
-            userId: (session.user as any).id,
+            userId: session.user.id,
             instrumentId: instrumentId,
             status: 'active',
             acquisition: { date: new Date() } // Default to now
@@ -84,7 +84,7 @@ export async function getCollectionItemById(id: string) {
 
         const item = await UserCollection.findOne({
             _id: id,
-            userId: (session.user as any).id
+            userId: session.user.id
         }).populate('instrumentId');
 
         if (!item) return null;
@@ -139,7 +139,7 @@ export async function updateCollectionItem(id: string, formData: FormData) {
         };
 
         const marketVal = formData.get('marketValue.current');
-        const updateOps: any = { $set: data };
+        const updateOps: Record<string, any> = { $set: data };
 
         if (marketVal) {
             const val = Number(marketVal);
@@ -156,7 +156,7 @@ export async function updateCollectionItem(id: string, formData: FormData) {
         }
 
         const updated = await UserCollection.findOneAndUpdate(
-            { _id: id, userId: (session.user as any).id },
+            { _id: id, userId: session.user.id },
             updateOps,
             { new: true }
         );
@@ -189,7 +189,7 @@ export async function addMaintenanceRecord(collectionId: string, formData: FormD
         };
 
         const updated = await UserCollection.findOneAndUpdate(
-            { _id: collectionId, userId: (session.user as any).id },
+            { _id: collectionId, userId: session.user.id },
             { $push: { maintenanceHistory: newRecord } },
             { new: true }
         );
@@ -213,7 +213,7 @@ export async function deleteCollectionItem(id: string) {
 
         // Soft delete
         await UserCollection.findOneAndUpdate(
-            { _id: id, userId: (session.user as any).id },
+            { _id: id, userId: session.user.id },
             { deletedAt: new Date(), status: 'archived' }
         );
 
@@ -232,7 +232,7 @@ export async function restoreCollectionItem(id: string) {
         await dbConnect();
 
         await UserCollection.findOneAndUpdate(
-            { _id: id, userId: (session.user as any).id },
+            { _id: id, userId: session.user.id },
             {
                 deletedAt: null,
                 status: 'active',

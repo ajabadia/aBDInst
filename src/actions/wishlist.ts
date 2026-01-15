@@ -39,8 +39,9 @@ export async function toggleWishlist(instrumentId: string) {
             status: 'wishlist'
         }).select('_id').lean();
 
-        if (wishlistItem) {
-            await UserCollection.findByIdAndDelete(wishlistItem._id);
+        const wishlistItemDoc = wishlistItem && (Array.isArray(wishlistItem) ? wishlistItem[0] : wishlistItem);
+        if (wishlistItemDoc) {
+            await UserCollection.findByIdAndDelete((wishlistItemDoc as any)._id);
             revalidatePath('/dashboard/wishlist');
             revalidatePath('/instruments');
             return { success: true, action: 'removed' };
@@ -63,7 +64,7 @@ export async function toggleWishlist(instrumentId: string) {
             if (instrument) {
                 await logActivity('add_wishlist', {
                     instrumentId,
-                    instrumentName: `${instrument.brand} ${instrument.model}`
+                    instrumentName: `${(instrument as any).brand} ${(instrument as any).model}`
                 });
             }
         }).catch(err => console.error("Wishlist Activity Log Error:", err));

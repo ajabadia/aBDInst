@@ -4,9 +4,15 @@ import { Bell, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { revalidatePath } from "next/cache";
 
+interface Notification {
+    _id: string;
+    read: boolean;
+    // Add other properties of notification here
+}
+
 export default async function NotificationsPage() {
     const { success, data } = await getNotifications(50);
-    const notifications = success ? data : [];
+    const notifications: Notification[] = success ? data : [];
 
     async function handleMarkAll() {
         'use server';
@@ -30,9 +36,9 @@ export default async function NotificationsPage() {
                     </p>
                 </div>
 
-                {notifications.some(n => !n.read) && (
+                {notifications.some((n: Notification) => !n.read) && (
                     <form action={handleMarkAll}>
-                        <Button variant="secondary" size="sm" icon={<CheckCircle2 />}>
+                        <Button variant="secondary" size="sm" icon={CheckCircle2}>
                             Marcar todo como leído
                         </Button>
                     </form>

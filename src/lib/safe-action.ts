@@ -49,7 +49,7 @@ export async function createSafeAction<TInput, TOutput>(
             console.error("Action Error:", error);
             
             if (error instanceof z.ZodError) {
-                return { success: false, error: `Error de validación: ${error.errors.map(e => e.message).join(", ")}` };
+                return { success: false, error: `Error de validación: ${error.issues.map(e => e.message).join(", ")}` };
             }
 
             return { success: false, error: error.message || "Error interno del servidor" };

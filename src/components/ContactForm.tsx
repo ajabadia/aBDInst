@@ -126,7 +126,7 @@ export default function ContactForm({ initialSession, hasRequests }: ContactForm
                                     <Input
                                         label="Nombre completo"
                                         placeholder="Tu nombre"
-                                        icon={<User />}
+                                        icon={User}
                                         required
                                         value={formData.name}
                                         onChange={e => setFormData({ ...formData, name: e.target.value })}
@@ -135,7 +135,7 @@ export default function ContactForm({ initialSession, hasRequests }: ContactForm
                                         label="Correo electrónico"
                                         type="email"
                                         placeholder="tu@email.com"
-                                        icon={<Mail />}
+                                        icon={Mail}
                                         required
                                         value={formData.email}
                                         onChange={e => setFormData({ ...formData, email: e.target.value })}
@@ -173,7 +173,7 @@ export default function ContactForm({ initialSession, hasRequests }: ContactForm
                                     type="submit"
                                     className="w-full h-16 text-lg shadow-apple-glow"
                                     isLoading={loading}
-                                    icon={<Send />}
+                                    icon={Send}
                                 >
                                     Enviar mensaje al equipo
                                 </Button>

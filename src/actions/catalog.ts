@@ -24,7 +24,7 @@ export async function getInstruments(
 ) {
     try {
         await dbConnect();
-        const filter: any = {};
+        const filter: Record<string, any> = {};
 
         // Search Query
         if (query) {
@@ -54,12 +54,15 @@ export async function getInstruments(
             .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
             .lean();
 
-        return instruments.map((inst: any) => ({
+        return instruments.map((inst: Record<string, any>) => ({
             ...inst,
             _id: inst._id.toString(),
             id: inst._id.toString()
         }));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error("getInstruments error:", error);
+        return [];
+    }
 }
 
 export async function getBrands() {
@@ -80,16 +83,18 @@ export async function getMetadataMap() {
         const metadata = await CatalogMetadata.find({}).lean();
         const plainMetadata = JSON.parse(JSON.stringify(metadata));
 
-        return plainMetadata.reduce((acc: any, curr: any) => {
+        return plainMetadata.reduce((acc: Record<string, any>, curr: Record<string, any>) => {
             const type = curr.type; // 'brand', 'type', 'decade'
             const key = String(curr.key).toLowerCase().trim();
 
-            if (!acc[type]) acc[acc[type]] = {}; // Fix typo acc[type]
             if (!acc[type]) acc[type] = {};
             acc[type][key] = curr;
             return acc;
         }, {});
-    } catch (error) { return {}; }
+    } catch (error) {
+        console.error("getMetadataMap error:", error);
+        return {};
+    }
 }
 
 /* --- OTRAS FUNCIONES --- */
@@ -98,7 +103,10 @@ export async function getInstrumentById(id: string) {
         await dbConnect();
         const instrument = await Instrument.findById(id).populate('relatedTo', 'brand model').lean();
         return instrument ? JSON.parse(JSON.stringify(instrument)) : null;
-    } catch (error) { return null; }
+    } catch (error) {
+        console.error("getInstrumentById error:", error);
+        return null;
+    }
 }
 
 export async function getRelatedGear(id: string) {
@@ -106,7 +114,10 @@ export async function getRelatedGear(id: string) {
         await dbConnect();
         const accessories = await Instrument.find({ relatedTo: id }).lean();
         return JSON.parse(JSON.stringify(accessories));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error("getRelatedGear error:", error);
+        return [];
+    }
 }
 
 export async function getCatalogMetadata(type: string) {
@@ -114,12 +125,15 @@ export async function getCatalogMetadata(type: string) {
         await dbConnect();
         const data = await CatalogMetadata.find({ type }).sort({ label: 1 }).lean();
         return JSON.parse(JSON.stringify(data));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error("getCatalogMetadata error:", error);
+        return [];
+    }
 }
 
-export async function upsertMetadata(data: any) {
+export async function upsertMetadata(data: Record<string, any>) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error('Unauthorized');
+    if (!session || session.user?.role !== 'admin') throw new Error('Unauthorized');
     await dbConnect();
     await CatalogMetadata.findOneAndUpdate({ type: data.type, key: data.key }, data, { upsert: true });
     return { success: true };
@@ -127,16 +141,19 @@ export async function upsertMetadata(data: any) {
 
 export async function deleteMetadata(id: string) {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error('Unauthorized');
+    if (!session || session.user?.role !== 'admin') throw new Error('Unauthorized');
     await dbConnect();
     await CatalogMetadata.findByIdAndDelete(id);
     return { success: true };
 }
 
-export async function getResources(filter: any) {
+export async function getResources(filter: Record<string, any>) {
     try {
         await dbConnect();
         const resources = await Resource.find(filter).sort({ createdAt: -1 }).lean();
         return JSON.parse(JSON.stringify(resources));
-    } catch (error) { return []; }
+    } catch (error) {
+        console.error("getResources error:", error);
+        return [];
+    }
 }

@@ -150,7 +150,7 @@ export async function generateInstrumentPDF(data: PDFData) {
     }
 
     // --- FOOTER ---
-    const pageCount = doc.internal.getNumberOfPages();
+    const pageCount = (doc as any).internal.pages.length - 1; // Correct way to get page count
     for (let i = 1; i <= pageCount; i++) {
         doc.setPage(i);
         doc.setFontSize(8);

@@ -10,10 +10,11 @@ import { escapeRegExp } from '@/lib/utils';
 // Helper to check if current user is admin
 async function checkAdmin() {
     const session = await auth();
-    if (!session?.user?.id) throw new Error("No autorizado");
+    const userId = session?.user?.id;
+    if (!userId) throw new Error("No autorizado");
 
     await dbConnect();
-    const currentUser = await User.findById(session.user.id);
+    const currentUser = await User.findById(userId);
 
     if (!currentUser || currentUser.role !== 'admin') {
         throw new Error("Acceso denegado: Requiere rol de Administrador");
@@ -25,7 +26,7 @@ export async function getUsers(page = 1, limit = 20, search = '') {
     try {
         await checkAdmin();
 
-        const query: any = {};
+        const query: Record<string, any> = {};
         if (search) {
             const safeSearch = escapeRegExp(search);
             query.$or = [
@@ -51,8 +52,8 @@ export async function getUsers(page = 1, limit = 20, search = '') {
             total,
             pages: Math.ceil(total / limit)
         };
-    } catch (error: any) {
-        return { success: false, error: error.message };
+    } catch (error: unknown) {
+        return { success: false, error: error instanceof Error ? error.message : "Error desconocido" };
     }
 }
 

@@ -66,10 +66,10 @@ export default async function EditItemPage({ params }: { params: { id: string } 
                 </div>
 
                 <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
-                    <Button variant="secondary" size="sm" icon={<QrCode />}>Etiqueta</Button>
-                    <Button variant="secondary" size="sm" icon={<Archive />}>Archivar</Button>
+                    <Button variant="secondary" size="sm" icon={QrCode}>Etiqueta</Button>
+                    <Button variant="secondary" size="sm" icon={Archive}>Archivar</Button>
                     <Link href={`/instruments/${instrument._id || instrument.id}`}>
-                        <Button variant="ghost" size="sm" icon={<ArrowLeft />}>Ver en Catálogo</Button>
+                        <Button variant="ghost" size="sm" icon={ArrowLeft}>Ver en Catálogo</Button>
                     </Link>
                 </div>
             </div>
@@ -141,7 +141,7 @@ export default async function EditItemPage({ params }: { params: { id: string } 
                 <div className="lg:col-span-8">
                     <div className="apple-card bg-white dark:bg-black/40 min-h-[600px] overflow-hidden">
                         <Tabs className="px-6 pt-6 border-b border-black/5 dark:border-white/5 bg-gray-50/30 dark:bg-white/5">
-                            <Tab label="Información" icon={<Settings />}>
+                            <Tab label="Información" icon={Settings}>
                                 <div className="p-6">
                                     <div className="flex items-center gap-2 mb-8 text-ios-blue">
                                         <ShieldCheck size={20} />
@@ -150,7 +150,7 @@ export default async function EditItemPage({ params }: { params: { id: string } 
                                     <EditCollectionItemForm item={item} />
                                 </div>
                             </Tab>
-                            <Tab label="Mantenimiento" icon={<Wrench />}>
+                            <Tab label="Mantenimiento" icon={Wrench}>
                                 <div className="p-6">
                                     <div className="flex items-center gap-2 mb-8 text-ios-orange">
                                         <Clock size={20} />
@@ -166,7 +166,7 @@ export default async function EditItemPage({ params }: { params: { id: string } 
                                     />
                                 </div>
                             </Tab>
-                            <Tab label="Archivos" icon={<FileText />}>
+                            <Tab label="Archivos" icon={FileText}>
                                 <div className="p-6">
                                     <div className="flex items-center gap-2 mb-8 text-ios-indigo">
                                         <Archive size={20} />

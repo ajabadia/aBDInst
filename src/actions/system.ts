@@ -10,9 +10,11 @@ import { revalidatePath } from 'next/cache';
 
 async function checkAdmin() {
     const session = await auth();
-    if ((session?.user as any)?.role !== 'admin') throw new Error("Acceso denegado");
+    if (!session || !session.user || (session.user as any).role !== 'admin') {
+        throw new Error("Acceso denegado");
+    }
     await dbConnect();
-    return session.user.id;
+    return (session.user as any).id;
 }
 
 /* --- SYSTEM STATS --- */
@@ -56,10 +58,12 @@ export async function updateSystemConfig(key: string, value: any) {
 
 export async function getPriceAlerts() {
     const session = await auth();
-    if (!session?.user?.id) return [];
+    const userId = (session?.user as any)?.id;
+    if (!userId) return [];
+    
     await dbConnect();
     const PriceAlert = (await import('@/models/PriceAlert')).default;
-    const alerts = await PriceAlert.find({ userId: session.user.id })
+    const alerts = await PriceAlert.find({ userId: userId })
         .populate('instrumentId', 'brand model genericImages images')
         .sort({ createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(alerts));
@@ -67,17 +71,23 @@ export async function getPriceAlerts() {
 
 export async function createPriceAlert(data: any) {
     const session = await auth();
+    const userId = (session?.user as any)?.id;
+    if (!userId) return { success: false, error: 'Unauthorized' };
+
     await dbConnect();
     const PriceAlert = (await import('@/models/PriceAlert')).default;
-    await PriceAlert.create({ ...data, userId: session?.user?.id });
+    await PriceAlert.create({ ...data, userId: userId });
     return { success: true };
 }
 
 export async function deletePriceAlert(id: string) {
     const session = await auth();
+    const userId = (session?.user as any)?.id;
+    if (!userId) return { success: false, error: 'Unauthorized' };
+
     await dbConnect();
     const PriceAlert = (await import('@/models/PriceAlert')).default;
-    await PriceAlert.findOneAndDelete({ _id: id, userId: session?.user?.id });
+    await PriceAlert.findOneAndDelete({ _id: id, userId: userId });
     return { success: true };
 }
 

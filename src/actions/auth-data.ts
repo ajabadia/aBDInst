@@ -10,7 +10,9 @@ import { revalidatePath } from 'next/cache';
 export async function getUsers(page = 1, limit = 20, search = '') {
     try {
         const session = await auth();
-        if ((session?.user as any)?.role !== 'admin') throw new Error("Acceso denegado");
+        if (!session || (session.user as any)?.role !== 'admin') {
+            throw new Error("Acceso denegado");
+        }
         
         await dbConnect();
         const query: any = {};
@@ -46,7 +48,8 @@ export async function getUsers(page = 1, limit = 20, search = '') {
 export async function validateImport(data: any[]) {
     try {
         const session = await auth();
-        if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
+        const userId = (session?.user as any)?.id;
+        if (!userId) return { success: false, error: 'Unauthorized' };
 
         const validItems = data.filter(item => item.brand && item.model);
         const invalidItems = data.filter(item => !item.brand || !item.model);

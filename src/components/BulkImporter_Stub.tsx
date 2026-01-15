@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/Button';
 import { Upload, FileText, CheckCircle, AlertTriangle, X, RefreshCw, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import { parseCSV } from '@/lib/csv-parser'; // Hypothetical helper
-import { bulkImportInstruments } from '@/actions/import';
+import { bulkImport } from '@/actions/import';
 
 interface ImportPreview {
     total: number;
@@ -62,7 +62,7 @@ export default function BulkImporter() {
         if (!preview || preview.invalid > 0) return; // Strict mode?
         setIsImporting(true);
         try {
-            // await bulkImportInstruments(preview.items); 
+            // await bulkImport(preview.items); 
             toast.success(`Importados ${preview.valid} instrumentos`);
             setFile(null);
             setPreview(null);

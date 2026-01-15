@@ -4,6 +4,7 @@ import PriceAlert from '@/models/PriceAlert';
 import { runScraperForAlert } from '@/actions/scraping';
 import Instrument from '@/models/Instrument'; // Potentially useful if we auto-update valuations, but not strictly needed here yet.
 
+export const dynamic = 'force-dynamic';
 export const maxDuration = 60; // Allow 60 seconds (Vercel Hobby Limit is 10s for functions usually, but cron might get more. If not, we limit batch size.)
 
 export async function GET(req: NextRequest) {

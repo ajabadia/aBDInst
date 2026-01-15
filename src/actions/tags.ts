@@ -8,14 +8,15 @@ import { revalidatePath } from 'next/cache';
 export async function updateCollectionTags(collectionId: string, tags: string[]) {
     try {
         const session = await auth();
-        if (!session?.user?.id) throw new Error('No autorizado');
+        const userId = (session?.user as any)?.id;
+        if (!userId) throw new Error('No autorizado');
 
         await dbConnect();
 
         // Verify ownership
         const item = await UserCollection.findOne({
             _id: collectionId,
-            userId: session.user.id
+            userId: userId
         });
 
         if (!item) {
@@ -40,13 +41,14 @@ export async function updateCollectionTags(collectionId: string, tags: string[])
 export async function getAllUserTags() {
     try {
         const session = await auth();
-        if (!session?.user?.id) return [];
+        const userId = (session?.user as any)?.id;
+        if (!userId) return [];
 
         await dbConnect();
 
         // Get all unique tags from user's collection
         const result = await UserCollection.aggregate([
-            { $match: { userId: session.user.id } },
+            { $match: { userId: userId } },
             { $unwind: '$tags' },
             { $group: { _id: '$tags', count: { $sum: 1 } } },
             { $sort: { count: -1 } },
