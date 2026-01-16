@@ -69,7 +69,7 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                 userId: (currentUserFull as any)._id,
                 instrumentId: id,
                 deletedAt: null
-            }).select('acquisition inventorySerial condition status images').lean();
+            }).select('acquisition inventorySerial condition status images location').lean();
             ownedItems = JSON.parse(JSON.stringify(ownedItems));
         }
     }
@@ -147,21 +147,10 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                                 brand={instrument.brand}
                                 model={instrument.model}
                                 year={instrument.specs?.find((s: any) => s.key.toLowerCase().includes('year'))?.value}
-                                location={instrument.location}
+                                location={ownedItems[0]?.location}
+                                serial={ownedItems[0]?.inventorySerial || ownedItems[0]?.serialNumber}
                             />
                         </div>
-                        {instrument.condition && (
-                            <div className="flex justify-between border-b pb-2 border-dashed border-gray-200 dark:border-gray-800">
-                                <span className="text-gray-500">Condición Actual</span>
-                                <span className="font-medium text-gray-900 dark:text-white">{instrument.condition}</span>
-                            </div>
-                        )}
-                        {instrument.location && (
-                            <div className="flex justify-between border-b pb-2 border-dashed border-gray-200 dark:border-gray-800">
-                                <span className="text-gray-500">Ubicación</span>
-                                <span className="font-medium text-gray-900 dark:text-white">{instrument.location}</span>
-                            </div>
-                        )}
                     </div>
 
                     <div className="glass-panel rounded-3xl p-6 space-y-6">

@@ -52,6 +52,11 @@ export async function GET(req: NextRequest) {
 
     } catch (error: any) {
         console.error('[CRON] Critical Error:', error);
+
+        // Notify Admin via Email
+        const { notifyAdminError } = await import('@/lib/error-notifier');
+        await notifyAdminError('Cron Job: upgrade-prices', error);
+
         return new NextResponse(error.message, { status: 500 });
     }
 }

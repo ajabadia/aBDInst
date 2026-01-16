@@ -94,12 +94,12 @@ export default function EditCollectionItemForm({ item }: { item: any }) {
                 <div>
                     <label className="apple-label">Condición</label>
                     <select name="condition" defaultValue={item.condition} className="apple-select">
-                        <option value="new">Nuevo</option>
-                        <option value="excellent">Excelente</option>
-                        <option value="good">Bueno</option>
-                        <option value="fair">Aceptable</option>
-                        <option value="poor">Pobre</option>
-                        <option value="for_parts">Para piezas</option>
+                        <option value="Mint">Mint</option>
+                        <option value="Excellent">Excelente</option>
+                        <option value="Good">Bueno</option>
+                        <option value="Fair">Aceptable</option>
+                        <option value="Poor">Pobre</option>
+                        <option value="Non-Functional">No Funcional</option>
                     </select>
                 </div>
             </div>

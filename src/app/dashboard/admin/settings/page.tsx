@@ -3,13 +3,14 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Settings as SettingsIcon, ShieldAlert } from 'lucide-react';
 import MaintenanceToggle from '@/components/admin/MaintenanceToggle';
+import SmtpSettingsForm from '@/components/admin/SmtpSettingsForm';
 
 export default async function AdminSettingsPage() {
     const maintenanceMode = await getSystemConfig('maintenance_mode');
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 space-y-12">
-            
+
             {/* Header Section */}
             <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
                 <div className="space-y-2">
@@ -40,15 +41,28 @@ export default async function AdminSettingsPage() {
                             <div className="space-y-1">
                                 <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Modo Mantenimiento</h3>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 max-w-xl font-medium leading-relaxed">
-                                    Al activar esta función, solo las cuentas con privilegios de Administrador podrán interactuar con la plataforma. 
+                                    Al activar esta función, solo las cuentas con privilegios de Administrador podrán interactuar con la plataforma.
                                     El resto de usuarios verán una pantalla de servicio técnico.
                                 </p>
                             </div>
                         </div>
-                        
+
                         <div className="shrink-0 pt-2 sm:pt-0">
                             <MaintenanceToggle initialState={!!maintenanceMode} />
                         </div>
+                    </div>
+                </div>
+
+                {/* SMTP Settings */}
+                <div className="glass-panel p-8 md:p-10 rounded-[2.5rem] border-black/5 dark:border-white/5 shadow-apple-sm">
+                    <div className="space-y-8">
+                        <div>
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Comunicación vía Email</h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
+                                Configura el servidor SMTP para gestionar recuperaciones de contraseña, alertas y notificaciones.
+                            </p>
+                        </div>
+                        <SmtpSettingsForm />
                     </div>
                 </div>
 

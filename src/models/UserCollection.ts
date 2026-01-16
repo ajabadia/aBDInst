@@ -11,9 +11,10 @@ const UserCollectionSchema = new Schema({
     },
     condition: {
         type: String,
-        enum: ['new', 'excellent', 'good', 'fair', 'poor', 'for_parts'],
-        default: 'good'
+        enum: ['Mint', 'Excellent', 'Good', 'Fair', 'Poor', 'Non-Functional'],
+        default: 'Good'
     },
+    location: { type: String },
     serialNumber: { type: String },
 
     acquisition: {

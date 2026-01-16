@@ -26,7 +26,7 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ collection, feed, user, finance, tags }: DashboardLayoutProps) {
     const { toggle: toggleCommandPalette } = useCommandPalette();
-    
+
     // Quick Stats Calculations
     const totalValue = collection.reduce((acc, item) => acc + (item.acquisition?.price || 0), 0);
     const itemCount = collection.length;
@@ -36,7 +36,7 @@ export default function DashboardLayout({ collection, feed, user, finance, tags 
 
     return (
         <div className="space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-700">
-            
+
             {/* --- 1. GLOBAL STATS BAR --- */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div className="apple-card p-6 bg-white dark:bg-white/5 flex items-center gap-4">
@@ -90,16 +90,16 @@ export default function DashboardLayout({ collection, feed, user, finance, tags 
 
             {/* --- 2. MAIN LAYOUT --- */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                
+
                 {/* LEFT COLUMN: Hero & Widgets */}
                 <div className="lg:col-span-8 space-y-10">
-                    
+
                     {/* WELCOME HERO */}
                     <div className="bg-gradient-to-br from-ios-blue to-ios-indigo rounded-[2.5rem] p-10 text-white shadow-apple-lg relative overflow-hidden group">
                         <div className="absolute top-[-20%] right-[-10%] opacity-10 group-hover:opacity-20 transition-opacity duration-1000 rotate-12">
                             <Music size={280} />
                         </div>
-                        
+
                         <div className="relative z-10 max-w-lg space-y-6">
                             <div className="space-y-2">
                                 <h1 className="text-4xl font-bold tracking-tight">Hola, {user.name?.split(' ')[0]}</h1>
@@ -109,20 +109,28 @@ export default function DashboardLayout({ collection, feed, user, finance, tags 
                             </div>
 
                             <div className="flex flex-wrap gap-3 pt-2">
-                                <Button 
+                                <Button
                                     onClick={toggleCommandPalette}
                                     className="bg-white text-ios-blue hover:bg-white/90 border-none px-6 h-12 text-sm font-bold shadow-md"
                                     icon={Plus}
                                 >
                                     Añadir Unidad
                                 </Button>
-                                <Link href="/instruments/compare">
-                                    <Button 
+                                <Link href="/instruments/compare" className="hidden sm:block">
+                                    <Button
                                         variant="secondary"
                                         className="bg-white/10 hover:bg-white/20 text-white border-white/10 backdrop-blur-md px-6 h-12 text-sm font-bold"
                                         icon={GitCompare}
                                     >
                                         Comparativa
+                                    </Button>
+                                </Link>
+                                <Link href="/dashboard/scan">
+                                    <Button
+                                        className="bg-black/20 hover:bg-black/30 text-white border-white/10 backdrop-blur-md px-6 h-12 text-sm font-bold"
+                                        icon={QrCode}
+                                    >
+                                        Escanear QR
                                     </Button>
                                 </Link>
                             </div>
@@ -136,7 +144,7 @@ export default function DashboardLayout({ collection, feed, user, finance, tags 
                     />
                 </div>
 
-                {/* RIGHT COLUMN: Sidebar Activity */}
+                {/* RIGHT COLUMN: Sidebar Activity & Filters */}
                 <div className="lg:col-span-4 space-y-8">
                     <div className="glass-panel rounded-[2.5rem] p-8 sticky top-28 shadow-apple-md border-black/5 dark:border-white/5">
                         <div className="flex items-center justify-between mb-8">
@@ -146,11 +154,11 @@ export default function DashboardLayout({ collection, feed, user, finance, tags 
                             </h3>
                             <span className="px-2 py-0.5 bg-ios-blue/10 text-ios-blue text-[10px] font-bold rounded-full uppercase tracking-wider">En vivo</span>
                         </div>
-                        
+
                         <div className="space-y-1 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                             <ActivityFeed activities={feed.slice(0, 8)} compact />
                         </div>
-                        
+
                         <div className="mt-8 pt-6 border-t border-black/5 dark:border-white/5">
                             <Link href="/dashboard/feed" className="flex items-center justify-center gap-2 text-sm font-bold text-ios-blue hover:underline">
                                 Ver todo el historial <ChevronRight size={16} />

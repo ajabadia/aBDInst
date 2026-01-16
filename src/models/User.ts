@@ -10,6 +10,8 @@ const UserSchema = new Schema({
     website: { type: String },
     phone: { type: String },
     emailVerified: { type: Date, default: null },
+    resetPasswordToken: { type: String, select: false },
+    resetPasswordExpires: { type: Date, select: false },
     role: {
         type: String,
         enum: ['admin', 'editor', 'normal'],

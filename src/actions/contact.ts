@@ -67,6 +67,25 @@ export async function submitContactRequest(data: {
             }
         }));
 
+        // Send Email to System Contact/Admins
+        // If config has 'support' sender, we could use that as destination or source.
+        // Usually contact forms send TO the admin.
+        const adminEmails = admins.map(a => a.email).filter(Boolean);
+        if (adminEmails.length > 0) {
+            await sendEmail({
+                to: adminEmails[0], // Send to first admin or a distribution list if we had one
+                subject: `[Nuevo Mensaje] ${data.subject}`,
+                html: `
+                    <h1>Nueva consulta de ${senderData.name}</h1>
+                    <p><strong>Email:</strong> ${senderData.email}</p>
+                    <p><strong>Asunto:</strong> ${data.subject}</p>
+                    <blockquote>${data.message}</blockquote>
+                    <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/admin/contacts/${newRequest._id}">Responder en Dashboard</a></p>
+                `,
+                channel: 'support'
+            });
+        }
+
         if (notifications.length > 0) {
             await Notification.insertMany(notifications);
         }

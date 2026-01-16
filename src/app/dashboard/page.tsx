@@ -6,12 +6,14 @@ import { getUserFeed } from '@/actions/community'; // Updated
 import { cleanData } from '@/lib/utils';
 import DashboardLayout from '@/components/dashboard/DashboardLayout';
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ condition?: string; location?: string }> }) {
     const session = await auth();
     if (!session) redirect('/login');
 
+    const params = await searchParams;
+
     const [rawCollection, feed] = await Promise.all([
-        getUserCollection(),
+        getUserCollection(params.condition, params.location),
         getUserFeed()
     ]);
 

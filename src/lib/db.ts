@@ -40,8 +40,15 @@ async function dbConnect() {
 
   try {
     cached.conn = await cached.promise;
-  } catch (e) {
+  } catch (e: any) {
     cached.promise = null;
+
+    // Alert Admin on critical DB failure
+    // Use dynamic import to avoid circular dependency loop: db -> error-reporting -> email -> admin -> db
+    import('@/lib/error-reporting').then(({ reportError }) => {
+      reportError(e, 'Database Connection', 'critical');
+    });
+
     throw e;
   }
 

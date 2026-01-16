@@ -6,7 +6,7 @@ import { signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import SettingsModal from './SettingsModal';
-import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, Shield, Heart, Activity, Wrench, Bell, Tag, Mail, MessageSquare } from 'lucide-react';
+import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, Shield, Heart, Activity, Wrench, Bell, Tag, Mail, MessageSquare, Camera } from 'lucide-react';
 import NotificationBell from './notifications/NotificationBell';
 import { useVaultMode } from '@/context/VaultModeContext';
 import { useCommandPalette } from '@/context/CommandPaletteContext';
@@ -173,11 +173,10 @@ export default function Navbar({ session }: { session: any }) {
                             </div>
                         )}
 
-                        {/* MOBILE MENU TRIGGER */}
                         <Button
-                            variant="secondary"
+                            variant="ghost"
                             size="icon"
-                            className="md:hidden"
+                            className="md:hidden text-gray-500"
                             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         >
                             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
@@ -186,33 +185,50 @@ export default function Navbar({ session }: { session: any }) {
                 </div>
             </div>
 
-            {/* MOBILE MENU */}
-            {mobileMenuOpen && (
-                <div className="md:hidden glass-panel border-t border-black/5 dark:border-white/10 animate-in slide-in-from-top duration-300">
-                    <div className="p-6 space-y-4">
-                        {navLinks.map((link) => {
-                            if (link.authRequired && !session) return null;
-                            const Icon = link.icon;
-                            return (
-                                <Link
-                                    key={link.href}
-                                    href={link.href}
-                                    onClick={() => setMobileMenuOpen(false)}
-                                    className="flex items-center gap-4 text-xl font-bold text-gray-900 dark:text-white"
-                                >
-                                    <div className="p-2 bg-ios-blue/10 text-ios-blue rounded-xl">
-                                        <Icon size={20} />
-                                    </div>
-                                    {link.name}
-                                </Link>
-                            );
-                        })}
+            {/* MOBILE ONLY QUICK ACTIONS BAR */}
+            {
+                session && (
+                    <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-6 py-3 bg-white/80 dark:bg-black/80 backdrop-blur-xl rounded-full border border-black/5 dark:border-white/10 shadow-apple-lg">
+                        <Link href="/dashboard/scan" className="p-2 text-ios-blue hover:scale-110 transition-transform">
+                            <Camera size={24} />
+                        </Link>
+                        <div className="w-px h-6 bg-black/5 dark:bg-white/10" />
+                        <button onClick={toggleCommandPalette} className="p-2 text-gray-500">
+                            <Search size={24} />
+                        </button>
                     </div>
-                </div>
-            )}
+                )
+            }
+
+            {/* MOBILE MENU */}
+            {
+                mobileMenuOpen && (
+                    <div className="md:hidden glass-panel border-t border-black/5 dark:border-white/10 animate-in slide-in-from-top duration-300">
+                        <div className="p-6 space-y-4">
+                            {navLinks.map((link) => {
+                                if (link.authRequired && !session) return null;
+                                const Icon = link.icon;
+                                return (
+                                    <Link
+                                        key={link.href}
+                                        href={link.href}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="flex items-center gap-4 text-xl font-bold text-gray-900 dark:text-white"
+                                    >
+                                        <div className="p-2 bg-ios-blue/10 text-ios-blue rounded-xl">
+                                            <Icon size={20} />
+                                        </div>
+                                        {link.name}
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
+                )
+            }
 
             <SettingsModal open={settingsOpen} onOpenChange={setSettingsOpen} />
-        </nav>
+        </nav >
     );
 }
 

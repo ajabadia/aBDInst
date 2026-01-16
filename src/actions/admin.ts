@@ -200,6 +200,15 @@ export async function getAllSystemConfigs() {
     }
 }
 
+export async function getDefaultConfig() {
+    await checkAdmin();
+    return {
+        prompt: "You are an expert instrument appraiser. Analyze the provided image/text and return a JSON object with brand, model, type, year, description, specs (array of category/label/value), originalPrice (price/currency/year), and marketValue (estimatedPrice/currency/priceRange).",
+        model: 'gemini-2.0-flash-exp'
+    };
+}
+
+
 // --- MODERATION ACTIONS ---
 
 export async function manageReport(commentId: string, action: 'dismiss' | 'delete') {
@@ -241,9 +250,32 @@ export async function punishUser(userId: string, action: 'strike' | 'ban') {
     }
 }
 
-export async function getDefaultConfig() {
-    return {
-        prompt: "Analyze this instrument...",
-        model: "gemini-1.5-flash"
-    };
+
+// --- EMAIL TEST ---
+
+export async function sendTestEmail(channel: 'general' | 'support' | 'alerts', to: string) {
+    try {
+        await checkAdmin();
+        const { sendEmail } = await import('@/lib/email');
+
+        const result = await sendEmail({
+            to,
+            subject: `[Test] Verificación de Canal: ${channel.toUpperCase()}`,
+            html: `
+                <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                    <h2 style="color: #007AFF;">Prueba de Configuración SMTP</h2>
+                    <p>Esta es una prueba de envío para el canal: <strong>${channel}</strong>.</p>
+                    <p>Si estás leyendo esto, la configuración de credenciales y la identidad del remitente son correctas.</p>
+                    <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
+                    <p style="font-size: 12px; color: #888;">Enviado desde Instrument Collector Admin Panel.</p>
+                </div>
+            `,
+            channel
+        });
+
+        if (!result.success) throw new Error(result.error);
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 }

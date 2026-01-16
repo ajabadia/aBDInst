@@ -1,0 +1,20 @@
+﻿src/actions/analytics.ts(57,49): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(pipeline?: PipelineStage[] | undefined, options?: AggregateOptions | undefined): Aggregate<any[]>', gave the following error.
+    Argument of type '({ $match: { userId: any; deletedAt: null; 'acquisition.price': { $exists: boolean; }; }; $group?: undefined; $project?: undefined; $sort?: undefined; } | { $group: { _id: { $dateToString: { format: string; date: string; }; }; avgPrice: { ...; }; }; $match?: undefined; $project?: undefined; $sort?: undefined; } | { ...' is not assignable to parameter of type 'PipelineStage[]'.
+      Type '{ $match: { userId: any; deletedAt: null; 'acquisition.price': { $exists: boolean; }; }; $group?: undefined; $project?: undefined; $sort?: undefined; } | { $group: { _id: { $dateToString: { format: string; date: string; }; }; avgPrice: { ...; }; }; $match?: undefined; $project?: undefined; $sort?: undefined; } | { ....' is not assignable to type 'PipelineStage'.
+        Type '{ $sort: { period: number; }; $match?: undefined; $group?: undefined; $project?: undefined; }' is not assignable to type 'PipelineStage'.
+          Type '{ $sort: { period: number; }; $match?: undefined; $group?: undefined; $project?: undefined; }' is not assignable to type 'Sort'.
+            Types of property '$sort' are incompatible.
+              Type '{ period: number; }' is not assignable to type 'Record<string, 1 | -1 | Meta>'.
+                Property 'period' is incompatible with index signature.
+                  Type 'number' is not assignable to type '1 | -1 | Meta'.
+  Overload 2 of 2, '(pipeline: PipelineStage[]): Aggregate<any[]>', gave the following error.
+    Argument of type '({ $match: { userId: any; deletedAt: null; 'acquisition.price': { $exists: boolean; }; }; $group?: undefined; $project?: undefined; $sort?: undefined; } | { $group: { _id: { $dateToString: { format: string; date: string; }; }; avgPrice: { ...; }; }; $match?: undefined; $project?: undefined; $sort?: undefined; } | { ...' is not assignable to parameter of type 'PipelineStage[]'.
+      Type '{ $match: { userId: any; deletedAt: null; 'acquisition.price': { $exists: boolean; }; }; $group?: undefined; $project?: undefined; $sort?: undefined; } | { $group: { _id: { $dateToString: { format: string; date: string; }; }; avgPrice: { ...; }; }; $match?: undefined; $project?: undefined; $sort?: undefined; } | { ....' is not assignable to type 'PipelineStage'.
+        Type '{ $sort: { period: number; }; $match?: undefined; $group?: undefined; $project?: undefined; }' is not assignable to type 'PipelineStage'.
+          Type '{ $sort: { period: number; }; $match?: undefined; $group?: undefined; $project?: undefined; }' is not assignable to type 'Sort'.
+            Types of property '$sort' are incompatible.
+              Type '{ period: number; }' is not assignable to type 'Record<string, 1 | -1 | Meta>'.
+                Property 'period' is incompatible with index signature.
+                  Type 'number' is not assignable to type '1 | -1 | Meta'.
+src/app/instruments/page.tsx(38,103): error TS2554: Expected 0-9 arguments, but got 11.

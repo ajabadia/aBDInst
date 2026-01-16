@@ -75,7 +75,14 @@ export default function LoginForm() {
                         required
                     />
 
-                    <div className="pt-6">
+
+                    <div className="flex justify-end">
+                        <Link href="/forgot-password" className="text-xs font-semibold text-ios-blue hover:underline">
+                            ¿Olvidaste tu contraseña?
+                        </Link>
+                    </div>
+
+                    <div className="pt-2">
                         <Button type="submit" isLoading={loading} className="w-full py-4 text-lg shadow-apple-glow">
                             Entrar
                         </Button>

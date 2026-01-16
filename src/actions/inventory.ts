@@ -5,15 +5,20 @@ import UserCollection from '@/models/UserCollection';
 import Instrument from '@/models/Instrument';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
-import { logActivity } from './community'; // Updated import
+import { logActivity } from './community';
+import { escapeRegExp } from '@/lib/utils';
 
 /* --- COLLECTION MANAGEMENT --- */
 
-export async function getUserCollection() {
+export async function getUserCollection(condition?: string | null, location?: string | null) {
     const session = await auth();
     if (!session?.user?.id) return [];
     await dbConnect();
-    const collection = await UserCollection.find({ userId: session.user.id, deletedAt: null })
+    const filter: any = { userId: session.user.id, deletedAt: null };
+    if (condition) filter.condition = condition;
+    if (location) filter.location = { $regex: new RegExp(escapeRegExp(location), 'i') };
+
+    const collection = await UserCollection.find(filter)
         .populate({ path: 'instrumentId', select: 'brand model type genericImages' })
         .sort({ createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(collection));

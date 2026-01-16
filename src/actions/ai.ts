@@ -1,6 +1,8 @@
 'use server';
 
 import { auth } from '@/auth';
+import * as cheerio from 'cheerio';
+import { extractFromUrl } from '@/lib/scraper-mapping';
 
 export async function analyzeInstrumentImage(formData: FormData) {
     const session = await auth();
@@ -154,6 +156,143 @@ export async function analyzeInstrumentText(query: string, contextUrls?: string[
         return { success: true, data: JSON.parse(textContent) };
     } catch (error: any) {
         console.error('Gemini Text Analysis Error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function analyzeInstrumentUrl(url: string) {
+    const session = await auth();
+    if (!session) return { success: false, error: 'No autorizado' };
+
+    try {
+        console.log(`--- SCRAPING URL: ${url} ---`);
+
+        // 1. Try Site-Specific Scraper (Mapping for major sites)
+        const scrapedData = await extractFromUrl(url);
+
+        const apiKey = process.env.GEMINI_API_KEY;
+
+        // If we have specific data and NO API Key, return what we have
+        if (!apiKey && scrapedData) {
+            return { success: true, data: scrapedData };
+        }
+
+        // 2. Fetch HTML for AI analysis (even if we have scrapedData, AI can help clean it or add context)
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            },
+            next: { revalidate: 3600 }
+        });
+
+        if (!response.ok) {
+            // If fetch fails but we have scrapedData, return it
+            if (scrapedData) return { success: true, data: scrapedData };
+
+            // NEW FALLBACK: If 403/Blocked, try to infer details from the URL string itself using AI
+            if (response.status === 403 || response.status === 401 || response.status === 429) {
+                console.warn(`[Blocked ${response.status}] Access denied to ${url}. Attempting AI URL inference.`);
+
+                if (!apiKey) {
+                    return { success: false, error: `El sitio bloqueó el acceso (${response.status}). Configura la API Key para intentar inferir datos del enlace.` };
+                }
+
+                const { getSystemConfig } = await import('./admin');
+                const modelName = await getSystemConfig('ai_model_name') || 'gemini-2.0-flash-exp';
+
+                const fallbackPrompt = `
+                    You are an expert instrument appraiser. I cannot access the website content due to privacy protection.
+                    
+                    ANALYZE ONLY THIS URL: "${url}"
+                    
+                    Extract or Infer the likely Brand, Model, Type, and Year from the URL slug itself.
+                    The URL often contains the product name (e.g., /p/brand-model...).
+                    
+                    Return a valid JSON object with:
+                    - brand (string)
+                    - model (string)
+                    - type (string)
+                    - description (string): "Datos inferidos por IA desde el enlace (Sitio protegido)."
+                    - specs (array of {category, label, value}): Generate likely specs for this model based on your training data.
+                    
+                    Be accurate with the model identification.
+                `;
+
+                const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: fallbackPrompt }] }],
+                        generationConfig: { response_mime_type: "application/json" }
+                    })
+                });
+
+                if (!geminiResponse.ok) throw new Error(`Fallback Analysis Error: ${geminiResponse.status}`);
+                const json = await geminiResponse.json();
+                const textContent = json.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                return { success: true, data: JSON.parse(textContent) };
+            }
+
+            throw new Error(`HTTP Error: ${response.status}`);
+        }
+
+        const html = await response.text();
+        const $ = cheerio.load(html);
+
+        // Remove noise
+        $('script, style, nav, footer, header, .ads, #footer, #header').remove();
+
+        // Get main text content
+        const pageTitle = $('title').text();
+        const mainText = $('body').text().replace(/\s+/g, ' ').trim().slice(0, 15000);
+
+        if (!apiKey) {
+            return {
+                success: true,
+                data: scrapedData || {
+                    brand: 'AI Scrape',
+                    model: 'Mock Result',
+                    description: `Contenido extraído de ${url}. Configura la API Key para análisis real.`
+                }
+            };
+        }
+
+        const { getSystemConfig } = await import('./admin');
+        const systemPrompt = await getSystemConfig('ai_system_prompt') || "You are an expert instrument appraiser. Extract brand, model, type, specs, description, and price from the provided raw page text.";
+        const modelName = await getSystemConfig('ai_model_name') || 'gemini-2.0-flash-exp';
+
+        // Provide scrapedData as context if available
+        const contextString = scrapedData
+            ? `\n\nPRE-SCRAPED DATA (Trust these values): ${JSON.stringify(scrapedData)}`
+            : '';
+
+        const geminiResponse = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: systemPrompt },
+                        { text: `CONTEXT SOURCE: ${url}\nPAGE TITLE: ${pageTitle}${contextString}\n\nPAGE CONTENT:\n${mainText}` }
+                    ]
+                }],
+                generationConfig: { response_mime_type: "application/json" }
+            })
+        });
+
+        if (!geminiResponse.ok) {
+            if (scrapedData) return { success: true, data: scrapedData };
+            throw new Error(`Gemini Error: ${geminiResponse.status}`);
+        }
+
+        const json = await geminiResponse.json();
+        const textContent = json.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        return { success: true, data: JSON.parse(textContent) };
+    } catch (error: any) {
+        console.error('URL Scrape & AI Analysis Error:', error);
         return { success: false, error: error.message };
     }
 }

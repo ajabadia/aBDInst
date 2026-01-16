@@ -8,6 +8,7 @@ import { MapPin, LayoutGrid } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 import VirtualizedStudioList from './VirtualizedStudioList';
+import CollectionFilter from '@/components/dashboard/CollectionFilter';
 
 interface StudioCollectionProps {
     collection: any[];
@@ -15,22 +16,10 @@ interface StudioCollectionProps {
 }
 
 export default function StudioCollection({ collection, allTags = [] }: StudioCollectionProps) {
-    const [filter, setFilter] = useState('All');
     const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
-    // Extract unique locations and sort them
-    const locations = useMemo(() => {
-        const locs = collection.map(item => item.location || 'Sin Ubicación');
-        return ['All', ...Array.from(new Set(locs))];
-    }, [collection]);
 
     const filteredItems = useMemo(() => {
         let items = collection;
-
-        // Filter by location
-        if (filter !== 'All') {
-            items = items.filter(item => (item.location || 'Sin Ubicación') === filter);
-        }
 
         // Filter by tags
         if (selectedTags.length > 0) {
@@ -40,34 +29,21 @@ export default function StudioCollection({ collection, allTags = [] }: StudioCol
         }
 
         return items;
-    }, [collection, filter, selectedTags]);
+    }, [collection, selectedTags]);
 
     return (
         <div className="space-y-8">
             {/* Header & Filter */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 ml-1 mb-1 flex items-center gap-2">
+            <div className="flex flex-col gap-6">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-xs font-bold uppercase tracking-widest text-gray-400 ml-1 flex items-center gap-2">
                         <LayoutGrid size={14} /> Inventario ({filteredItems.length})
                     </h2>
                 </div>
 
-                {/* Pill Selector */}
-                <div className="flex flex-wrap gap-2">
-                    {locations.map(loc => (
-                        <button
-                            key={loc}
-                            onClick={() => setFilter(loc)}
-                            className={cn(
-                                "px-4 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border",
-                                filter === loc
-                                    ? "bg-gray-900 text-white dark:bg-white dark:text-black border-transparent shadow-md transform scale-105"
-                                    : "bg-transparent text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 border-gray-200 dark:border-gray-800"
-                            )}
-                        >
-                            {loc === 'All' ? 'Todo' : loc}
-                        </button>
-                    ))}
+                {/* Integrated Global Filter */}
+                <div className="pb-4 border-b border-black/5 dark:border-white/5">
+                    <CollectionFilter showTitle={false} />
                 </div>
             </div>
 

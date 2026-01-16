@@ -2,9 +2,9 @@
 
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/Button';
-import { Sparkles, Upload, CloudLightning, X, CheckCircle, Smartphone, Search, Type, ArrowRight, ListChecks } from 'lucide-react';
+import { Sparkles, Upload, CloudLightning, X, CheckCircle, Smartphone, Search, Type, ArrowRight, ListChecks, Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { analyzeInstrumentImage, analyzeInstrumentText } from '@/actions/ai';
+import { analyzeInstrumentImage, analyzeInstrumentText, analyzeInstrumentUrl } from '@/actions/ai';
 import { toast } from 'sonner';
 
 interface MagicImporterProps {
@@ -16,7 +16,7 @@ interface MagicImporterProps {
 export default function MagicImporter({ onImport, initialSearch, contextUrls }: MagicImporterProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [step, setStep] = useState<'mode' | 'analyzing' | 'review'>('mode');
-    const [mode, setMode] = useState<'photo' | 'text'>(initialSearch ? 'text' : 'photo');
+    const [mode, setMode] = useState<'photo' | 'text' | 'url'>(initialSearch ? 'text' : 'photo');
     const [preview, setPreview] = useState<string | null>(null);
     const [textQuery, setTextQuery] = useState(initialSearch || '');
     const [results, setResults] = useState<any>(null);
@@ -47,6 +47,8 @@ export default function MagicImporter({ onImport, initialSearch, contextUrls }: 
                 res = await analyzeInstrumentImage(formData);
             } else if (mode === 'text' && textQuery) {
                 res = await analyzeInstrumentText(textQuery, contextUrls);
+            } else if (mode === 'url' && textQuery) {
+                res = await analyzeInstrumentUrl(textQuery);
             }
 
             if (res?.success && res.data) {
@@ -117,22 +119,30 @@ export default function MagicImporter({ onImport, initialSearch, contextUrls }: 
                                 {/* STEP: MODE SELECTION */}
                                 {step === 'mode' && (
                                     <div className="space-y-6">
-                                        <div className="grid grid-cols-2 gap-4">
+                                        <div className="grid grid-cols-3 gap-2">
                                             <button
                                                 type="button"
                                                 onClick={() => setMode('photo')}
-                                                className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${mode === 'photo' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 dark:border-gray-800 hover:border-gray-200'}`}
+                                                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${mode === 'photo' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 dark:border-gray-800 hover:border-gray-200'}`}
                                             >
-                                                <Smartphone size={32} className={mode === 'photo' ? 'text-purple-600' : 'text-gray-400'} />
-                                                <span className="font-bold text-sm">Foto</span>
+                                                <Smartphone size={24} className={mode === 'photo' ? 'text-purple-600' : 'text-gray-400'} />
+                                                <span className="font-bold text-xs">Foto</span>
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={() => setMode('text')}
-                                                className={`p-6 rounded-3xl border-2 transition-all flex flex-col items-center gap-3 ${mode === 'text' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 dark:border-gray-800 hover:border-gray-200'}`}
+                                                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${mode === 'text' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 dark:border-gray-800 hover:border-gray-200'}`}
                                             >
-                                                <Type size={32} className={mode === 'text' ? 'text-purple-600' : 'text-gray-400'} />
-                                                <span className="font-bold text-sm">Texto</span>
+                                                <Type size={24} className={mode === 'text' ? 'text-purple-600' : 'text-gray-400'} />
+                                                <span className="font-bold text-xs">Texto</span>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => setMode('url')}
+                                                className={`p-4 rounded-2xl border-2 transition-all flex flex-col items-center gap-2 ${mode === 'url' ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20' : 'border-gray-100 dark:border-gray-800 hover:border-gray-200'}`}
+                                            >
+                                                <CloudLightning size={24} className={mode === 'url' ? 'text-purple-600' : 'text-gray-400'} />
+                                                <span className="font-bold text-xs">Link</span>
                                             </button>
                                         </div>
 
@@ -146,7 +156,7 @@ export default function MagicImporter({ onImport, initialSearch, contextUrls }: 
                                                 <p className="font-bold text-sm relative z-10">{preview ? 'Cambiar Foto' : 'Subir Foto de Etiqueta'}</p>
                                                 <input type="file" ref={fileInputRef} hidden accept="image/*" onChange={handleFileChange} />
                                             </div>
-                                        ) : (
+                                        ) : mode === 'text' ? (
                                             <div className="space-y-3">
                                                 <div className="relative">
                                                     <input
@@ -159,7 +169,22 @@ export default function MagicImporter({ onImport, initialSearch, contextUrls }: 
                                                         <Search size={18} />
                                                     </button>
                                                 </div>
-                                                <p className="text-[10px] text-gray-400 px-2 italic">Puedes escribir la marca y modelo o darle a la lupa para usar lo que ya has escrito en el formulario.</p>
+                                                <p className="text-[10px] text-gray-400 px-2 italic">Escribe la marca y modelo para buscar especificaciones.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                <div className="relative">
+                                                    <input
+                                                        value={textQuery}
+                                                        onChange={(e) => setTextQuery(e.target.value)}
+                                                        className="apple-input pr-12"
+                                                        placeholder="https://reverb.com/item/..."
+                                                    />
+                                                    <div className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-gray-300">
+                                                        <Globe size={18} />
+                                                    </div>
+                                                </div>
+                                                <p className="text-[10px] text-gray-400 px-2 italic">Pega el link de Reverb, Vintage Synth, etc. para extraer datos automáticamente.</p>
                                             </div>
                                         )}
 

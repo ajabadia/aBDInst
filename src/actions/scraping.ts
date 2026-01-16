@@ -129,6 +129,49 @@ export async function runScraperForAlert(alertId: string) {
             await ScrapedListing.bulkWrite(bulkOps);
         }
 
+        // Notify User if deals found
+        if (deals.length > 0) {
+            try {
+                const User = (await import('@/models/User')).default;
+                const user = await User.findById(alert.userId);
+
+                if (user && user.email) {
+                    const { sendEmail } = await import('@/lib/email');
+
+                    // Simple HTML list of deals
+                    const dealsHtml = deals.slice(0, 5).map((d: any) => `
+                        <div style="margin-bottom: 10px; padding: 10px; border-bottom: 1px solid #eee;">
+                            <a href="${d.url}" style="font-weight: bold; color: #0070c9; text-decoration: none;">${d.title}</a>
+                            <div style="color: #333; font-weight: bold;">${d.price} ${d.currency}</div>
+                            <div style="font-size: 12px; color: #666;">${d.source} - ${d.location || 'Online'}</div>
+                        </div>
+                    `).join('');
+
+                    await sendEmail({
+                        to: user.email,
+                        channel: 'alerts',
+                        subject: `🎯 ${deals.length} oportunidades para "${alert.query}"`,
+                        html: `
+                            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+                                <h2 style="color: #1d1d1f;">Alerta de Precio: ${alert.query}</h2>
+                                <p style="color: #424245;">Hemos encontrado <strong>${deals.length}</strong> instrumentos por debajo de tu precio objetivo de <strong>${alert.targetPrice} EUR</strong>.</p>
+                                
+                                <div style="margin-top: 20px; border: 1px solid #d2d2d7; border-radius: 12px; padding: 16px;">
+                                    ${dealsHtml}
+                                </div>
+                                
+                                ${deals.length > 5 ? `<p style="text-align: center; margin-top: 20px;"><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/alerts" style="color: #0070c9;">Ver todos los resultados</a></p>` : ''}
+                            </div>
+                        `
+                    });
+                    console.log(`[PriceAlert] Access email sent to ${user.email} for ${alert.query}`);
+                }
+            } catch (emailErr) {
+                console.error('Failed to send alert email:', emailErr);
+                // Don't fail the scraper just because email failed
+            }
+        }
+
         // Update alert stats
         alert.lastChecked = new Date();
         alert.triggerCount += 1;

@@ -34,8 +34,6 @@ export async function createInstrument(data: FormData) {
                 ? Array.from(new Map((JSON.parse(data.get('websites') as string) as any[]).map(w => [w.url, w])).values())
                 : [],
             specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [],
-            condition: data.get('condition')?.toString() || undefined,
-            location: data.get('location')?.toString() || undefined,
             genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
             relatedTo: data.get('relatedTo') ? JSON.parse(data.get('relatedTo') as string) : [],
@@ -229,8 +227,6 @@ export async function updateInstrument(id: string, data: FormData) {
                 ? Array.from(new Map((JSON.parse(data.get('websites') as string) as any[]).map(w => [w.url, w])).values())
                 : [],
             specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [],
-            condition: data.get('condition')?.toString() || undefined,
-            location: data.get('location')?.toString() || undefined,
             genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
 
