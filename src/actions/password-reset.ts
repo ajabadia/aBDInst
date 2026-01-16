@@ -44,8 +44,7 @@ export async function requestPasswordReset(email: string) {
 
         const result = await sendEmail({
             to: user.email,
-            ...emailContent,
-            channel: 'general' // Use general/noreply identity
+            ...emailContent
         });
 
         if (!result.success) {

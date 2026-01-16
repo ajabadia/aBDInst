@@ -109,17 +109,19 @@ export async function getTemplateData(code: string) {
             subject: template?.subject || defaults.subject,
             htmlBody: template?.htmlBody || defaults.htmlBody,
             availableVariables: template?.availableVariables || defaults.vars,
+            emailAccountId: template?.emailAccountId || null,
             history: template?.history || []
         };
     } catch (error) {
         console.error(`[EmailTemplates] Error fetching code ${code}:`, error);
         const defaults = DEFAULT_TEMPLATES[code];
         return {
-            code,
+            code: code,
             name: defaults?.name || 'Unknown',
             subject: defaults?.subject || '',
             htmlBody: defaults?.htmlBody || '',
             availableVariables: defaults?.vars || [],
+            emailAccountId: null,
             history: []
         };
     }
@@ -143,11 +145,15 @@ export function renderEmail(subjectTemplate: string, bodyTemplate: string, data:
  */
 export async function getAndRenderEmail(code: string, data: Record<string, string>) {
     const template = await getTemplateData(code);
-    return renderEmail(
+    const content = renderEmail(
         template.subject,
         template.htmlBody,
         data
     );
+    return {
+        ...content,
+        emailAccountId: template.emailAccountId
+    };
 }
 
 export const SUPPORTED_TEMPLATE_CODES = Object.keys(DEFAULT_TEMPLATES);

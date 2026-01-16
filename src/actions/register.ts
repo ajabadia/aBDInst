@@ -54,8 +54,7 @@ export async function registerUser(formData: FormData) {
 
         await sendEmail({
             to: email,
-            ...emailContent,
-            channel: 'general'
+            ...emailContent
         });
 
         return { success: true };

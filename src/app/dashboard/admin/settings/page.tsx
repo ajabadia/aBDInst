@@ -1,7 +1,7 @@
 import { getSystemConfig } from '@/actions/admin';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Settings as SettingsIcon, ShieldAlert } from 'lucide-react';
+import { ArrowLeft, Settings as SettingsIcon, ShieldAlert, Mail } from 'lucide-react';
 import MaintenanceToggle from '@/components/admin/MaintenanceToggle';
 import SmtpSettingsForm from '@/components/admin/SmtpSettingsForm';
 
@@ -56,11 +56,19 @@ export default async function AdminSettingsPage() {
                 {/* SMTP Settings */}
                 <div className="glass-panel p-8 md:p-10 rounded-[2.5rem] border-black/5 dark:border-white/5 shadow-apple-sm">
                     <div className="space-y-8">
-                        <div>
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Comunicación vía Email</h3>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
-                                Configura el servidor SMTP para gestionar recuperaciones de contraseña, alertas y notificaciones.
-                            </p>
+                        <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
+                            <div>
+                                <h3 className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Comunicación vía Email</h3>
+                                <p className="text-sm text-gray-500 dark:text-gray-400 font-medium mt-1">
+                                    Configura el servidor SMTP para gestionar recuperaciones de contraseña, alertas y notificaciones.
+                                </p>
+                            </div>
+                            <Link href="/dashboard/admin/emails">
+                                <Button variant="secondary" size="sm" className="rounded-xl">
+                                    <Mail className="w-4 h-4 mr-2" />
+                                    Gestionar Plantillas
+                                </Button>
+                            </Link>
                         </div>
                         <SmtpSettingsForm />
                     </div>

@@ -156,7 +156,6 @@ export async function runScraperForAlert(alertId: string) {
 
                     await sendEmail({
                         to: user.email,
-                        channel: 'alerts',
                         ...emailContent
                     });
                     console.log(`[PriceAlert] Access email sent to ${user.email} for ${alert.query}`);

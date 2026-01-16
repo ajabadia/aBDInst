@@ -1,12 +1,10 @@
-import { sendEmail, getSmtpConfig } from '@/lib/email';
+import { sendEmail, getEmailAccountConfig } from '@/lib/email';
 import { getAndRenderEmail } from './email-templates';
 
 export async function notifyAdminError(context: string, error: any) {
     try {
-        const config = await getSmtpConfig();
-        // Send to the support email as the "admin" recipient, or fall back to a hardcoded one if needed.
-        // In a real app, we might have a specific ADMIN_EMAIL env var.
-        const adminEmail = process.env.ADMIN_EMAIL || config.senders.support;
+        const config = await getEmailAccountConfig();
+        const adminEmail = process.env.ADMIN_EMAIL || config.fromEmail;
 
         // Clean error message
         const errorMessage = error instanceof Error ? error.message : String(error);
@@ -25,9 +23,9 @@ export async function notifyAdminError(context: string, error: any) {
 
         await sendEmail({
             to: adminEmail,
-            channel: 'support', // Use support channel for system alerts
             ...emailContent
         });
+        // channel is now part of emailContent
 
         console.log(`[ErrorNotifier] Alert sent to ${adminEmail}`);
 

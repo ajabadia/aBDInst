@@ -253,24 +253,24 @@ export async function punishUser(userId: string, action: 'strike' | 'ban') {
 
 // --- EMAIL TEST ---
 
-export async function sendTestEmail(channel: 'general' | 'support' | 'alerts', to: string) {
+export async function sendTestEmail(emailAccountId: string | null, to: string) {
     try {
         await checkAdmin();
         const { sendEmail } = await import('@/lib/email');
 
         const result = await sendEmail({
             to,
-            subject: `[Test] Verificación de Canal: ${channel.toUpperCase()}`,
+            subject: `[Test] Verificación de Configuración SMTP`,
             html: `
                 <div style="font-family: sans-serif; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
                     <h2 style="color: #007AFF;">Prueba de Configuración SMTP</h2>
-                    <p>Esta es una prueba de envío para el canal: <strong>${channel}</strong>.</p>
-                    <p>Si estás leyendo esto, la configuración de credenciales y la identidad del remitente son correctas.</p>
+                    <p>Esta es una prueba de envío para verificar la cuenta seleccionada.</p>
+                    <p>Si estás leyendo esto, la configuración de credenciales y el servidor son correctos.</p>
                     <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;" />
                     <p style="font-size: 12px; color: #888;">Enviado desde Instrument Collector Admin Panel.</p>
                 </div>
             `,
-            channel
+            emailAccountId: emailAccountId || undefined
         });
 
         if (!result.success) throw new Error(result.error);
@@ -297,7 +297,7 @@ export async function getEmailTemplates() {
     }
 }
 
-export async function updateEmailTemplate(code: string, data: { subject: string; htmlBody: string }) {
+export async function updateEmailTemplate(code: string, data: { subject: string; htmlBody: string; emailAccountId: string | null }) {
     try {
         const admin = await checkAdmin();
         const EmailTemplate = (await import('@/models/EmailTemplate')).default;
@@ -311,6 +311,7 @@ export async function updateEmailTemplate(code: string, data: { subject: string;
             code,
             subject: data.subject,
             htmlBody: data.htmlBody,
+            emailAccountId: data.emailAccountId,
             name: meta.name,
             availableVariables: meta.availableVariables
         };
@@ -319,6 +320,7 @@ export async function updateEmailTemplate(code: string, data: { subject: string;
             const historyEntry = {
                 subject: existing.subject,
                 htmlBody: existing.htmlBody,
+                emailAccountId: existing.emailAccountId,
                 updatedAt: new Date(),
                 updatedBy: admin._id.toString()
             };
@@ -333,6 +335,118 @@ export async function updateEmailTemplate(code: string, data: { subject: string;
 
         revalidatePath('/dashboard/admin/emails');
         return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+// --- EMAIL ACCOUNTS (MULTI-SMTP) ---
+
+export async function getEmailAccounts() {
+    try {
+        await checkAdmin();
+        const EmailAccount = (await import('@/models/EmailAccount')).default;
+        const accounts = await EmailAccount.find({}).sort({ isDefault: -1, name: 1 }).lean();
+        return { success: true, data: JSON.parse(JSON.stringify(accounts)) };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateEmailAccount(id: string | null, data: any) {
+    try {
+        await checkAdmin();
+        const EmailAccount = (await import('@/models/EmailAccount')).default;
+
+        if (id) {
+            await EmailAccount.findByIdAndUpdate(id, data);
+        } else {
+            // If it's the first account ever, make it default
+            const count = await EmailAccount.countDocuments({});
+            if (count === 0) data.isDefault = true;
+            await EmailAccount.create(data);
+        }
+
+        revalidatePath('/dashboard/admin/settings');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function deleteEmailAccount(id: string) {
+    try {
+        await checkAdmin();
+        const EmailAccount = (await import('@/models/EmailAccount')).default;
+        const account = await EmailAccount.findById(id);
+
+        if (!account) throw new Error("Cuenta no encontrada");
+        if (account.isDefault) throw new Error("No puedes eliminar la cuenta por defecto");
+
+        await EmailAccount.findByIdAndDelete(id);
+        revalidatePath('/dashboard/admin/settings');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+/**
+ * Migrates legacy smtp_settings from SystemConfig to EmailAccount collection.
+ * This should be called once when the new system is deployed.
+ */
+export async function migrateLegacySmtp() {
+    try {
+        await checkAdmin();
+        const EmailAccount = (await import('@/models/EmailAccount')).default;
+
+        // Check if migration already happened
+        const existingCount = await EmailAccount.countDocuments({});
+        if (existingCount > 0) return { success: true, message: 'La migración ya se realizó anteriormente' };
+
+        const legacySettings = await getSystemConfig('smtp_settings');
+        if (!legacySettings) return { success: false, error: 'No se encontraron configuraciones antiguas' };
+
+        // Create the primary/general account from legacy settings
+        await EmailAccount.create({
+            name: 'General / Sistema',
+            host: legacySettings.host,
+            port: legacySettings.port,
+            user: legacySettings.user,
+            pass: legacySettings.pass,
+            secure: legacySettings.secure,
+            fromEmail: legacySettings.senders?.general || legacySettings.user,
+            isDefault: true
+        });
+
+        // Optionally create support/alerts if they were different
+        if (legacySettings.senders?.support && legacySettings.senders.support !== legacySettings.senders.general) {
+            await EmailAccount.create({
+                name: 'Soporte y Contacto',
+                host: legacySettings.host,
+                port: legacySettings.port,
+                user: legacySettings.user,
+                pass: legacySettings.pass,
+                secure: legacySettings.secure,
+                fromEmail: legacySettings.senders.support,
+                isDefault: false
+            });
+        }
+
+        if (legacySettings.senders?.alerts && legacySettings.senders.alerts !== legacySettings.senders.general) {
+            await EmailAccount.create({
+                name: 'Alertas de Precio',
+                host: legacySettings.host,
+                port: legacySettings.port,
+                user: legacySettings.user,
+                pass: legacySettings.pass,
+                secure: legacySettings.secure,
+                fromEmail: legacySettings.senders.alerts,
+                isDefault: false
+            });
+        }
+
+        return { success: true, message: 'Migración completada con éxito' };
     } catch (error: any) {
         return { success: false, error: error.message };
     }

@@ -83,8 +83,7 @@ export async function submitContactRequest(data: {
 
             await sendEmail({
                 to: adminEmails[0],
-                ...emailContent,
-                channel: 'support'
+                ...emailContent
             });
         }
 
