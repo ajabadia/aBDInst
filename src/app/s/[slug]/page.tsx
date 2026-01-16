@@ -2,7 +2,7 @@ import { getPublicShowroom } from '@/actions/showroom';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Tag, ArrowLeft, Share2, Music } from 'lucide-react';
+import { Calendar, Tag, ArrowLeft, Share2, Music, Play } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default async function PublicShowroomPage(props: { params: Promise<{ slug: string }> }) {
@@ -54,7 +54,11 @@ export default async function PublicShowroomPage(props: { params: Promise<{ slug
                     </div>
 
                     <div className="flex gap-4">
-                        {/* Share Button Logic would go here (Client Component) */}
+                        <Link href={`/s/${slug}/kiosk`}>
+                            <Button variant={isDark ? "secondary" : "primary"} icon={Play} className="px-6 rounded-full shadow-xl">
+                                Modo Kiosco
+                            </Button>
+                        </Link>
                     </div>
                 </div>
             </div>
