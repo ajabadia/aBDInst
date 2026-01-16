@@ -116,7 +116,7 @@ export default function DashboardLayout({ collection, feed, user, finance, tags 
                                 >
                                     Añadir Unidad
                                 </Button>
-                                <Link href="/instruments/compare" className="hidden sm:block">
+                                <Link href="/dashboard/compare" className="hidden sm:block">
                                     <Button
                                         variant="secondary"
                                         className="bg-white/10 hover:bg-white/20 text-white border-white/10 backdrop-blur-md px-6 h-12 text-sm font-bold"
