@@ -10,6 +10,12 @@ import { toast } from 'sonner';
 import { ArrowLeft, Save, Eye, Trash2, GripVertical, Check, Plus, X } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { FileText } from 'lucide-react';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
+import { FileText, Download, Loader2 } from 'lucide-react'; // Added icons
 
 // Simple Switch Component if not available
 function SimpleSwitch({ checked, onCheckedChange, label }: { checked: boolean; onCheckedChange: (c: boolean) => void; label: string }) {
@@ -75,11 +81,66 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
     // Helper to get collection item details
     const getItemDetails = (id: string) => collection.find(c => c._id === id);
 
+    const generatePDF = () => {
+        try {
+            const doc = new jsPDF();
+
+            // --- HEADER ---
+            doc.setFontSize(20);
+            doc.text(`Reporte: ${showroom.name}`, 14, 22);
+
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text(`Generado el: ${new Date().toLocaleDateString()}`, 14, 28);
+            doc.text("Instrument Collector App", 14, 33);
+
+            // Fetch actual full items
+            const fullItems = items.map(i => getItemDetails(i.collectionId)).filter(Boolean);
+
+            // --- SUMMARY ---
+            const totalItems = fullItems.length;
+            const totalValue = fullItems.reduce((acc, item) => acc + (item.acquisition?.price || 0), 0);
+            const currency = fullItems[0]?.acquisition?.currency || 'EUR';
+
+            doc.setDrawColor(200);
+            doc.line(14, 40, 196, 40);
+
+            doc.setFontSize(12);
+            doc.setTextColor(0);
+            doc.text(`Total Ítems: ${totalItems}`, 14, 50);
+            doc.text(`Valor Total Estimado: ${new Intl.NumberFormat('es-ES', { style: 'currency', currency }).format(totalValue)}`, 14, 56);
+
+            // --- TABLE ---
+            const tableData = fullItems.map(item => [
+                `${item.instrumentId?.brand} ${item.instrumentId?.model}`,
+                item.instrumentId?.type || 'Misc',
+                item.instrumentId?.year || 'N/A',
+                item.serialNumber || '---',
+                item.acquisition?.price ? new Intl.NumberFormat('es-ES', { style: 'currency', currency: item.acquisition.currency }).format(item.acquisition.price) : '---'
+            ]);
+
+            autoTable(doc, {
+                startY: 65,
+                head: [['Instrumento', 'Tipo', 'Año', 'Nº Serie', 'Valor']],
+                body: tableData,
+                theme: 'striped',
+                headStyles: { fillColor: [0, 0, 0] },
+                styles: { fontSize: 10 },
+            });
+
+            doc.save(`${showroom.name.replace(/\s+/g, '_')}_Report.pdf`);
+            toast.success("Reporte descargado");
+        } catch (e) {
+            console.error(e);
+            toast.error("Error generando PDF");
+        }
+    };
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 border-b border-gray-200 dark:border-white/10 pb-6">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 w-full md:w-auto">
                     <Link href="/dashboard/showrooms">
                         <Button variant="secondary" size="icon" className="rounded-full w-10 h-10">
                             <ArrowLeft size={18} />
@@ -90,7 +151,11 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
                         <p className="text-xs text-gray-500 font-mono">{showroom.slug}</p>
                     </div>
                 </div>
-                <div className="flex gap-2 w-full md:w-auto">
+
+                <div className="flex flex-wrap gap-2 w-full md:w-auto items-center">
+                    <Button variant="outline" size="sm" onClick={generatePDF} icon={FileText}>
+                        PDF
+                    </Button>
                     <Link href={`/s/${showroom.slug}`} target="_blank" className="flex-1 md:flex-none">
                         <Button variant="secondary" icon={Eye} className="w-full">Ver Público</Button>
                     </Link>
