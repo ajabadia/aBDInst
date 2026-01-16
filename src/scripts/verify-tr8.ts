@@ -1,6 +1,6 @@
-import { analyzeInstrumentText } from '../src/actions/ai';
-import dbConnect from '../src/lib/db';
-import Config from '../src/models/Config';
+import { analyzeInstrumentText } from '../actions/ai';
+import dbConnect from '../lib/db';
+import Config from '../models/Config';
 
 const TR8_DATA = `Roland TR-8  User Drum Kits16User Patterns16Steps per 1 measure1 – 16 steps x 2 (Variation A/B)Tempo40 – 300Instruments & ControlsBASS DRUM: LEVEL, TUNE, ATTACK, COMP, DECAY, INST SELECT
 SNARE DRUM: LEVEL, TUNE, SNAPPY, COMP, DECAY, INST SELECT
