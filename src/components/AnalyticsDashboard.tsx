@@ -8,6 +8,7 @@ import DistributionCharts from '@/components/DistributionCharts';
 import TopMovers from './analytics/TopMovers';
 import MarketIntelligence from './analytics/MarketIntelligence';
 import MaintenanceForecast from './analytics/MaintenanceForecast';
+import ReportsSection from './analytics/ReportsSection';
 import { Loader2, PieChart as PieIcon, Activity } from 'lucide-react';
 
 export default function AnalyticsDashboard() {
@@ -103,6 +104,10 @@ export default function AnalyticsDashboard() {
                 </div>
                 <DistributionCharts collection={collection} />
             </div>
+
+            {/* Reports */}
+            <ReportsSection collection={collection} />
+
 
         </div>
     );
