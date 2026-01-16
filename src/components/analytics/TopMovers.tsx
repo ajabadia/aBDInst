@@ -36,25 +36,25 @@ export default function TopMovers() {
 
             <div className="space-y-4">
                 {movers.map((mover) => (
-                    <div key={mover.id} className="flex items-center justify-between p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 hover:scale-[1.02] transition-transform">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 overflow-hidden shrink-0">
-                                <img src={mover.image} alt={mover.name} className="w-full h-full object-cover" />
+                    <div key={mover.id} className="flex items-center justify-between p-4 bg-white/60 dark:bg-white/5 rounded-2xl border border-gray-100 dark:border-white/5 hover:bg-white dark:hover:bg-white/10 transition-all group/item shadow-sm hover:shadow-md">
+                        <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 overflow-hidden shrink-0 border border-gray-200/50 dark:border-white/10">
+                                <img src={mover.image} alt={mover.name} className="w-full h-full object-cover group-hover/item:scale-110 transition-transform duration-500" />
                             </div>
                             <div>
-                                <p className="font-semibold text-sm truncate max-w-[120px] sm:max-w-[150px]">{mover.name}</p>
-                                <p className="text-xs text-gray-500">
+                                <p className="font-bold text-sm text-gray-900 dark:text-white truncate max-w-[120px] sm:max-w-[150px]">{mover.name}</p>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
                                     Compra: {mover.bought.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
                                 </p>
                             </div>
                         </div>
 
                         <div className="text-right">
-                            <div className={`flex items-center justify-end gap-1 font-bold ${mover.isProfitable ? 'text-green-600' : 'text-red-500'}`}>
-                                {mover.percent === 0 ? <Minus size={14} /> : mover.isProfitable ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
-                                <span>{Math.abs(mover.percent).toFixed(1)}%</span>
+                            <div className={`flex items-center justify-end gap-1 font-black text-base ${mover.isProfitable ? 'text-green-500' : 'text-red-500'}`}>
+                                {mover.percent === 0 ? <Minus size={14} /> : mover.isProfitable ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+                                <span>{mover.percent > 0 ? '+' : ''}{mover.percent.toFixed(1)}%</span>
                             </div>
-                            <p className="text-xs text-gray-500 font-medium">
+                            <p className="text-[11px] font-bold text-gray-500 dark:text-gray-400 mt-0.5">
                                 {mover.current.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
                             </p>
                         </div>

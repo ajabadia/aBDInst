@@ -145,95 +145,93 @@ export default function ValueEvolutionChart({ collection }: ValueEvolutionChartP
         return null;
     };
 
-    if (evolutionData.length === 0) {
-        return (
-            <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-6 mb-12">
-                <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp size={20} className="text-green-600" />
-                    <h3 className="font-bold text-lg">Evolución de Valor (Portafolio)</h3>
-                </div>
-                <p className="text-gray-500 text-center py-12">
-                    No hay suficientes datos. Añade instrumentos y fechas de compra para ver la evolución.
-                </p>
-            </div>
-        );
-    }
-
     return (
-        <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-6 mb-12">
-            <div className="flex items-center justify-between mb-6">
-                <div className="flex items-center gap-2">
-                    <TrendingUp size={20} className="text-green-600" />
-                    <h3 className="font-bold text-lg">Evolución del Portafolio</h3>
+        <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl rounded-[2.5rem] border border-gray-200/50 dark:border-white/10 p-8 shadow-apple-sm transition-all hover:shadow-md h-full flex flex-col">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-10">
+                <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-green-500/10 rounded-2xl">
+                        <TrendingUp size={24} className="text-green-500" strokeWidth={2.5} />
+                    </div>
+                    <div>
+                        <h3 className="font-extrabold text-sm uppercase tracking-widest text-gray-500 dark:text-gray-400">Rendimiento de Cartera</h3>
+                        <p className="text-2xl font-black tracking-tight text-gray-900 dark:text-white">Evolución Histórica</p>
+                    </div>
                 </div>
-                <div className="text-right">
-                    <p className="text-sm text-gray-500">Rentabilidad Global</p>
-                    <p className={`text-2xl font-bold ${profit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                        {profit >= 0 ? '+' : ''}{profit.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
-                        <span className="text-sm ml-2">({profitPercentage.toFixed(1)}%)</span>
+
+                <div className="bg-white/50 dark:bg-white/5 px-6 py-4 rounded-[1.5rem] border border-gray-100 dark:border-white/5">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 text-center">ROI Total</p>
+                    <p className={`text-2xl font-black leading-none ${profit >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                        {profit >= 0 ? '+' : ''}{profit.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                        <span className="text-[12px] font-bold ml-1 opacity-80">({profitPercentage.toFixed(1)}%)</span>
                     </p>
                 </div>
             </div>
 
-            <ResponsiveContainer width="100%" height={300}>
-                <AreaChart data={evolutionData}>
-                    <defs>
-                        <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#10b981" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                        </linearGradient>
-                        <linearGradient id="colorInvested" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#6366f1" stopOpacity={0.2} />
-                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
-                        </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                    <XAxis
-                        dataKey="date"
-                        stroke="#9ca3af"
-                        style={{ fontSize: '12px' }}
-                        tickLine={false}
-                        axisLine={false}
-                    />
-                    <YAxis
-                        stroke="#9ca3af"
-                        style={{ fontSize: '12px' }}
-                        tickFormatter={(value) => `${(value / 1000).toFixed(0)}k€`}
-                        tickLine={false}
-                        axisLine={false}
-                    />
-                    <Tooltip content={<CustomTooltip />} />
-                    <Legend />
-                    <Area
-                        type="monotone"
-                        dataKey="value"
-                        name="Valor de Mercado"
-                        stroke="#10b981"
-                        strokeWidth={2}
-                        fill="url(#colorValue)"
-                    />
-                    <Area
-                        type="monotone"
-                        dataKey="invested"
-                        name="Inversión"
-                        stroke="#6366f1"
-                        strokeWidth={2}
-                        fill="url(#colorInvested)"
-                    />
-                </AreaChart>
-            </ResponsiveContainer>
+            <div className="flex-1 min-h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={evolutionData}>
+                        <defs>
+                            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                                <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                            </linearGradient>
+                            <linearGradient id="colorInvested" x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
+                                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                            </linearGradient>
+                        </defs>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} strokeOpacity={0.4} />
+                        <XAxis
+                            dataKey="date"
+                            stroke="#9ca3af"
+                            style={{ fontSize: '11px', fontWeight: 'bold' }}
+                            tickLine={false}
+                            axisLine={false}
+                            dy={10}
+                        />
+                        <YAxis
+                            stroke="#9ca3af"
+                            style={{ fontSize: '11px', fontWeight: 'bold' }}
+                            tickFormatter={(value) => `${(value / 1000).toFixed(0)}k€`}
+                            tickLine={false}
+                            axisLine={false}
+                            dx={-10}
+                        />
+                        <Tooltip content={<CustomTooltip />} />
+                        <Area
+                            type="monotone"
+                            dataKey="value"
+                            name="Valor de Mercado"
+                            stroke="#10b981"
+                            strokeWidth={4}
+                            fill="url(#colorValue)"
+                            animationDuration={1500}
+                        />
+                        <Area
+                            type="monotone"
+                            dataKey="invested"
+                            name="Inversión"
+                            stroke="#3b82f6"
+                            strokeWidth={3}
+                            strokeDasharray="5 5"
+                            fill="url(#colorInvested)"
+                            animationDuration={2000}
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
+            </div>
 
-            <div className="grid grid-cols-2 gap-4 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <div className="grid grid-cols-2 gap-4 mt-8 pt-6 border-t border-gray-100 dark:border-white/5">
                 <div>
-                    <p className="text-sm text-gray-500">Inversión Total Acumulada</p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
-                        {totalInvestment.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Inversión Acumulada</p>
+                    <p className="text-xl font-black text-gray-900 dark:text-white">
+                        {totalInvestment.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
                     </p>
                 </div>
                 <div>
-                    <p className="text-sm text-gray-500">Valor Actual Estimado</p>
-                    <p className="text-xl font-bold text-gray-900 dark:text-white">
-                        {currentValue.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 text-right">Valor Estimado</p>
+                    <p className="text-xl font-black text-gray-900 dark:text-white text-right">
+                        {currentValue.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
                     </p>
                 </div>
             </div>

@@ -69,6 +69,7 @@ body {
 
 /* Components Core Styles */
 @layer components {
+
   /* Apple Button Base */
   .apple-btn {
     @apply flex items-center justify-center gap-2 font-semibold transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
@@ -102,7 +103,7 @@ body {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid rgba(0, 0, 0, 0.05);
-    border-radius: 1.5rem;
+    border-radius: 2.5rem;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
 

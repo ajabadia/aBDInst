@@ -7,6 +7,7 @@ import ValueEvolutionChart from '@/components/ValueEvolutionChart';
 import DistributionCharts from '@/components/DistributionCharts';
 import TopMovers from './analytics/TopMovers';
 import MarketIntelligence from './analytics/MarketIntelligence';
+import MaintenanceForecast from './analytics/MaintenanceForecast';
 import { Loader2, PieChart as PieIcon, Activity } from 'lucide-react';
 
 export default function AnalyticsDashboard() {
@@ -48,14 +49,37 @@ export default function AnalyticsDashboard() {
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
                 <div>
-                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-                        <Activity className="text-blue-500" />
+                    <h1 className="text-4xl font-black text-gray-900 dark:text-white flex items-center gap-3 tracking-tight">
+                        <Activity className="text-ios-blue" size={32} strokeWidth={2.5} />
                         Dashboard Analítico
                     </h1>
-                    <p className="text-gray-500 mt-1">
+                    <p className="text-gray-500 font-medium mt-1">
                         Visión global del rendimiento y composición de tu colección.
                     </p>
                 </div>
+            </div>
+
+            {/* Quick Stats Summary */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                {(() => {
+                    const totalValue = collection.reduce((acc, item) => acc + (item.marketValue?.current?.value || item.acquisition?.price || 0), 0);
+                    const totalInvested = collection.reduce((acc, item) => acc + (item.acquisition?.price || 0), 0);
+                    const profit = totalValue - totalInvested;
+
+                    return [
+                        { label: 'Valor Total', value: totalValue, color: 'text-ios-blue' },
+                        { label: 'Inversión', value: totalInvested, color: 'text-gray-500' },
+                        { label: 'Plusvalía', value: profit, color: profit >= 0 ? 'text-green-500' : 'text-red-500', prefix: profit >= 0 ? '+' : '' },
+                        { label: 'Instrumentos', value: collection.length, color: 'text-purple-500', isNumber: true }
+                    ].map((stat, i) => (
+                        <div key={i} className="bg-white/60 dark:bg-white/5 backdrop-blur-xl rounded-3xl p-6 border border-gray-200/50 dark:border-white/10 shadow-sm">
+                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">{stat.label}</p>
+                            <p className={`text-2xl font-black tracking-tight ${stat.color}`}>
+                                {stat.isNumber ? stat.value : (stat.prefix || '') + stat.value.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                            </p>
+                        </div>
+                    ));
+                })()}
             </div>
 
             {/* Top Section: Evolution & Movers */}

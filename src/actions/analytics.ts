@@ -4,7 +4,7 @@ import { auth } from '@/auth';
 import dbConnect from '@/lib/db';
 import ScrapedListing from '@/models/ScrapedListing';
 import Instrument from '@/models/Instrument';
-import User from '@/models/User';
+import UserCollection from '@/models/UserCollection';
 
 export async function getMarketTrends(query: string) {
     try {
@@ -39,50 +39,45 @@ export async function getMarketTrends(query: string) {
 export async function getPortfolioMovers() {
     try {
         const session = await auth();
-        if (!session?.user) return { success: false, error: 'Unauthorized' };
+        if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
 
         await dbConnect();
 
-        // Get user's collection with instrument details
-        const limit = 100; // Analize top 100 instruments
+        // Get user's active instruments with populated instrument data
+        const collection = await UserCollection.find({
+            userId: session.user.id,
+            deletedAt: null,
+            'acquisition.price': { $gt: 0 } // Only items with price can be 'movers' in ROI terms
+        })
+            .populate({
+                path: 'instrumentId',
+                select: 'brand model marketValue images'
+            })
+            .lean();
 
-        // This aggregation is complex because user collection is inside User model (usually) 
-        // OR we have a separate Collection model. 
-        // Based on previous files, it seems we might handle collection in User or separate.
-        // Let's assume we fetch standard instruments for now or check User model structure.
-        // Wait, 'instrument-collector' usually implies User has a 'collection' field.
+        if (!collection || collection.length === 0) return { success: true, data: [] };
 
-        const user = await User.findById(session.user.id).populate({
-            path: 'collection.instrument',
-            select: 'brand model marketValue images'
-        });
-
-        if (!user || !user.collection) return { success: true, data: [] };
-
-        const movers = user.collection.map((item: any) => {
+        const movers = collection.map((item: any) => {
             const bought = item.acquisition?.price || 0;
-            const current = item.instrument?.marketValue?.current?.value || bought;
-            const openParams = item.instrument?.marketValue?.current;
-
-            if (bought === 0) return null; // Ignore gifts/unknowns for ROI
+            // Use specific item market value history if available, else master instrument
+            const current = item.marketValue?.current || item.instrumentId?.marketValue?.current?.value || bought;
 
             const diff = current - bought;
             const percent = (diff / bought) * 100;
 
             return {
-                id: item.instrument?._id,
-                name: `${item.instrument?.brand} ${item.instrument?.model}`,
-                image: item.instrument?.images?.[0] || '/placeholder.png',
+                id: item._id.toString(),
+                name: `${item.instrumentId?.brand} ${item.instrumentId?.model}`,
+                image: item.images?.find((img: any) => img.isPrimary)?.url || item.instrumentId?.images?.[0] || '/placeholder.png',
                 bought,
                 current,
                 diff,
                 percent,
                 isProfitable: diff >= 0
             };
-        }).filter(Boolean);
+        });
 
-        // Sort by Absolute Profit (or Percent? User said "Top Movers")
-        // Let's return sorted by percent magnitude
+        // Sort by Absolute Profit Magnitude
         movers.sort((a: any, b: any) => Math.abs(b.percent) - Math.abs(a.percent));
 
         return {
@@ -91,6 +86,7 @@ export async function getPortfolioMovers() {
         };
 
     } catch (error: any) {
+        console.error('Portfolio Movers Error:', error);
         return { success: false, error: error.message };
     }
 }

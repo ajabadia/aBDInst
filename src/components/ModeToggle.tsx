@@ -18,7 +18,7 @@ export function ModeToggle() {
     return (
         <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
+            className="p-2 rounded-xl text-gray-500 hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
             aria-label="Toggle Theme"
         >
             {/* Sun Icon */}

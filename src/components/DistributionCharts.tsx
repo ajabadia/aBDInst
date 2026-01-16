@@ -68,86 +68,46 @@ export default function DistributionCharts({ collection }: DistributionChartsPro
 
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-12">
-            {/* Distribution by Type */}
-            <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <Package size={20} className="text-blue-600" />
-                    <h3 className="font-bold text-lg">Por Tipo</h3>
-                </div>
-                <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                        <Pie
-                            data={typeDistribution}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="value"
-                        >
-                            {typeDistribution.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend />
-                    </PieChart>
-                </ResponsiveContainer>
-            </div>
+            {[
+                { title: 'Composición', icon: Package, iconColor: 'text-blue-500', data: typeDistribution },
+                { title: 'Marcas Top', icon: TrendingUp, iconColor: 'text-purple-500', data: brandDistribution },
+                { title: 'Cronología', icon: Calendar, iconColor: 'text-pink-500', data: decadeDistribution }
+            ].map((chart, i) => (
+                <div key={i} className="bg-white/60 dark:bg-black/40 backdrop-blur-xl rounded-[2.5rem] border border-gray-200/50 dark:border-white/10 p-8 shadow-apple-sm transition-all hover:shadow-md">
+                    <div className="flex items-center gap-3 mb-6">
+                        <chart.icon size={22} className={chart.iconColor} strokeWidth={2.5} />
+                        <h3 className="font-extrabold text-sm uppercase tracking-widest text-gray-500 dark:text-gray-400">{chart.title}</h3>
+                    </div>
+                    <ResponsiveContainer width="100%" height={250}>
+                        <PieChart>
+                            <Pie
+                                data={chart.data}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={85}
+                                paddingAngle={5}
+                                dataKey="value"
+                            >
+                                {chart.data.map((entry: any, index: number) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} className="outline-none" />
+                                ))}
+                            </Pie>
+                            <Tooltip content={<CustomTooltip />} />
+                        </PieChart>
+                    </ResponsiveContainer>
 
-            {/* Distribution by Brand */}
-            <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <TrendingUp size={20} className="text-purple-600" />
-                    <h3 className="font-bold text-lg">Top Marcas</h3>
+                    {/* legend info */}
+                    <div className="mt-4 flex flex-wrap gap-2 justify-center">
+                        {chart.data.slice(0, 3).map((item: any, idx: number) => (
+                            <div key={idx} className="flex items-center gap-1.5 px-2 py-1 bg-gray-50 dark:bg-white/5 rounded-lg text-[10px] font-bold text-gray-400">
+                                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                                {item.name}
+                            </div>
+                        ))}
+                    </div>
                 </div>
-                <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                        <Pie
-                            data={brandDistribution}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="value"
-                        >
-                            {brandDistribution.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend />
-                    </PieChart>
-                </ResponsiveContainer>
-            </div>
-
-            {/* Distribution by Decade */}
-            <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-6">
-                <div className="flex items-center gap-2 mb-4">
-                    <Calendar size={20} className="text-pink-600" />
-                    <h3 className="font-bold text-lg">Por Década</h3>
-                </div>
-                <ResponsiveContainer width="100%" height={250}>
-                    <PieChart>
-                        <Pie
-                            data={decadeDistribution}
-                            cx="50%"
-                            cy="50%"
-                            labelLine={false}
-                            outerRadius={80}
-                            fill="#8884d8"
-                            dataKey="value"
-                        >
-                            {decadeDistribution.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                            ))}
-                        </Pie>
-                        <Tooltip content={<CustomTooltip />} />
-                        <Legend />
-                    </PieChart>
-                </ResponsiveContainer>
-            </div>
+            ))}
         </div>
     );
 }

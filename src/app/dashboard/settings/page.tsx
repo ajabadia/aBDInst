@@ -79,28 +79,7 @@ export default async function SettingsPage() {
                     </div>
                 </Link>
 
-                {/* Admin Settings Shortcut (Only for Admins) */}
-                {(user as any)?.role === 'admin' && (
-                    <Link href="/dashboard/admin/settings" className="group md:col-span-2 lg:col-span-1">
-                        <div className="glass-panel rounded-[2rem] p-8 h-full transition-all group-hover:border-ios-red/30 group-hover:bg-ios-red/[0.02] border-dashed">
-                            <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-4">
-                                    <div className="w-12 h-12 rounded-2xl bg-ios-red/10 text-ios-red flex items-center justify-center group-hover:bg-ios-red group-hover:text-white transition-all duration-500">
-                                        <ShieldCheck size={24} />
-                                    </div>
-                                    <div>
-                                        <h3 className="text-xl font-bold tracking-tight">Administración</h3>
-                                        <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">Sistema Global</p>
-                                    </div>
-                                </div>
-                                <ChevronRight className="text-gray-300 group-hover:text-ios-red group-hover:translate-x-1 transition-all" size={24} />
-                            </div>
-                            <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed font-medium">
-                                Accede al panel de control global, mantenimiento y configuración de seguridad.
-                            </p>
-                        </div>
-                    </Link>
-                )}
+
             </div>
 
             {/* User Settings Form - Integrated Panel */}

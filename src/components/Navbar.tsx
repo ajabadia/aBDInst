@@ -6,6 +6,7 @@ import { signOut } from 'next-auth/react';
 import { useState, useEffect } from 'react';
 
 import SettingsModal from './SettingsModal';
+import { ModeToggle } from './ModeToggle';
 import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, Shield, Heart, Activity, Wrench, Bell, Tag, Mail, MessageSquare, Camera } from 'lucide-react';
 import NotificationBell from './notifications/NotificationBell';
 import { useVaultMode } from '@/context/VaultModeContext';
@@ -35,7 +36,7 @@ export default function Navbar({ session }: { session: any }) {
         { name: 'Mi Colección', href: '/dashboard', icon: LayoutDashboard, authRequired: true },
         { name: 'Alertas', href: '/dashboard/alerts', icon: Bell, authRequired: true },
         { name: 'Wishlist', href: '/dashboard/wishlist', icon: Heart, authRequired: true },
-        { name: 'Mantenimiento', href: '/dashboard/maintenance', icon: Wrench, authRequired: true },
+        { name: 'Taller', href: '/dashboard/maintenance', icon: Wrench, authRequired: true },
         { name: 'Analytics', href: '/dashboard/analytics', icon: Activity, authRequired: true },
         { name: 'Contacto', href: '/contact', icon: Mail },
     ];
@@ -95,6 +96,7 @@ export default function Navbar({ session }: { session: any }) {
                     </button>
 
                     <div className="flex items-center gap-2">
+                        <ModeToggle />
                         {isVaultMode && (
                             <div className="p-2 bg-ios-orange/10 text-ios-orange rounded-xl border border-ios-orange/20">
                                 <Shield size={18} />
@@ -130,7 +132,7 @@ export default function Navbar({ session }: { session: any }) {
                                                 </Link>
                                                 <Link href="/dashboard/settings" onClick={() => setUserMenuOpen(false)}
                                                     className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-ios-blue hover:text-white rounded-xl transition-all font-medium">
-                                                    <Settings size={16} /> Ajustes
+                                                    <Settings size={16} /> Editar Perfil
                                                 </Link>
                                                 <Link href="/dashboard/requests" onClick={() => setUserMenuOpen(false)}
                                                     className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-ios-blue hover:text-white rounded-xl transition-all font-medium">
@@ -142,10 +144,7 @@ export default function Navbar({ session }: { session: any }) {
                                                             className="flex items-center gap-3 px-3 py-2 text-sm text-ios-red hover:bg-ios-red hover:text-white rounded-xl transition-all font-semibold">
                                                             <Shield size={16} /> Panel Admin
                                                         </Link>
-                                                        <Link href="/dashboard/admin/metadata" onClick={() => setUserMenuOpen(false)}
-                                                            className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-ios-blue hover:text-white rounded-xl transition-all font-medium">
-                                                            <Tag size={16} /> Metadatos
-                                                        </Link>
+
                                                         <Link href="/dashboard/admin/contacts" onClick={() => setUserMenuOpen(false)}
                                                             className="flex items-center gap-3 px-3 py-2 text-sm text-gray-600 dark:text-gray-300 hover:bg-ios-blue hover:text-white rounded-xl transition-all font-medium">
                                                             <Mail size={16} /> Buzón
@@ -222,6 +221,11 @@ export default function Navbar({ session }: { session: any }) {
                                     </Link>
                                 );
                             })}
+                            <div className="h-px bg-black/5 dark:bg-white/10 my-2" />
+                            <div className="flex items-center justify-between px-2">
+                                <span className="text-sm font-medium text-gray-500">Tema</span>
+                                <ModeToggle />
+                            </div>
                         </div>
                     </div>
                 )

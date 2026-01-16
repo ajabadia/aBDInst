@@ -37,11 +37,13 @@ export default function MaintenanceForecast({ collection }: MaintenanceForecastP
     }
 
     return (
-        <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-6">
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <Wrench size={20} className="text-orange-500" />
-                Mantenimiento
-            </h3>
+        <div className="bg-white/60 dark:bg-black/40 backdrop-blur-xl rounded-[2.5rem] border border-gray-200/50 dark:border-white/10 p-8 shadow-apple-sm transition-all hover:shadow-md">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="p-2.5 bg-orange-500/10 rounded-2xl">
+                    <Wrench size={22} className="text-orange-500" strokeWidth={2.5} />
+                </div>
+                <h3 className="font-extrabold text-sm uppercase tracking-widest text-gray-500 dark:text-gray-400">Próximos Mantenimientos</h3>
+            </div>
 
             <div className="relative border-l border-gray-200 dark:border-gray-700 ml-3 space-y-6">
                 {upcoming.map((item) => (
@@ -61,8 +63,8 @@ export default function MaintenanceForecast({ collection }: MaintenanceForecastP
                                 </div>
 
                                 <span className={`text-xs font-bold px-2 py-1 rounded-full ${item.isOverdue
-                                        ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
-                                        : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
+                                    ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'
+                                    : 'bg-blue-50 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'
                                     }`}>
                                     {item.isOverdue ? 'Vencido' : `${item.daysUntil} días`}
                                 </span>

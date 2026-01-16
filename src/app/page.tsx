@@ -120,9 +120,61 @@ export default async function Home() {
           <div className="relative">
             <div className="w-full aspect-square bg-white/10 rounded-full absolute blur-[100px] -top-20 -right-20 animate-pulse" />
             {/* Simple mockup-like representation */}
-            <div className="relative glass-panel border-white/20 p-4 rounded-[3rem] shadow-2xl rotate-6 transform translate-x-12 scale-110 hidden md:block">
-              <div className="bg-background rounded-[2.5rem] h-[500px] w-[250px] overflow-hidden flex items-center justify-center">
-                <Music className="text-ios-blue w-20 h-20 animate-bounce" />
+            <div className="relative glass-panel border-white/20 p-3 rounded-[3.5rem] shadow-2xl rotate-6 transform translate-x-12 scale-110 hidden md:block">
+              {/* iPhone Frame */}
+              <div className="bg-black rounded-[3rem] h-[580px] w-[280px] p-3 overflow-hidden ring-4 ring-black/10">
+                {/* Screen Content */}
+                <div className="bg-background w-full h-full rounded-[2.5rem] relative overflow-hidden flex flex-col">
+                  {/* Dynamic Island Area */}
+                  <div className="absolute top-0 w-full h-8 flex justify-center z-20 pt-2">
+                    <div className="w-24 h-6 black rounded-full bg-black"></div>
+                  </div>
+
+                  {/* App UI Mockup */}
+                  <div className="flex-1 bg-gradient-to-br from-indigo-500/10 via-purple-500/5 to-pink-500/10 dark:from-indigo-500/30 dark:to-purple-900/20 p-6 flex flex-col">
+                    <div className="mt-10 flex justify-between items-center mb-8">
+                      <div className="space-y-1">
+                        <div className="h-2 w-20 bg-gray-900/10 dark:bg-white/10 rounded-full" />
+                        <div className="h-6 w-32 bg-gray-900/20 dark:bg-white/20 rounded-lg" />
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-ios-blue shadow-lg shadow-ios-blue/30" />
+                    </div>
+
+                    {/* Cards */}
+                    <div className="space-y-4">
+                      <div className="bg-white/80 dark:bg-white/5 backdrop-blur-md p-4 rounded-3xl shadow-sm border border-white/20">
+                        <div className="flex gap-3 mb-3">
+                          <div className="w-12 h-12 rounded-xl bg-ios-orange/10 flex items-center justify-center text-ios-orange">
+                            <Music size={20} />
+                          </div>
+                          <div>
+                            <div className="h-3 w-24 bg-gray-900/10 dark:bg-white/10 rounded mb-1.5" />
+                            <div className="h-2 w-16 bg-gray-900/5 dark:bg-white/5 rounded" />
+                          </div>
+                        </div>
+                        <div className="h-16 w-full bg-gray-900/5 dark:bg-white/5 rounded-2xl animate-pulse" />
+                      </div>
+
+                      <div className="bg-white/80 dark:bg-white/5 backdrop-blur-md p-4 rounded-3xl shadow-sm border border-white/20">
+                        <div className="flex justify-between items-center mb-2">
+                          <div className="h-3 w-16 bg-gray-900/10 dark:bg-white/10 rounded" />
+                          <div className="h-5 w-12 bg-ios-green/20 rounded-full" />
+                        </div>
+                        <div className="space-y-2">
+                          <div className="h-2 w-full bg-gray-900/5 dark:bg-white/5 rounded" />
+                          <div className="h-2 w-2/3 bg-gray-900/5 dark:bg-white/5 rounded" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Tab Bar */}
+                  <div className="h-16 bg-white/80 dark:bg-black/80 backdrop-blur-xl border-t border-black/5 dark:border-white/5 flex justify-around items-center px-4">
+                    <div className="w-6 h-6 rounded bg-ios-blue/20 text-ios-blue flex justify-center items-center"><Music size={14} /></div>
+                    <div className="w-6 h-6 rounded bg-transparent text-gray-400 flex justify-center items-center"><ShieldCheck size={14} /></div>
+                    <div className="w-6 h-6 rounded bg-transparent text-gray-400 flex justify-center items-center"><Zap size={14} /></div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
