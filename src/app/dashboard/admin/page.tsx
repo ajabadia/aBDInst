@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { getUsers } from '@/actions/admin';
 import UserTable from '@/components/admin/UserTable';
-import { Users, Search, Bot, Tag, ChevronLeft, ChevronRight, MessageSquare } from 'lucide-react';
+import { Users, Search, Bot, Tag, ChevronLeft, ChevronRight, MessageSquare, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -92,6 +92,19 @@ export default function AdminPage() {
                         <div className="flex-1">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Buzón</h3>
                             <p className="text-xs text-ios-orange font-bold uppercase tracking-wider mt-1 opacity-70 group-hover:opacity-100 transition-opacity">Mensajes & Soporte</p>
+                        </div>
+                    </div>
+                </Link>
+
+                {/* Emails Link Card */}
+                <Link href="/dashboard/admin/emails" className="glass-panel p-8 rounded-[2rem] shadow-apple-sm group border-black/5 dark:border-white/5 hover:border-ios-blue/20 transition-all">
+                    <div className="flex items-center gap-5 h-full">
+                        <div className="p-4 bg-ios-blue/10 text-ios-blue rounded-[1.25rem] group-hover:bg-ios-blue group-hover:text-white transition-all duration-500">
+                            <Mail size={28} />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Emails</h3>
+                            <p className="text-xs text-ios-blue font-bold uppercase tracking-wider mt-1 opacity-70 group-hover:opacity-100 transition-opacity">Plantillas Dinámicas</p>
                         </div>
                     </div>
                 </Link>

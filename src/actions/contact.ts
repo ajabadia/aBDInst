@@ -72,16 +72,18 @@ export async function submitContactRequest(data: {
         // Usually contact forms send TO the admin.
         const adminEmails = admins.map(a => a.email).filter(Boolean);
         if (adminEmails.length > 0) {
+            const { getAndRenderEmail } = await import('@/lib/email-templates');
+            const emailContent = await getAndRenderEmail('CONTACT_FORM_ADMIN', {
+                name: senderData.name,
+                email: senderData.email,
+                subject: data.subject,
+                message: data.message,
+                link: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard/admin/contacts/${newRequest._id}`
+            });
+
             await sendEmail({
-                to: adminEmails[0], // Send to first admin or a distribution list if we had one
-                subject: `[Nuevo Mensaje] ${data.subject}`,
-                html: `
-                    <h1>Nueva consulta de ${senderData.name}</h1>
-                    <p><strong>Email:</strong> ${senderData.email}</p>
-                    <p><strong>Asunto:</strong> ${data.subject}</p>
-                    <blockquote>${data.message}</blockquote>
-                    <p><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/admin/contacts/${newRequest._id}">Responder en Dashboard</a></p>
-                `,
+                to: adminEmails[0],
+                ...emailContent,
                 channel: 'support'
             });
         }
@@ -141,17 +143,17 @@ export async function replyToContact(requestId: string, content: string) {
         // Notifications
         if (isAdmin) {
             // Admin replied -> Notify User
+            const { getAndRenderEmail } = await import('@/lib/email-templates');
+            const emailContent = await getAndRenderEmail('CONTACT_REPLY_USER', {
+                name: request.sender.name,
+                subject: request.subject,
+                content: content,
+                originalMessage: request.thread[0].content
+            });
+
             await sendEmail({
                 to: request.sender.email,
-                subject: `Respuesta a: ${request.subject}`,
-                html: `
-                    <h1>Hola ${request.sender.name},</h1>
-                    <p>Un administrador ha respondido a tu solicitud:</p>
-                    <blockquote>${content}</blockquote>
-                    <hr />
-                    <p>Tu mensaje original:</p>
-                    <blockquote>${request.thread[0].content}</blockquote>
-                `
+                ...emailContent
             });
 
             if (request.sender.userId) {

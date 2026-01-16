@@ -1,5 +1,5 @@
-
 import { sendEmail, getSmtpConfig } from '@/lib/email';
+import { getAndRenderEmail } from './email-templates';
 
 export async function notifyAdminError(context: string, error: any) {
     try {
@@ -17,22 +17,16 @@ export async function notifyAdminError(context: string, error: any) {
             return;
         }
 
+        const emailContent = await getAndRenderEmail('SYSTEM_ERROR', {
+            context,
+            message: errorMessage,
+            stack: errorStack || 'No stack trace'
+        });
+
         await sendEmail({
             to: adminEmail,
             channel: 'support', // Use support channel for system alerts
-            subject: `🚨 Critical Error: ${context}`,
-            html: `
-                <div style="font-family: monospace; padding: 20px; background: #fff0f0; border: 1px solid #d00; border-radius: 5px;">
-                    <h2 style="color: #d00; margin-top: 0;">System Error Alert</h2>
-                    <p><strong>Context:</strong> ${context}</p>
-                    <p><strong>Time:</strong> ${new Date().toISOString()}</p>
-                    <hr style="border: 0; border-top: 1px solid #ffcccc;" />
-                    <h3>Error Details:</h3>
-                    <pre style="background: #fff; padding: 10px; overflow-x: auto;">${errorMessage}</pre>
-                    <h3>Stack Trace:</h3>
-                    <pre style="background: #fff; padding: 10px; overflow-x: auto; font-size: 11px; color: #666;">${errorStack}</pre>
-                </div>
-            `
+            ...emailContent
         });
 
         console.log(`[ErrorNotifier] Alert sent to ${adminEmail}`);

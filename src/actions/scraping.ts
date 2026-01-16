@@ -147,22 +147,17 @@ export async function runScraperForAlert(alertId: string) {
                         </div>
                     `).join('');
 
+                    const { getAndRenderEmail } = await import('@/lib/email-templates');
+                    const emailContent = await getAndRenderEmail('PRICE_ALERT', {
+                        username: user.name || 'Usuario',
+                        query: alert.query,
+                        allDealsHtml: dealsHtml
+                    });
+
                     await sendEmail({
                         to: user.email,
                         channel: 'alerts',
-                        subject: `🎯 ${deals.length} oportunidades para "${alert.query}"`,
-                        html: `
-                            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                                <h2 style="color: #1d1d1f;">Alerta de Precio: ${alert.query}</h2>
-                                <p style="color: #424245;">Hemos encontrado <strong>${deals.length}</strong> instrumentos por debajo de tu precio objetivo de <strong>${alert.targetPrice} EUR</strong>.</p>
-                                
-                                <div style="margin-top: 20px; border: 1px solid #d2d2d7; border-radius: 12px; padding: 16px;">
-                                    ${dealsHtml}
-                                </div>
-                                
-                                ${deals.length > 5 ? `<p style="text-align: center; margin-top: 20px;"><a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard/alerts" style="color: #0070c9;">Ver todos los resultados</a></p>` : ''}
-                            </div>
-                        `
+                        ...emailContent
                     });
                     console.log(`[PriceAlert] Access email sent to ${user.email} for ${alert.query}`);
                 }

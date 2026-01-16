@@ -279,3 +279,47 @@ export async function sendTestEmail(channel: 'general' | 'support' | 'alerts', t
         return { success: false, error: error.message };
     }
 }
+// --- EMAIL TEMPLATES ---
+
+export async function getEmailTemplates() {
+    try {
+        await checkAdmin();
+        const EmailTemplate = (await import('@/models/EmailTemplate')).default;
+        const { SUPPORTED_TEMPLATE_CODES, getTemplateData } = await import('@/lib/email-templates');
+
+        const templates = await Promise.all(
+            SUPPORTED_TEMPLATE_CODES.map(code => getTemplateData(code))
+        );
+
+        return { success: true, data: JSON.parse(JSON.stringify(templates)) };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function updateEmailTemplate(code: string, data: { subject: string; htmlBody: string }) {
+    try {
+        await checkAdmin();
+        const EmailTemplate = (await import('@/models/EmailTemplate')).default;
+        const { getTemplateData } = await import('@/lib/email-templates');
+
+        // Fetch existing defaults for metadata (name, variables) if it doesn't exist yet
+        const meta = await getTemplateData(code) as any;
+
+        await EmailTemplate.findOneAndUpdate(
+            { code },
+            {
+                code,
+                subject: data.subject,
+                htmlBody: data.htmlBody,
+                name: meta.name,
+                availableVariables: meta.availableVariables
+            },
+            { upsert: true, new: true }
+        );
+
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}

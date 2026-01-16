@@ -36,27 +36,15 @@ export async function requestPasswordReset(email: string) {
 
         // Send Email using centralized service
         const resetUrl = `${process.env.NEXT_PUBLIC_APP_URL}/reset-password?token=${token}`;
-
-        const html = `
-            <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2>Recuperación de Contraseña</h2>
-                <p>Has solicitado restablecer tu contraseña para tu cuenta en Instrument Collector.</p>
-                <p>Haz clic en el siguiente botón para continuar. Este enlace expirará en 1 hora.</p>
-                <div style="text-align: center; margin: 30px 0;">
-                    <a href="${resetUrl}" style="background-color: #007AFF; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Restablecer Contraseña</a>
-                </div>
-                <p>Si no solicitaste esto, puedes ignorar este correo.</p>
-                <p style="font-size: 12px; color: #888; margin-top: 30px;">
-                    Si el botón no funciona, copia y pega este enlace:<br/>
-                    ${resetUrl}
-                </p>
-            </div>
-        `;
+        const { getAndRenderEmail } = await import('@/lib/email-templates');
+        const emailContent = await getAndRenderEmail('PASSWORD_RESET', {
+            name: user.name || 'Usuario',
+            link: resetUrl
+        });
 
         const result = await sendEmail({
             to: user.email,
-            subject: 'Restablecer Contraseña - Instrument Collector',
-            html,
+            ...emailContent,
             channel: 'general' // Use general/noreply identity
         });
 

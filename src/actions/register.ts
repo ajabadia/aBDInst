@@ -45,27 +45,16 @@ export async function registerUser(formData: FormData) {
 
         // Send Welcome Email
         const { sendEmail } = await import('@/lib/email');
+        const { getAndRenderEmail } = await import('@/lib/email-templates');
+
+        const emailContent = await getAndRenderEmail('WELCOME_USER', {
+            name,
+            link: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`
+        });
+
         await sendEmail({
             to: email,
-            subject: '¡Bienvenido a Instrument Collector!',
-            html: `
-                <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; color: #333;">
-                    <h1 style="color: #007AFF;">Bienvenido, ${name}</h1>
-                    <p>Gracias por crear tu cuenta en Instrument Collector.</p>
-                    <p>Ahora puedes comenzar a documentar tu colección, escanear identificadores y analizar tus instrumentos con nuestra IA.</p>
-                    <div style="margin: 30px 0; padding: 20px; background: #f9f9f9; border-radius: 10px;">
-                        <h3 style="margin-top: 0;">Siguientes pasos:</h3>
-                        <ul style="padding-left: 20px;">
-                            <li>Completa tu perfil de usuario.</li>
-                            <li>Añade tu primer instrumento manualmente o usando el "Magic Importer".</li>
-                            <li>Explora el catálogo global.</li>
-                        </ul>
-                    </div>
-                    <p style="text-align: center;">
-                        <a href="${process.env.NEXT_PUBLIC_APP_URL}/dashboard" style="background-color: #000; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold;">Ir a mi Dashboard</a>
-                    </p>
-                </div>
-            `,
+            ...emailContent,
             channel: 'general'
         });
 
