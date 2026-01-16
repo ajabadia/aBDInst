@@ -108,7 +108,8 @@ export async function getTemplateData(code: string) {
             name: template?.name || defaults.name,
             subject: template?.subject || defaults.subject,
             htmlBody: template?.htmlBody || defaults.htmlBody,
-            availableVariables: template?.availableVariables || defaults.vars
+            availableVariables: template?.availableVariables || defaults.vars,
+            history: template?.history || []
         };
     } catch (error) {
         console.error(`[EmailTemplates] Error fetching code ${code}:`, error);
@@ -118,7 +119,8 @@ export async function getTemplateData(code: string) {
             name: defaults?.name || 'Unknown',
             subject: defaults?.subject || '',
             htmlBody: defaults?.htmlBody || '',
-            availableVariables: defaults?.vars || []
+            availableVariables: defaults?.vars || [],
+            history: []
         };
     }
 }

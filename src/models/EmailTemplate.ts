@@ -6,6 +6,12 @@ export interface IEmailTemplate extends Document {
     subject: string;        // E.g: "¡Hola {{name}}! Bienvenido"
     htmlBody: string;       // HTML with placeholders like {{link}}
     availableVariables: string[]; // ['name', 'link']
+    history: {
+        subject: string;
+        htmlBody: string;
+        updatedAt: Date;
+        updatedBy?: string;
+    }[];
     createdAt: Date;
     updatedAt: Date;
 }
@@ -16,6 +22,12 @@ const EmailTemplateSchema = new Schema({
     subject: { type: String, required: true },
     htmlBody: { type: String, required: true },
     availableVariables: [{ type: String }],
+    history: [{
+        subject: String,
+        htmlBody: String,
+        updatedAt: { type: Date, default: Date.now },
+        updatedBy: String
+    }]
 }, {
     timestamps: true
 });

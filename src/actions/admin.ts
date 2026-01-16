@@ -299,25 +299,39 @@ export async function getEmailTemplates() {
 
 export async function updateEmailTemplate(code: string, data: { subject: string; htmlBody: string }) {
     try {
-        await checkAdmin();
+        const admin = await checkAdmin();
         const EmailTemplate = (await import('@/models/EmailTemplate')).default;
         const { getTemplateData } = await import('@/lib/email-templates');
 
         // Fetch existing defaults for metadata (name, variables) if it doesn't exist yet
+        const existing = await EmailTemplate.findOne({ code });
         const meta = await getTemplateData(code) as any;
+
+        const update: any = {
+            code,
+            subject: data.subject,
+            htmlBody: data.htmlBody,
+            name: meta.name,
+            availableVariables: meta.availableVariables
+        };
+
+        if (existing) {
+            const historyEntry = {
+                subject: existing.subject,
+                htmlBody: existing.htmlBody,
+                updatedAt: new Date(),
+                updatedBy: admin._id.toString()
+            };
+            update.$push = { history: historyEntry };
+        }
 
         await EmailTemplate.findOneAndUpdate(
             { code },
-            {
-                code,
-                subject: data.subject,
-                htmlBody: data.htmlBody,
-                name: meta.name,
-                availableVariables: meta.availableVariables
-            },
+            update,
             { upsert: true, new: true }
         );
 
+        revalidatePath('/dashboard/admin/emails');
         return { success: true };
     } catch (error: any) {
         return { success: false, error: error.message };

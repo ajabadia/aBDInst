@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getEmailTemplates, updateEmailTemplate, sendTestEmail } from '@/actions/admin';
-import { Save, Mail, Code, Info, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { Save, Mail, Code, Info, Loader2, CheckCircle, AlertCircle, History } from 'lucide-react';
 
 export default function EmailTemplatesManager() {
     const [templates, setTemplates] = useState<any[]>([]);
@@ -199,6 +199,34 @@ export default function EmailTemplatesManager() {
                                 </div>
                             </div>
                         </div>
+
+                        {/* Version History Section */}
+                        {currentTemplate?.history?.length > 0 && (
+                            <div className="bg-gray-50 dark:bg-gray-800/30 p-6 rounded-3xl border border-gray-100 dark:border-gray-800/50">
+                                <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <History size={16} /> Historial de Auditoría (Versiones Anteriores)
+                                </h3>
+                                <div className="space-y-3">
+                                    {currentTemplate.history.slice().reverse().map((h: any, idx: number) => (
+                                        <div key={idx} className="flex items-center justify-between text-xs p-3 bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800">
+                                            <div>
+                                                <span className="font-bold text-gray-700 dark:text-gray-300">Versión del {new Date(h.updatedAt).toLocaleString()}</span>
+                                                <p className="text-gray-500 truncate max-w-md mt-0.5">{h.subject}</p>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    setEditData({ subject: h.subject, htmlBody: h.htmlBody });
+                                                    setMessage({ type: 'success', text: 'Versión antigua cargada - haz clic en Guardar para restaurarla' });
+                                                }}
+                                                className="text-blue-600 font-bold hover:underline"
+                                            >
+                                                Cargar
+                                            </button>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     <div className="flex flex-col items-center justify-center h-full text-gray-400 py-20">
