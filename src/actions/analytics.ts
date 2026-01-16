@@ -1,78 +1,96 @@
-// src/actions/analytics.ts
-import Instrument from '@/models/Instrument';
-import UserCollection from '@/models/UserCollection';
-import dbConnect from '@/lib/db';
+'use server';
+
 import { auth } from '@/auth';
+import dbConnect from '@/lib/db';
+import ScrapedListing from '@/models/ScrapedListing';
+import Instrument from '@/models/Instrument';
+import User from '@/models/User';
 
-/**
- * Get overall instrument statistics.
- * Returns total count, breakdown by type, and condition distribution.
- */
-export async function getInstrumentStats() {
-    const session = await auth();
-    if (!session?.user?.id) return { total: 0, byType: [], byCondition: [] };
+export async function getMarketTrends(query: string) {
+    try {
+        const session = await auth();
+        if (!session?.user) return { success: false, error: 'Unauthorized' };
 
-    await dbConnect();
-    const userId = session.user.id;
+        await dbConnect();
 
-    const total = await UserCollection.countDocuments({ userId, deletedAt: null, status: 'active' });
+        // Fetch scraped listings for this query
+        // Sort by date ascending for charts
+        const listings = await ScrapedListing.find({
+            query: { $regex: query, $options: 'i' },
+            price: { $gt: 0 }
+        })
+            .select('price date source title url')
+            .sort({ date: 1 })
+            .limit(200); // Limit data points for performance
 
-    const byType = await UserCollection.aggregate([
-        { $match: { userId: (UserCollection as any).base.Types.ObjectId(userId), deletedAt: null, status: 'active' } },
-        { $lookup: { from: 'instruments', localField: 'instrumentId', foreignField: '_id', as: 'instrument' } },
-        { $unwind: '$instrument' },
-        { $group: { _id: '$instrument.type', count: { $sum: 1 } } },
-        { $project: { type: '$_id', count: 1, _id: 0 } },
-    ]);
+        // Calculate Trend Line (Simple Moving Average or Linear Regression)
+        // For now, let's just return raw points, UI can calculate trend
 
-    const byCondition = await UserCollection.aggregate([
-        { $match: { userId: (UserCollection as any).base.Types.ObjectId(userId), deletedAt: null, status: 'active' } },
-        { $group: { _id: '$condition', count: { $sum: 1 } } },
-        { $project: { condition: '$_id', count: 1, _id: 0 } },
-    ]);
+        return {
+            success: true,
+            data: JSON.parse(JSON.stringify(listings))
+        };
 
-    return { total, byType, byCondition };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 }
 
-/**
- * Get average price trend over time.
- * `period` can be 'monthly' or 'yearly'. Returns array of { period, avgPrice }.
- */
-export async function getPriceTrends(period: 'monthly' | 'yearly' = 'monthly') {
-    const session = await auth();
-    if (!session?.user?.id) return [];
+export async function getPortfolioMovers() {
+    try {
+        const session = await auth();
+        if (!session?.user) return { success: false, error: 'Unauthorized' };
 
-    await dbConnect();
-    const userId = session.user.id;
+        await dbConnect();
 
-    const dateField = '$acquisition.date';
-    const format = period === 'monthly' ? { $dateToString: { format: '%Y-%m', date: dateField } } : { $dateToString: { format: '%Y', date: dateField } };
+        // Get user's collection with instrument details
+        const limit = 100; // Analize top 100 instruments
 
-    const pipeline = [
-        { $match: { userId: (UserCollection as any).base.Types.ObjectId(userId), deletedAt: null, 'acquisition.price': { $exists: true } } },
-        { $group: { _id: format, avgPrice: { $avg: '$acquisition.price' } } },
-        { $project: { period: '$_id', avgPrice: { $round: ['$avgPrice', 2] }, _id: 0 } },
-        { $sort: { period: 1 as 1 } },
-    ];
-    const data = await UserCollection.aggregate(pipeline);
-    return data;
-}
+        // This aggregation is complex because user collection is inside User model (usually) 
+        // OR we have a separate Collection model. 
+        // Based on previous files, it seems we might handle collection in User or separate.
+        // Let's assume we fetch standard instruments for now or check User model structure.
+        // Wait, 'instrument-collector' usually implies User has a 'collection' field.
 
-/**
- * Get inventory distribution by location.
- */
-export async function getLocationStats() {
-    const session = await auth();
-    if (!session?.user?.id) return [];
+        const user = await User.findById(session.user.id).populate({
+            path: 'collection.instrument',
+            select: 'brand model marketValue images'
+        });
 
-    await dbConnect();
-    const userId = session.user.id;
+        if (!user || !user.collection) return { success: true, data: [] };
 
-    const data = await UserCollection.aggregate([
-        { $match: { userId: (UserCollection as any).base.Types.ObjectId(userId), deletedAt: null, status: 'active' } },
-        { $group: { _id: '$location', count: { $sum: 1 } } },
-        { $project: { location: '$_id', count: 1, _id: 0 } },
-        { $sort: { count: -1 } },
-    ]);
-    return data;
+        const movers = user.collection.map((item: any) => {
+            const bought = item.acquisition?.price || 0;
+            const current = item.instrument?.marketValue?.current?.value || bought;
+            const openParams = item.instrument?.marketValue?.current;
+
+            if (bought === 0) return null; // Ignore gifts/unknowns for ROI
+
+            const diff = current - bought;
+            const percent = (diff / bought) * 100;
+
+            return {
+                id: item.instrument?._id,
+                name: `${item.instrument?.brand} ${item.instrument?.model}`,
+                image: item.instrument?.images?.[0] || '/placeholder.png',
+                bought,
+                current,
+                diff,
+                percent,
+                isProfitable: diff >= 0
+            };
+        }).filter(Boolean);
+
+        // Sort by Absolute Profit (or Percent? User said "Top Movers")
+        // Let's return sorted by percent magnitude
+        movers.sort((a: any, b: any) => Math.abs(b.percent) - Math.abs(a.percent));
+
+        return {
+            success: true,
+            data: JSON.parse(JSON.stringify(movers.slice(0, 5)))
+        };
+
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
 }

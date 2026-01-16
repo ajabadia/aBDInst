@@ -1,132 +1,86 @@
 // src/components/AnalyticsDashboard.tsx
-"use client";
+'use client';
+
 import { useEffect, useState } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/Card';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line, CartesianGrid, Legend } from 'recharts';
-
-interface StatsData {
-    total: number;
-    byType: { type: string; count: number }[];
-    byCondition: { condition: string; count: number }[];
-}
-
-interface PriceTrend {
-    period: string;
-    avgPrice: number;
-}
-
-interface LocationStat {
-    location: string;
-    count: number;
-}
+import { getUserCollection } from '@/actions/collection';
+import ValueEvolutionChart from '@/components/ValueEvolutionChart';
+import DistributionCharts from '@/components/DistributionCharts';
+import TopMovers from './analytics/TopMovers';
+import MarketIntelligence from './analytics/MarketIntelligence';
+import { Loader2, PieChart as PieIcon, Activity } from 'lucide-react';
 
 export default function AnalyticsDashboard() {
-    const [stats, setStats] = useState<StatsData | null>(null);
-    const [priceTrends, setPriceTrends] = useState<PriceTrend[]>([]);
-    const [locationStats, setLocationStats] = useState<LocationStat[]>([]);
+    const [collection, setCollection] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        async function fetchData() {
+        async function init() {
             try {
-                const [statsRes, priceRes, locRes] = await Promise.all([
-                    fetch('/api/analytics?type=stats'),
-                    fetch('/api/analytics?type=price&period=monthly'),
-                    fetch('/api/analytics?type=location'),
-                ]);
-                const statsJson = await statsRes.json();
-                const priceJson = await priceRes.json();
-                const locJson = await locRes.json();
-                if (statsJson.success) setStats(statsJson.data);
-                if (priceJson.success) setPriceTrends(priceJson.data);
-                if (locJson.success) setLocationStats(locJson.data);
+                const res = await getUserCollection();
+                if (Array.isArray(res)) {
+                    setCollection(res); // The action returns the array directly properly parsed
+                } else if (res && (res as any).success === false) {
+                    // Handle error object if the action signature changes, but currently it returns array or empty array on error
+                    console.error("Error loading collection");
+                } else {
+                    setCollection(res);
+                }
             } catch (e) {
-                console.error('Analytics fetch error', e);
+                console.error("Error loading collection", e);
             } finally {
                 setLoading(false);
             }
         }
-        fetchData();
+        init();
     }, []);
 
-    if (loading) return <div className="p-8 text-center">Cargando métricas...</div>;
-    if (!stats) return <div className="p-8 text-center">No hay datos disponibles.</div>;
+    if (loading) {
+        return (
+            <div className="flex h-[50vh] items-center justify-center text-gray-400">
+                <Loader2 className="animate-spin mr-2" /> Cargando Dashboard...
+            </div>
+        );
+    }
 
     return (
-        <div className="p-6 space-y-8">
-            {/* Summary cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Total de instrumentos</CardTitle>
-                    </CardHeader>
-                    <CardContent className="text-3xl font-bold">{stats.total}</CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Tipos de instrumentos</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="list-disc pl-5 space-y-1">
-                            {stats.byType.map((t) => (
-                                <li key={t.type}>
-                                    {t.type}: {t.count}
-                                </li>
-                            ))}
-                        </ul>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Condiciones</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <ul className="list-disc pl-5 space-y-1">
-                            {stats.byCondition.map((c) => (
-                                <li key={c.condition}>
-                                    {c.condition}: {c.count}
-                                </li>
-                            ))}
-                        </ul>
-                    </CardContent>
-                </Card>
+        <div className="max-w-7xl mx-auto space-y-8 pb-12">
+
+            {/* Header */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-4">
+                <div>
+                    <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+                        <Activity className="text-blue-500" />
+                        Dashboard Analítico
+                    </h1>
+                    <p className="text-gray-500 mt-1">
+                        Visión global del rendimiento y composición de tu colección.
+                    </p>
+                </div>
             </div>
 
-            {/* Price trend line chart */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Evolución del precio medio (mensual)</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <LineChart data={priceTrends}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="period" />
-                            <YAxis />
-                            <Tooltip />
-                            <Legend />
-                            <Line type="monotone" dataKey="avgPrice" stroke="#2563eb" name="Precio medio" />
-                        </LineChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
+            {/* Top Section: Evolution & Movers */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-2">
+                    <ValueEvolutionChart collection={collection} />
+                </div>
+                <div className="xl:col-span-1">
+                    <TopMovers />
+                </div>
+            </div>
 
-            {/* Location distribution bar chart */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Distribución por ubicación</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={locationStats} layout="vertical" margin={{ left: 80 }}>
-                            <XAxis type="number" />
-                            <YAxis dataKey="location" type="category" width={150} />
-                            <Tooltip />
-                            <Bar dataKey="count" fill="#10b981" name="Cantidad" />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </CardContent>
-            </Card>
+            {/* Middle Section: Market Intelligence (New) */}
+            <MarketIntelligence />
+
+            {/* Bottom Section: Distributions */}
+            <div>
+                <div className="flex items-center gap-2 mb-6 ml-2">
+                    <PieIcon className="text-purple-500" />
+                    <h2 className="text-xl font-bold">Distribución del Inventario</h2>
+                </div>
+                <DistributionCharts collection={collection} />
+            </div>
+
         </div>
     );
 }
+

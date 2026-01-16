@@ -1,84 +1,64 @@
 'use client';
 
-import { useMemo } from 'react';
-import { TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { getPortfolioMovers } from '@/actions/analytics';
+import { ArrowUpRight, ArrowDownRight, Minus, TrendingUp } from 'lucide-react';
 
-interface TopMoversProps {
-    collection: any[];
-}
+export default function TopMovers() {
+    const [movers, setMovers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
 
-export default function TopMovers({ collection }: TopMoversProps) {
-    const movers = useMemo(() => {
-        if (!collection || collection.length === 0) return [];
+    useEffect(() => {
+        const fetchMovers = async () => {
+            try {
+                const res = await getPortfolioMovers();
+                if (res.success) {
+                    setMovers(res.data);
+                }
+            } catch (e) {
+                console.error("Failed to load movers", e);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchMovers();
+    }, []);
 
-        return collection
-            .map(item => {
-                const cost = item.acquisition?.price || 0;
-                const current = item.marketValue?.current?.value || cost;
-                const profit = current - cost;
-                const roi = cost > 0 ? (profit / cost) * 100 : 0;
-
-                return {
-                    id: item._id,
-                    name: `${item.instrument?.brand} ${item.instrument?.model}`,
-                    image: item.images?.find((img: any) => img.isPrimary)?.url || item.instrument?.genericImages?.[0],
-                    cost,
-                    current,
-                    profit,
-                    roi
-                };
-            })
-            // Filter only items with price change
-            .filter(item => Math.abs(item.profit) > 0)
-            .sort((a, b) => b.roi - a.roi) // Sort by ROI desc
-            .slice(0, 5); // Take top 5
-    }, [collection]);
-
+    if (loading) return <div className="h-64 bg-gray-100 dark:bg-gray-800 animate-pulse rounded-[2rem]"></div>;
     if (movers.length === 0) return null;
 
     return (
-        <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-6">
-            <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <TrendingUp size={20} className="text-blue-600" />
-                Top Movers (ROI)
-            </h3>
+        <div className="bg-white/40 dark:bg-black/20 backdrop-blur-md rounded-[2rem] border border-gray-200/50 dark:border-white/10 p-6 h-full">
+            <div className="flex items-center gap-2 mb-6">
+                <TrendingUp size={20} className="text-purple-600" />
+                <h3 className="font-bold text-lg">Top Movimientos (ROI)</h3>
+            </div>
 
             <div className="space-y-4">
-                {movers.map((item) => (
-                    <Link key={item.id} href={`/instruments/${item.id}`} className="block group">
-                        <div className="flex items-center gap-3 p-2 rounded-xl hover:bg-white/50 dark:hover:bg-white/5 transition-colors">
-                            {/* Avatar */}
-                            <div className="w-12 h-12 rounded-lg bg-gray-100 dark:bg-gray-800 overflow-hidden relative border border-gray-200 dark:border-gray-700">
-                                {item.image ? (
-                                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                                ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-gray-400 text-xs">IMG</div>
-                                )}
+                {movers.map((mover) => (
+                    <div key={mover.id} className="flex items-center justify-between p-3 bg-white/50 dark:bg-white/5 rounded-xl border border-gray-100 dark:border-white/5 hover:scale-[1.02] transition-transform">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 overflow-hidden shrink-0">
+                                <img src={mover.image} alt={mover.name} className="w-full h-full object-cover" />
                             </div>
-
-                            {/* Info */}
-                            <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm text-gray-900 dark:text-gray-100 truncate group-hover:text-blue-600 transition-colors">
-                                    {item.name}
-                                </p>
+                            <div>
+                                <p className="font-semibold text-sm truncate max-w-[120px] sm:max-w-[150px]">{mover.name}</p>
                                 <p className="text-xs text-gray-500">
-                                    Comp: {item.cost.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
-                                </p>
-                            </div>
-
-                            {/* Stats */}
-                            <div className="text-right">
-                                <div className={`flex items-center justify-end gap-1 font-bold text-sm ${item.roi > 0 ? 'text-green-600' : 'text-red-500'}`}>
-                                    {item.roi > 0 ? <TrendingUp size={14} /> : <TrendingDown size={14} />}
-                                    {item.roi > 0 ? '+' : ''}{item.roi.toFixed(1)}%
-                                </div>
-                                <p className={`text-xs ${item.profit > 0 ? 'text-green-600/70' : 'text-red-500/70'}`}>
-                                    {item.profit > 0 ? '+' : ''}{item.profit.toLocaleString('es-ES', { style: 'currency', currency: 'EUR' })}
+                                    Compra: {mover.bought.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
                                 </p>
                             </div>
                         </div>
-                    </Link>
+
+                        <div className="text-right">
+                            <div className={`flex items-center justify-end gap-1 font-bold ${mover.isProfitable ? 'text-green-600' : 'text-red-500'}`}>
+                                {mover.percent === 0 ? <Minus size={14} /> : mover.isProfitable ? <ArrowUpRight size={16} /> : <ArrowDownRight size={16} />}
+                                <span>{Math.abs(mover.percent).toFixed(1)}%</span>
+                            </div>
+                            <p className="text-xs text-gray-500 font-medium">
+                                {mover.current.toLocaleString('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })}
+                            </p>
+                        </div>
+                    </div>
                 ))}
             </div>
         </div>
