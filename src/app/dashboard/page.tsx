@@ -12,15 +12,21 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
     const params = await searchParams;
 
-    const [rawCollection, feed] = await Promise.all([
+    const [rawCollection, feed, userFull] = await Promise.all([
         getUserCollection(params.condition, params.location),
-        getUserFeed()
+        getUserFeed(),
+        (await import('@/models/User')).default.findById(session.user?.id).select('badges').lean()
     ]);
 
     const collection = cleanData(rawCollection);
+    const badges = JSON.parse(JSON.stringify(userFull?.badges || []));
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20">
+        <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 space-y-8">
+            <div className="md:col-span-12">
+                <BadgeCase badges={badges} />
+            </div>
+
             <DashboardLayout
                 collection={collection}
                 feed={feed.success ? feed.data : []}
@@ -29,3 +35,4 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
     );
 }
+import BadgeCase from '@/components/dashboard/BadgeCase';

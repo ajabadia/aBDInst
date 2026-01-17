@@ -27,3 +27,34 @@ export async function getExhibitionBySlug(slug: string) {
         submissions: JSON.parse(JSON.stringify(submissions))
     };
 }
+
+export async function submitToExhibition(data: { exhibitionId: string, instrumentId: string, notes: string }) {
+    const session = await (await import('@/auth')).auth();
+    if (!session) return { success: false, error: 'Unauthorized' };
+
+    try {
+        await dbConnect();
+
+        // Validation: Check if strictly valid... for now trust UI + unique index
+
+        await ExhibitionSubmission.create({
+            exhibition: data.exhibitionId,
+            instrument: data.instrumentId,
+            user: session.user.id,
+            notes: data.notes,
+            status: 'approved' // Auto-approve for now (or pending if logic required)
+        });
+
+        // Gamification: Award Badge
+        const { awardBadge } = await import('@/actions/gamification');
+        await awardBadge(session.user.id, 'EXHIBITOR');
+
+        // Revalidate
+        const { revalidatePath } = await import('next/cache');
+        revalidatePath('/showrooms/[slug]', 'page'); // Generic revalidation might need specific slug
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message }; // Duplicate error handled here
+    }
+}
+
