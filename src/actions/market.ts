@@ -6,19 +6,37 @@ import UserCollection from '@/models/UserCollection';
 import Instrument from '@/models/Instrument'; // Populate dependency
 
 // --- READ ---
+// --- READ ---
 export async function getMarketListings(filters: any = {}) {
     await dbConnect();
 
     const query: any = { status: 'active' };
 
-    // Basic filters
-    if (filters.minPrice) query.price = { ...query.price, $gte: filters.minPrice };
-    if (filters.maxPrice) query.price = { ...query.price, $lte: filters.maxPrice };
+    // Price
+    if (filters.minPrice) query.price = { ...query.price, $gte: Number(filters.minPrice) };
+    if (filters.maxPrice) query.price = { ...query.price, $lte: Number(filters.maxPrice) };
+
+    // Condition
+    if (filters.condition) query.condition = filters.condition;
+
+    // Text Search (Brand/Model)
+    if (filters.q) {
+        // Find instruments matching query first
+        const Instrument = (await import('@/models/Instrument')).default;
+        const matchedInstruments = await Instrument.find({
+            $or: [
+                { brand: { $regex: filters.q, $options: 'i' } },
+                { model: { $regex: filters.q, $options: 'i' } }
+            ]
+        }).select('_id');
+
+        query.instrument = { $in: matchedInstruments };
+    }
 
     const listings = await MarketListing.find(query)
         .sort({ createdAt: -1 })
         .populate('instrument')
-        .populate('user', 'name image location')
+        .populate('user', 'name image location badges')
         .lean();
 
     return JSON.parse(JSON.stringify(listings));
