@@ -92,3 +92,70 @@ export async function voteForSubmission(submissionId: string) {
 }
 
 
+
+/* =========================================
+   USER SHOWROOMS (Shareable Collections)
+   Phase 3 Feature
+   ========================================= */
+import Showroom from '@/models/Showroom';
+
+export async function getUserShowrooms() {
+    const session = await (await import('@/auth')).auth();
+    if (!session) return [];
+
+    await dbConnect();
+    const showrooms = await Showroom.find({ userId: session.user.id })
+        .sort({ createdAt: -1 })
+        .populate({
+            path: 'items.collectionId',
+            populate: { path: 'instrumentId' }
+        })
+        .lean();
+
+    return JSON.parse(JSON.stringify(showrooms));
+}
+
+export async function createShowroom(formData: FormData) {
+    const session = await (await import('@/auth')).auth();
+    if (!session) return { success: false, error: 'Unauthorized' };
+
+    const name = formData.get('name') as string;
+    const description = formData.get('description') as string;
+
+    if (!name) return { success: false, error: 'Name is required' };
+
+    await dbConnect();
+
+    // Simple slug gen
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
+
+    try {
+        await Showroom.create({
+            userId: session.user.id,
+            name,
+            description,
+            slug,
+            items: [], // Start empty
+            theme: 'minimal',
+            isPublic: true
+        });
+
+        const { revalidatePath } = await import('next/cache');
+        revalidatePath('/dashboard/showrooms');
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function deleteShowroom(id: string) {
+    const session = await (await import('@/auth')).auth();
+    if (!session) return { success: false, error: 'Unauthorized' };
+
+    await dbConnect();
+    await Showroom.findOneAndDelete({ _id: id, userId: session.user.id });
+
+    const { revalidatePath } = await import('next/cache');
+    revalidatePath('/dashboard/showrooms');
+    return { success: true };
+}
