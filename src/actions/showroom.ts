@@ -58,3 +58,37 @@ export async function submitToExhibition(data: { exhibitionId: string, instrumen
     }
 }
 
+export async function voteForSubmission(submissionId: string) {
+    const session = await (await import('@/auth')).auth();
+    if (!session) return { success: false, error: 'Unauthorized' };
+
+    try {
+        await dbConnect();
+        const ExhibitionVote = (await import('@/models/ExhibitionVote')).default;
+
+        // Optimize: Fetch submission to get exhibition ID first
+        const submission = await ExhibitionSubmission.findById(submissionId).select('exhibition');
+        if (!submission) return { success: false, error: 'Submission not found' };
+
+        // Check if exhibition allows voting (optional check, for now assuming if it's visible effectively yes)
+
+        // Transaction-like logic
+        await ExhibitionVote.create({
+            exhibition: submission.exhibition,
+            submission: submissionId,
+            user: session.user.id
+        });
+
+        await ExhibitionSubmission.findByIdAndUpdate(submissionId, { $inc: { votes: 1 } });
+
+        const { revalidatePath } = await import('next/cache');
+        revalidatePath('/showrooms/[slug]', 'page');
+        return { success: true };
+
+    } catch (error: any) {
+        if (error.code === 11000) return { success: false, error: 'Already voted' };
+        return { success: false, error: error.message };
+    }
+}
+
+
