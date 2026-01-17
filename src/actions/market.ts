@@ -24,6 +24,24 @@ export async function getMarketListings(filters: any = {}) {
     return JSON.parse(JSON.stringify(listings));
 }
 
+export async function getMarketListingById(id: string) {
+    await dbConnect();
+
+    // Increment views atomically
+    const listing = await MarketListing.findByIdAndUpdate(id, { $inc: { views: 1 } }, { new: true })
+        .populate('instrument')
+        .populate({
+            path: 'user',
+            select: 'name image location badges createdAt',
+            // select badges to show reputation
+        })
+        .lean();
+
+    if (!listing) return null;
+
+    return JSON.parse(JSON.stringify(listing));
+}
+
 // --- WRITE ---
 export async function createListing(data: any) {
     const session = await (await import('@/auth')).auth();
