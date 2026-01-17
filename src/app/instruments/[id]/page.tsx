@@ -19,7 +19,8 @@ import PdfPreviewModal from '@/components/PdfPreviewModal';
 import { getRelatedGear } from '@/actions/instrument';
 import { getComments } from '@/actions/comments';
 import { getResources } from '@/actions/resource';
-import { ArrowLeft, FileText, Box, ChevronRight, Layers, Globe, ExternalLink, Star } from 'lucide-react';
+import { getEntityStatus } from '@/actions/scheduler';
+import { ArrowLeft, FileText, Box, ChevronRight, Layers, Globe, ExternalLink, Star, Trophy, Museum } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { cn } from '@/lib/utils';
@@ -44,6 +45,9 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
     const { id } = await params;
     const instrument = await getInstrumentById(id);
     if (!instrument) notFound();
+
+    // Integration: Check museum/spotlight status
+    const entityStatus = await getEntityStatus('Instrument', id);
 
     const relatedGear = await getRelatedGear(id);
     const session = await auth();
@@ -98,7 +102,7 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                         <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-gray-900 dark:text-white leading-[1.1]">
                             {instrument.model}
                         </h1>
-                        <div className="flex items-center gap-3 text-xl text-gray-500 dark:text-gray-400 font-medium pt-2">
+                        <div className="flex items-center gap-3 text-xl text-gray-500 dark:text-gray-400 font-medium pt-2 flex-wrap">
                             <span>{instrument.type}</span>
                             {instrument.subtype && (
                                 <>
@@ -106,6 +110,20 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                                     <span>{instrument.subtype}</span>
                                 </>
                             )}
+
+                            {/* SPOTLIGHT BADGE */}
+                            {entityStatus.isFeatured && (
+                                <span className="ml-2 px-3 py-1 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1 border border-yellow-200 dark:border-yellow-700/50">
+                                    <Trophy size={12} /> Instrumento del Mes
+                                </span>
+                            )}
+
+                            {/* EXHIBITION BADGE */}
+                            {entityStatus.activeExhibitions.map((ex: any) => (
+                                <span key={ex._id} className="ml-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1 border border-purple-200 dark:border-purple-700/50">
+                                    <Museum size={12} /> {ex.title}
+                                </span>
+                            ))}
                         </div>
                     </div>
                     <InstrumentHeaderButtons
