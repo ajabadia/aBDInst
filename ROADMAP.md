@@ -35,17 +35,22 @@ Monitorización ambiental proactiva.
     - Alertas en tiempo real (ej. "Peligro: Baja humedad en estudio").
 - **IoT Integration**: Hardware sensors API.
 
-## Phase 4: Museum & Social (New)
-- **Rich Instrument Stories**:
-    - Users can write multiple "Mini-articles" or notes per instrument.
-    - Contextual visibility: Choose which note appears in which Showroom.
-- **Enhanced Showroom Experience**:
-    - "Museum Card" view: Curated photos + Story + Catalog Link.
-    - Click-through details within Showrooms.
-- **Virtual Loans**:
-    - "Lend" an instrument to another user's Showroom.
-    - Attribution system ("Courtesy of @username").
+## Phase 4: Museum, Social & Gamification (New)
+- **Exhibitions (Exposiciones)**:
+    - **Types**: Open Call (Public Join) vs Invitation Only.
+    - **Dynamics**: Showcase (Standard) vs Contest (Voting/Jury).
+    - **Lifecycle**: Scheduled (Start/End Dates), Current, Past (Archive Mode).
+    - **Management**: Admins create events; Users "submit" instruments.
+- **Enhanced Showroom Hub**:
+    - Public `/showrooms` page becomes "The Museum Hall".
+    - Sections: "Now Showing", "Coming Soon", "Past Exhibitions".
+- **Gamification & Rewards**:
+    - **Awards**: Virtual Medals/Trophies for contest winners or participation.
+    - **Profile Integration**: "Trophy Case" and "Exhibition History" on User Profiles.
+- **Landing Page Upgrade**:
+    - Dynamic feed of Blog Articles and Active Exhibitions.
 
-## 5. AI Suite Expansion
+## 5. Hardware & IoT (Taller 2.0)
+- **IoT Integration**: Hardware sensors API.
 - **Luthier AI**: Diagnóstico visual de problemas de mantenimiento mediante fotos.
 - **Smart Sales**: Generador de descripciones de venta persuasivas para Reverb/Wallapop.
