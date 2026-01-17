@@ -3,6 +3,8 @@
 import { auth } from '@/auth';
 import * as cheerio from 'cheerio';
 import { extractFromUrl } from '@/lib/scraper-mapping';
+import dbConnect from '@/lib/db';
+import User from '@/models/User';
 
 export async function analyzeInstrumentImage(formData: FormData) {
     const session = await auth();
@@ -433,6 +435,62 @@ export async function fetchAvailableModels() {
 
         return { success: true, models };
     } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function generateBlogContent(prompt: string, context: { title?: string; currentContent?: string; linkedInstruments?: any[] }) {
+    const session = await auth();
+    if (!session) return { success: false, error: 'Unauthorized' };
+
+    try {
+        await dbConnect();
+        // Fetch user with secure field
+        const user = await User.findById(session.user.id).select('+aiConfig.apiKey');
+
+        let apiKey = user?.aiConfig?.apiKey || process.env.GEMINI_API_KEY;
+        let modelName = user?.aiConfig?.model || 'gemini-2.0-flash-exp';
+
+        if (!apiKey) throw new Error('No AI API Key configured. Please add one in your settings or ask Admin.');
+
+        const contextString = `
+        CONTEXT:
+        Title: ${context.title || 'Untitled'}
+        Current Draft: "${(context.currentContent || '').slice(-2000)}" 
+        Linked Instruments: ${JSON.stringify(context.linkedInstruments || [], null, 2)}
+        `;
+
+        const systemPrompt = `
+        You are an expert music journalist and instrument historian. 
+        Assist the user in writing a blog article. 
+        Tone: Professional, Passionate, Informative.
+        Format: Markdown.
+        
+        Task: ${prompt}
+        `;
+
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{
+                    parts: [
+                        { text: systemPrompt },
+                        { text: contextString }
+                    ]
+                }],
+                generationConfig: { response_mime_type: "text/plain" }
+            })
+        });
+
+        if (!response.ok) throw new Error(`AI Error: ${response.status}`);
+        const json = await response.json();
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+
+        return { success: true, data: text };
+
+    } catch (error: any) {
+        console.error('AI Blog Gen Error:', error);
         return { success: false, error: error.message };
     }
 }

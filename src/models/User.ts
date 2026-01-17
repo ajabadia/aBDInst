@@ -47,6 +47,21 @@ const UserSchema = new Schema({
         },
         lastTested: { type: Date }
     },
+    aiConfig: {
+        provider: {
+            type: String,
+            enum: ['gemini', 'openai', 'anthropic'],
+            default: 'gemini'
+        },
+        apiKey: {
+            type: String,
+            select: false // Secure: never return in queries by default
+        },
+        model: {
+            type: String,
+            default: 'gemini-2.0-flash-exp'
+        }
+    },
     dashboardLayout: {
         type: [{
             id: { type: String, required: true },

@@ -33,7 +33,18 @@ Monitorización ambiental proactiva.
 - **Funcionalidad**:
     - Ingesta de datos de sensores (Temp/Humedad).
     - Alertas en tiempo real (ej. "Peligro: Baja humedad en estudio").
-- **Integración**: Webhooks genéricos compatibles con Home Assistant/Govee.
+- **IoT Integration**: Hardware sensors API.
+
+## Phase 4: Museum & Social (New)
+- **Rich Instrument Stories**:
+    - Users can write multiple "Mini-articles" or notes per instrument.
+    - Contextual visibility: Choose which note appears in which Showroom.
+- **Enhanced Showroom Experience**:
+    - "Museum Card" view: Curated photos + Story + Catalog Link.
+    - Click-through details within Showrooms.
+- **Virtual Loans**:
+    - "Lend" an instrument to another user's Showroom.
+    - Attribution system ("Courtesy of @username").
 
 ## 5. AI Suite Expansion
 - **Luthier AI**: Diagnóstico visual de problemas de mantenimiento mediante fotos.
