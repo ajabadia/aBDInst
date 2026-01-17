@@ -13,9 +13,7 @@ import Image from 'next/image';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FileText } from 'lucide-react';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
-import { FileText, Download, Loader2 } from 'lucide-react'; // Added icons
+// No op (lines removed)
 
 // Simple Switch Component if not available
 function SimpleSwitch({ checked, onCheckedChange, label }: { checked: boolean; onCheckedChange: (c: boolean) => void; label: string }) {
