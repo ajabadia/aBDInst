@@ -14,7 +14,7 @@ const UserSchema = new Schema({
     resetPasswordExpires: { type: Date, select: false },
     role: {
         type: String,
-        enum: ['admin', 'editor', 'normal'],
+        enum: ['admin', 'editor', 'normal', 'supereditor'],
         default: 'normal'
     },
     isBanned: {

@@ -3,14 +3,18 @@ import Image from 'next/image';
 import { auth } from '@/auth';
 import { Music, Package, Smartphone, ShieldCheck, Zap, Globe, ArrowRight, Layout, Calendar, Newspaper, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Button } from '@/components/ui/Button';
 import { getArticles } from '@/actions/blog';
+import { getFeaturedContent } from '@/actions/home';
 
 export default async function Home() {
   const session = await auth();
 
-  // Fetch latest blog post for "News" tile
-  const articles = await getArticles({ status: 'published' });
-  const latestArticle = articles.length > 0 ? articles[0] : null;
+  // Fetch active featured article (managed by supereditor/admin)
+  const featuredArticle = await getFeaturedContent();
+
+  // Fallback: Latest published article if no featured set
+  const latestArticle = featuredArticle || (await getArticles({ status: 'published' }))[0];
 
   return (
     <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
