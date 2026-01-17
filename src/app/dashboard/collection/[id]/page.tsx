@@ -23,6 +23,7 @@ import {
     FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import SellButton from '@/components/market/SellButton';
 
 export default async function EditItemPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = await params;
@@ -66,6 +67,7 @@ export default async function EditItemPage({ params }: { params: Promise<{ id: s
                 </div>
 
                 <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto pb-2 md:pb-0">
+                    <SellButton collectionItem={item} />
                     <Button variant="secondary" size="sm" icon={<QrCode />}>Etiqueta</Button>
                     <Button variant="secondary" size="sm" icon={<Archive />}>Archivar</Button>
                     <Link href={`/instruments/${instrument._id || instrument.id}`}>
