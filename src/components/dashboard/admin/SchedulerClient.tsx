@@ -77,9 +77,11 @@ export default function SchedulerClient({ initialData, month, year }: any) {
                     <Link href="/dashboard/admin/cover">
                         <Button variant="secondary" size="sm"><Newspaper size={14} className="mr-2" /> Portada</Button>
                     </Link>
-                    <Button className="bg-purple-600 hover:bg-purple-700 text-white" size="sm">
-                        <Museum size={14} className="mr-2" /> Nueva Expo
-                    </Button>
+                    <Link href="/dashboard/admin/exhibitions/new">
+                        <Button className="bg-purple-600 hover:bg-purple-700 text-white" size="sm">
+                            <Museum size={14} className="mr-2" /> Nueva Expo
+                        </Button>
+                    </Link>
                 </div>
             </div>
 

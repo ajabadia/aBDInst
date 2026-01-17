@@ -3,7 +3,6 @@ import Image from 'next/image';
 import { auth } from '@/auth';
 import { Music, Package, Smartphone, ShieldCheck, Zap, Globe, ArrowRight, Layout, Calendar, Newspaper, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Button } from '@/components/ui/Button';
 import { getArticles } from '@/actions/blog';
 import { getFeaturedContent } from '@/actions/home';
 
