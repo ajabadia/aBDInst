@@ -10,11 +10,14 @@ import { getFeaturedContent } from '@/actions/home';
 export default async function Home() {
   const session = await auth();
 
-  // Fetch active featured article (managed by supereditor/admin)
-  const featuredArticle = await getFeaturedContent();
+  // Fetch active featured content
+  const featuredArticle = await getFeaturedContent('hero_article');
+  const featuredInstrument = await getFeaturedContent('instrument_spotlight'); // New spot
 
-  // Fallback: Latest published article if no featured set
-  const latestArticle = featuredArticle || (await getArticles({ status: 'published' }))[0];
+  // Fallback for article
+  const latestArticle = featuredArticle?.referenceId
+    ? { ...featuredArticle.referenceId, type: 'featured' }
+    : (await getArticles({ status: 'published' }))[0];
 
   return (
     <div className="flex flex-col min-h-screen bg-background overflow-x-hidden">
