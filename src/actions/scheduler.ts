@@ -48,7 +48,7 @@ export async function getEntityStatus(type: 'Instrument' | 'Article', id: string
     }).select('slot startDate endDate').lean();
 
     // Check Exhibitions (If Instrument)
-    let activeExhibitions = [];
+    let activeExhibitions: any[] = [];
     if (type === 'Instrument') {
         // Find active exhibitions where this instrument is featured (Curated)
         // TODO: Also check User Submissions when that model exists

@@ -3,18 +3,11 @@ import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Calendar, Trophy, User, ArrowLeft } from 'lucide-react';
+import { Button } from '@/components/ui/Button';
 import ShowroomActions from '@/components/museum/ShowroomActions';
 
 export default async function ExhibitionDetailPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
-    // ... (keep existing code)
-
-    {/* Placeholder for Client Component Button */ }
-    {
-        exhibition.status === 'active' && (
-            <ShowroomActions exhibitionId={exhibition._id} />
-        )
-    }
     const data = await getExhibitionBySlug(slug);
 
     if (!data) notFound();

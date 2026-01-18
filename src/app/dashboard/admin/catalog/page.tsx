@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Instrument } from '@/types';
+// import { Instrument } from '@/types';
 import { ArrowLeft, Search, Check, EyeOff, Edit2, Loader2, ExternalLink, Archive } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -120,8 +120,8 @@ export default function AdminCatalogPage() {
                                     <div className="flex-1 min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
                                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${inst.status === 'published' ? 'bg-green-100 text-green-700' :
-                                                    inst.status === 'draft' ? 'bg-gray-100 text-gray-600' :
-                                                        'bg-red-100 text-red-600'
+                                                inst.status === 'draft' ? 'bg-gray-100 text-gray-600' :
+                                                    'bg-red-100 text-red-600'
                                                 }`}>
                                                 {inst.status}
                                             </span>

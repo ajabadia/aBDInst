@@ -317,7 +317,7 @@ export default function SubmissionWizard() {
                     </div>
 
                     <div className="flex gap-3">
-                        <Button variant="outline" onClick={() => setStep('external-ai')} className="flex-1">
+                        <Button variant="outline" onClick={() => setStep('external-ai-input')} className="flex-1">
                             Atrás
                         </Button>
                         <Button onClick={handleFinalSubmit} className="flex-[2]">

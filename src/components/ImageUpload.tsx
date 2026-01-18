@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { uploadImage } from '@/actions/upload';
+// import { uploadImage } from '@/actions/upload';
 import { toast } from 'sonner';
 
 interface ImageUploadProps {
@@ -18,16 +18,26 @@ export default function ImageUpload({ onUpload }: ImageUploadProps) {
 
         setUploading(true);
 
-        const formData = new FormData();
-        formData.append('file', file);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
 
-        const res = await uploadImage(formData);
+            const response = await fetch('/api/upload/collection-image', {
+                method: 'POST',
+                body: formData
+            });
 
-        if (res.success && 'url' in res && typeof res.url === 'string') {
-            setPreview(res.url);
-            onUpload(res.url); // Pass URL back to parent form
-        } else {
-            toast.error('Error en la subida: ' + res.error);
+            const res = await response.json();
+
+            if (response.ok && res.url) {
+                setPreview(res.url);
+                onUpload(res.url); // Pass URL back to parent form
+            } else {
+                toast.error('Error en la subida: ' + (res.error || 'Error desconocido'));
+            }
+        } catch (error) {
+            console.error(error);
+            toast.error('Error de red al subir imagen');
         }
         setUploading(false);
     }

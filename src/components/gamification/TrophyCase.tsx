@@ -4,13 +4,7 @@ import { useEffect, useState } from 'react';
 import { getUserBadges } from '@/actions/gamification';
 import { Loader2, Lock, Trophy } from 'lucide-react';
 import Image from 'next/image';
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogDescription,
-} from '@/components/ui/Dialog'; // Assumption: Dialog exists or will fallback to simple modal
+
 
 export default function TrophyCase({ userId }: { userId: string }) {
     const [badges, setBadges] = useState<any[]>([]);

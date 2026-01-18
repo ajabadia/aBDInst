@@ -3,7 +3,7 @@
 import { useSession } from 'next-auth/react';
 import Image from 'next/image';
 import TrophyCase from '@/components/gamification/TrophyCase';
-import { Settings, Share2, MapPin, Calendar, Music } from 'lucide-react';
+import { Settings, Share2, MapPin, Calendar, Music, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export default function ProfilePage() {

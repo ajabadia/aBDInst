@@ -19,7 +19,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     ]);
 
     const collection = cleanData(rawCollection);
-    const badges = JSON.parse(JSON.stringify(userFull?.badges || []));
+    const badges = JSON.parse(JSON.stringify((userFull as any)?.badges || []));
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 space-y-8">

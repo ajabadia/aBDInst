@@ -113,7 +113,7 @@ export async function getUserBadges(userId: string) {
                 badgeId: ub.badgeId?.toString() || '',
                 definition: badgeDef ? {
                     ...badgeDef,
-                    _id: badgeDef._id?.toString() || ''
+                    _id: (badgeDef as any)._id?.toString() || ''
                 } : null
             };
         }));

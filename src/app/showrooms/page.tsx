@@ -1,5 +1,5 @@
 import { getTimeline } from '@/actions/scheduler';
-import { getExhibitions } from '@/actions/exhibition'; // Need to create this public list action or reuse scheduler
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { Calendar, Trophy, ChevronRight } from 'lucide-react';

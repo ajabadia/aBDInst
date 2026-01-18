@@ -5,7 +5,7 @@ import SystemConfig from '@/models/SystemConfig';
 import Article from '@/models/Article';
 import { auth } from '@/auth';
 
-export async function getFeaturedContent() {
+export async function getFeaturedContent(slot?: string) {
     await dbConnect();
     // Fetch config
     const config = await SystemConfig.findOne({ key: 'featured_article_id' });

@@ -14,7 +14,7 @@ export async function getExhibitionBySlug(slug: string) {
 
     // Fetch submissions (Approved only for public view)
     const submissions = await ExhibitionSubmission.find({
-        exhibition: exhibition._id,
+        exhibition: (exhibition as any)._id,
         status: { $in: ['approved', 'winner'] }
     })
         .populate('instrument')

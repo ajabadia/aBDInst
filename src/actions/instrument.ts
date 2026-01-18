@@ -27,7 +27,7 @@ export async function createInstrument(data: FormData) {
         // Rate limiting for non-privileged users
         if (!isPrivileged) {
             const rateLimitKey = getRateLimitKey(session.user.id, 'createInstrument');
-            const rateLimit = checkRateLimit(rateLimitKey, {
+            const rateLimit = await checkRateLimit(rateLimitKey, {
                 maxRequests: 5, // 5 instruments
                 windowMs: 60 * 60 * 1000 // per hour
             });
@@ -64,7 +64,7 @@ export async function createInstrument(data: FormData) {
             variantLabel: data.get('variantLabel')?.toString() || undefined,
             excludedImages: data.get('excludedImages') ? JSON.parse(data.get('excludedImages') as string) : [],
             isBaseModel: data.get('isBaseModel') === 'true',
-            isBaseModel: data.get('isBaseModel') === 'true',
+
             status: isPrivileged ? (data.get('status')?.toString() || 'published') : 'pending',
             statusHistory: [{
                 status: isPrivileged ? (data.get('status')?.toString() || 'published') : 'pending',
@@ -121,7 +121,7 @@ export async function addToCollection(instrumentId: string) {
 
         // Rate limiting (more permissive than creation)
         const rateLimitKey = getRateLimitKey(session.user.id, 'addToCollection');
-        const rateLimit = checkRateLimit(rateLimitKey, {
+        const rateLimit = await checkRateLimit(rateLimitKey, {
             maxRequests: 10, // 10 additions
             windowMs: 60 * 60 * 1000 // per hour
         });

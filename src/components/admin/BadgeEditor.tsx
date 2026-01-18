@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { generateBadgePrompt, generateBadgeImage } from '@/actions/ai';
 import { updateBadge, createBadge } from '@/actions/badge';
-import { uploadImage } from '@/actions/upload';
+// import { uploadImage } from '@/actions/upload';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/Button';
 import { Copy, Wand2, Loader2, Save, X, Image as ImageIcon } from 'lucide-react';
@@ -198,15 +198,25 @@ export default function BadgeEditor({ badge, onClose, onSave }: BadgeEditorProps
                                             formData.append('folder', 'badges');
 
                                             try {
-                                                const res = await uploadImage(formData);
-                                                if (res.success && typeof res.url === 'string') {
+                                                const uploadFormData = new FormData();
+                                                uploadFormData.append('file', file);
+
+                                                const response = await fetch('/api/upload/badge', {
+                                                    method: 'POST',
+                                                    body: uploadFormData
+                                                });
+
+                                                const res = await response.json();
+
+                                                if (response.ok && res.url) {
                                                     setCurrentImage(res.url);
                                                     setGeneratedImage(null);
                                                     toast.success("Imagen subida correctamente");
                                                 } else {
-                                                    toast.error("Error al subir: " + res.error);
+                                                    toast.error("Error al subir: " + (res.error || 'Error desconocido'));
                                                 }
                                             } catch (err) {
+                                                console.error(err);
                                                 toast.error("Error en la subida");
                                             } finally {
                                                 setLoading(false);

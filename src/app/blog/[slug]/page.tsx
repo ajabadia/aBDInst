@@ -2,7 +2,7 @@ import { getArticleBySlug } from '@/actions/blog';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Clock, ArrowLeft, Tag, Share2 } from 'lucide-react';
+import { Calendar, Clock, ArrowLeft, Tag, Share2, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }) {
