@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import { updateShowroom, deleteShowroom } from '@/actions/showroom';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input'; // Assuming exist
-import { Switch } from '@/components/ui/Switch'; // Assuming exist or use simple input
 import { toast } from 'sonner';
 import { ArrowLeft, Save, Eye, Trash2, GripVertical, Check, Plus, X } from 'lucide-react';
 import Link from 'next/link';

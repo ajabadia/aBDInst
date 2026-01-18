@@ -5,7 +5,6 @@ import dbConnect from '@/lib/db';
 import Badge from '@/models/Badge';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
-import { BadgeSchema } from '@/lib/schemas'; // Need to add this schema
 
 export async function getBadges() {
     try {

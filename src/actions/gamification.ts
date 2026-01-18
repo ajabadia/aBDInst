@@ -78,7 +78,7 @@ export async function checkAndAwardBadge(userId: string, triggerType: 'CONTRIBUT
                 await UserBadge.create({
                     userId,
                     badgeCode: badge.code,
-                    badgeId: badge._id
+                    badgeId: badge._id?.toString() || badge._id
                 });
                 awardedBadges.push(badge.name);
             }
@@ -109,11 +109,11 @@ export async function getUserBadges(userId: string) {
             const badgeDef = await Badge.findOne({ code: ub.badgeCode }).lean();
             return {
                 ...ub,
-                _id: ub._id.toString(),
-                badgeId: ub.badgeId.toString(),
+                _id: ub._id?.toString() || '',
+                badgeId: ub.badgeId?.toString() || '',
                 definition: badgeDef ? {
                     ...badgeDef,
-                    _id: badgeDef._id.toString()
+                    _id: badgeDef._id?.toString() || ''
                 } : null
             };
         }));
