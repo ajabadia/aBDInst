@@ -1,23 +1,30 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-// import { Instrument } from '@/types';
-import { ArrowLeft, Search, Check, EyeOff, Edit2, Loader2, ExternalLink, Archive } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+import { ArrowLeft, Check, EyeOff, Edit2, Loader2, ExternalLink } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'sonner';
 import { getAllInstrumentsAdmin, setInstrumentStatus } from '@/actions/admin';
 import Image from 'next/image';
+import AdminCatalogFilters from '@/components/dashboard/AdminCatalogFilters';
 
 export default function AdminCatalogPage() {
+    const searchParams = useSearchParams();
     const [instruments, setInstruments] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
-    const [filter, setFilter] = useState<'all' | 'published' | 'draft'>('all');
-    const [search, setSearch] = useState('');
+
+    // Read initial state from URL
+    const filterStatus = (searchParams?.get('status') as any) || 'all';
+    const filterType = searchParams?.get('type') || 'all';
+    const filterSort = (searchParams?.get('sort') as any) || 'recent';
+    const searchQuery = searchParams?.get('search') || '';
 
     const loadInstruments = async () => {
         setLoading(true);
-        const res = await getAllInstrumentsAdmin(filter, search);
+        // Call action with all params
+        const res = await getAllInstrumentsAdmin(filterStatus, searchQuery, filterType, filterSort);
         if (res.success && res.data) {
             setInstruments(res.data);
         } else {
@@ -27,9 +34,8 @@ export default function AdminCatalogPage() {
     };
 
     useEffect(() => {
-        const timeout = setTimeout(loadInstruments, 300);
-        return () => clearTimeout(timeout);
-    }, [filter, search]);
+        loadInstruments();
+    }, [searchParams]); // Re-fetch on any URL param change
 
     const handleStatusChange = async (id: string, newStatus: 'published' | 'draft' | 'archived') => {
         const toastId = toast.loading('Actualizando...');
@@ -37,7 +43,7 @@ export default function AdminCatalogPage() {
 
         if (res.success) {
             toast.success('Estado actualizado', { id: toastId });
-            // Optimistic update or reload
+            // Optimistic update
             setInstruments(prev => prev.map(i => i._id === id ? { ...i, status: newStatus } : i));
         } else {
             toast.error(res.error || 'Error', { id: toastId });
@@ -58,43 +64,8 @@ export default function AdminCatalogPage() {
                 </div>
             </div>
 
-            {/* Toolbar */}
-            <div className="flex gap-4 items-center bg-white dark:bg-white/5 p-4 rounded-2xl border border-gray-200 dark:border-white/10">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                    <input
-                        type="text"
-                        placeholder="Buscar por marca, modelo..."
-                        className="w-full bg-transparent pl-10 pr-4 py-2 outline-none"
-                        value={search}
-                        onChange={(e) => setSearch(e.target.value)}
-                    />
-                </div>
-                <div className="h-6 w-px bg-gray-200 dark:bg-white/10" />
-                <div className="flex gap-2">
-                    <Button
-                        variant={filter === 'all' ? 'primary' : 'ghost'}
-                        onClick={() => setFilter('all')}
-                        size="sm"
-                    >
-                        Todos
-                    </Button>
-                    <Button
-                        variant={filter === 'published' ? 'primary' : 'ghost'}
-                        onClick={() => setFilter('published')}
-                        size="sm"
-                    >
-                        Publicados
-                    </Button>
-                    <Button
-                        variant={filter === 'draft' ? 'primary' : 'ghost'}
-                        onClick={() => setFilter('draft')}
-                        size="sm"
-                    >
-                        Borradores
-                    </Button>
-                </div>
-            </div>
+            {/* Unified Filter Toolkit */}
+            <AdminCatalogFilters />
 
             {/* List */}
             <div className="bg-white dark:bg-white/5 rounded-2xl border border-gray-200 dark:border-white/10 overflow-hidden min-h-[400px]">
@@ -125,10 +96,10 @@ export default function AdminCatalogPage() {
                                                 }`}>
                                                 {inst.status}
                                             </span>
-                                            <span className="text-xs text-gray-400">{inst.type}</span>
+                                            <span className="text-xs text-gray-500 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded-md">{inst.type}</span>
                                         </div>
                                         <h4 className="font-bold text-gray-900 dark:text-white truncate">{inst.brand} {inst.model}</h4>
-                                        <p className="text-xs text-gray-500 truncate">ID: {inst._id}</p>
+                                        <p className="text-xs text-gray-500 truncate font-mono">ID: {inst._id}</p>
                                     </div>
 
                                     <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">

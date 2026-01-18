@@ -6,7 +6,12 @@ import { useVaultMode } from '@/context/VaultModeContext';
 
 export default function CollectionStats({ collection }: { collection: any[] }) {
     const { isVaultMode } = useVaultMode();
-    const totalInvestment = collection.reduce((acc, item) => acc + (item.acquisition?.price || 0), 0);
+    const totalInvestment = collection.reduce((acc, item) => {
+        const purchasePrice = item.acquisition?.price || 0;
+        // Fallback to catalog price if purchase price is missing
+        const fallbackPrice = item.instrumentId?.originalPrice?.amount || 0;
+        return acc + (purchasePrice > 0 ? purchasePrice : fallbackPrice);
+    }, 0);
     const itemsInRepair = collection.filter(item => item.status === 'repair').length;
 
     return (

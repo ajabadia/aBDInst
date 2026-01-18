@@ -211,7 +211,12 @@ export async function getDefaultConfig() {
 
 // --- CATALOG MANAGEMENT ---
 
-export async function getAllInstrumentsAdmin(filter: 'all' | 'published' | 'draft' = 'all', search: string = '') {
+export async function getAllInstrumentsAdmin(
+    filter: 'all' | 'published' | 'draft' = 'all',
+    search: string = '',
+    type: string = 'all',
+    sort: 'recent' | 'oldest' | 'brand_asc' | 'brand_desc' = 'recent'
+) {
     try {
         await checkAdmin();
         const Instrument = (await import('@/models/Instrument')).default;
@@ -222,6 +227,10 @@ export async function getAllInstrumentsAdmin(filter: 'all' | 'published' | 'draf
             query.status = filter;
         }
 
+        if (type && type !== 'all') {
+            query.type = type;
+        }
+
         if (search) {
             const safeSearch = escapeRegExp(search);
             query.$or = [
@@ -230,8 +239,16 @@ export async function getAllInstrumentsAdmin(filter: 'all' | 'published' | 'draf
             ];
         }
 
+        // Sorting Logic
+        const sortOptions: any = {
+            'recent': { updatedAt: -1 },
+            'oldest': { updatedAt: 1 },
+            'brand_asc': { brand: 1 },
+            'brand_desc': { brand: -1 }
+        };
+
         const instruments = await Instrument.find(query)
-            .sort({ updatedAt: -1 })
+            .sort(sortOptions[sort] || { updatedAt: -1 })
             .lean();
 
         return { success: true, data: JSON.parse(JSON.stringify(instruments)) };

@@ -14,12 +14,16 @@ export async function getUserCollection(condition?: string | null, location?: st
     const session = await auth();
     if (!session?.user?.id) return [];
     await dbConnect();
-    const filter: any = { userId: session.user.id, deletedAt: null };
+    const filter: any = {
+        userId: session.user.id,
+        deletedAt: null,
+        status: { $ne: 'wishlist' } // Exclude wishlist from main collection
+    };
     if (condition) filter.condition = condition;
     if (location) filter.location = { $regex: new RegExp(escapeRegExp(location), 'i') };
 
     const collection = await UserCollection.find(filter)
-        .populate({ path: 'instrumentId', select: 'brand model type genericImages' })
+        .populate({ path: 'instrumentId', select: 'brand model type genericImages originalPrice' }) // Added originalPrice for stats fallback
         .sort({ createdAt: -1 }).lean();
     return JSON.parse(JSON.stringify(collection));
 }
