@@ -57,9 +57,7 @@ export default function Navbar({ session }: { session: any }) {
                     <div className="w-9 h-9 rounded-xl bg-ios-blue flex items-center justify-center shadow-lg shadow-ios-blue/30 group-hover:scale-105 transition-transform duration-300">
                         <Music className="w-5 h-5 text-white" strokeWidth={2.5} />
                     </div>
-                    <span className="text-xl font-bold tracking-tight text-gray-900 dark:text-white hidden sm:block">
-                        Instrument<span className="text-ios-blue">Collector</span>
-                    </span>
+
                 </Link>
 
                 {/* DESKTOP NAV */}

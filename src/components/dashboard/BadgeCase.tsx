@@ -29,17 +29,26 @@ export default function BadgeCase({ badges }: { badges?: any[] }) {
                                     : "bg-gray-50 dark:bg-black/20 border-transparent opacity-60 grayscale"
                             )}
                         >
-                            <div className={cn(
-                                "w-12 h-12 rounded-full flex items-center justify-center mb-3 text-white shadow-md relative z-10",
-                                isUnlocked ? badge.color.replace('text-', 'bg-').replace('bg-', 'placeholder:') + " shadow-" + badge.color.split(' ')[0] : "bg-gray-200 dark:bg-white/10"
-                            )}>
-                                {/* Just using raw color logic or hardcoded classes for simplicity in this MVP */}
-                                <div className={cn(
-                                    "w-12 h-12 rounded-full flex items-center justify-center text-xl",
-                                    isUnlocked ? badge.color : "text-gray-400"
-                                )}>
-                                    <Icon size={24} />
-                                </div>
+                            <div className="relative w-16 h-16 mb-2 flex items-center justify-center group-hover:scale-110 transition-transform duration-300">
+                                {/* Base Image (Custom or Placeholder) */}
+                                <img
+                                    src={badge.imageUrl || '/images/badges/badge-placeholder.png'}
+                                    alt={badge.name}
+                                    className={cn(
+                                        "w-full h-full object-contain drop-shadow-md",
+                                        !isUnlocked && "grayscale opacity-50 contrast-125" // Gray look for locked
+                                    )}
+                                />
+
+                                {/* Overlay Icon (Only if using placeholder, to differentiate badges) */}
+                                {!badge.imageUrl && (
+                                    <div className={cn(
+                                        "absolute inset-0 flex items-center justify-center",
+                                        isUnlocked ? "text-gray-600 dark:text-gray-300" : "text-gray-400 opacity-50"
+                                    )}>
+                                        <Icon size={20} />
+                                    </div>
+                                )}
                             </div>
 
                             {!isUnlocked && <Lock size={12} className="absolute top-3 right-3 text-gray-300" />}

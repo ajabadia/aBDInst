@@ -2,14 +2,14 @@
 
 Este documento detalla el plan de implementación para las próximas características avanzadas de Instrument Collector.
 
-## 1. Public Showrooms (Compartir Colección) 🚀 **(EN PROGRESO)**
+## 1. Public Showrooms (Compartir Colección) ✅ **(COMPLETADO)**
 Permitir a los usuarios compartir partes de su colección públicamente.
-- **Ruta**: `/s/[uuid]` (Enlaces cortos y limpios).
+- **Ruta**: `/dashboard/showrooms` y `/s/[slug]`.
 - **Funcionalidad**:
     - Crear múltiples "Exhibiciones" (ej. "Mis Guitarras Vintage", "Pedalera de Directo").
     - **Privacidad**: Ocultar precios, valores y números de serie por defecto.
-    - **Estética**: Layouts "Hero" inmersivos, distintos al Dashboard de gestión.
-- **Tecnología**: Nuevo modelo `Showroom` en MongoDB.
+    - **Estética**: Layouts "Hero" inmersivos.
+- **Tecnología**: Modelo `Showroom` en MongoDB.
 
 ## 2. Herramientas Profesionales (Seguros & PDF)
 - **Generador de Reportes**: Exportación de inventario en PDF.
@@ -35,20 +35,45 @@ Monitorización ambiental proactiva.
     - Alertas en tiempo real (ej. "Peligro: Baja humedad en estudio").
 - **IoT Integration**: Hardware sensors API.
 
-## Phase 4: Museum, Social & Gamification (New)
-- **Exhibitions (Exposiciones)**:
-    - **Types**: Open Call (Public Join) vs Invitation Only.
-    - **Dynamics**: Showcase (Standard) vs Contest (Voting/Jury).
-    - **Lifecycle**: Scheduled (Start/End Dates), Current, Past (Archive Mode).
-    - **Management**: Admins create events; Users "submit" instruments.
-- **Enhanced Showroom Hub**:
-    - Public `/showrooms` page becomes "The Museum Hall".
-    - Sections: "Now Showing", "Coming Soon", "Past Exhibitions".
+## Phase 4: Museum, Social & Gamification ✅ **(COMPLETADO)**
 - **Gamification & Rewards**:
-    - **Awards**: Virtual Medals/Trophies for contest winners or participation.
-    - **Profile Integration**: "Trophy Case" and "Exhibition History" on User Profiles.
-- **Landing Page Upgrade**:
-    - Dynamic feed of Blog Articles and Active Exhibitions.
+    - **Back-end**: Badges y triggers implementados.
+    - **Front-end**: "Trophy Case" implementado en `/dashboard/profile`.
+- **Exhibitions (Exposiciones)**:
+    - **Status**: Lifecycle Manager completo.
+    - **Management**: Panel de Admin disponible en `/dashboard/admin/exhibitions`.
+- **Landing Page Admin**:
+    - **Status**: Configuración global (Hero/Featured Exhibition) en `/dashboard/admin/cover`.
+- **Admin Tools Expansion**:
+    - **Requests Queue**: `/dashboard/admin/requests`.
+    - **Catalog Manager**: `/dashboard/admin/catalog`.
+    - **Evolución**: Mejorar filtros y ordenación en Catalog Admin reutilizando componentes del catálogo público.
+
+## 5. Advanced Instrument Submission (Phase 5) 🚧 **(PRIORIDAD)**
+- **Search First**: Flujo obligatorio de búsqueda antes de crear.
+- **Global DB**: Alta en base de datos global pero en estado Draft/Pending.
+- **Magic Import 2.0**:
+    - **Prompt Generator**: Para usuarios sin API Key (External AI).
+    - **JSON Validation**: Ingesta de datos externos (Wizard).
+    - **Bulk Import**: Revisar/Unificar lógica para permitir subir JSONs externos (o AI-generated) en el importador masivo.
+- **Auditoría**: Traza completa de quien crea y modifica (`statusHistory`).
+- **Seguridad**: Rate limiting, CAPTCHA para prevenir spam/abuso.
+- **UX**: Mejorar campos de entrada (specs más grande, URLs separadas), sanitización de JSON.
+
+## 6. Testing & Estabilidad
+- **Tests Unitarios**: Vitest configurado.
+- **Tests E2E (Playwright)**:
+    - [ ] Auth Specs (Resolviendo timeouts).
+    - [ ] CRUD Specs.
+
+## 7. Hardware & IoT (Taller 2.0)
+- **IoT Integration**: Hardware sensors API.
+- **Luthier AI**: Diagnóstico visual de problemas de mantenimiento.
+
+## 8. Future Concepts
+- **Blockchain**: Certificados de posesión.
+- **PWA Hardening**: Notificaciones push.
+- **Marketplace Live**: Precios tiempo real.
 
 ## 5. Hardware & IoT (Taller 2.0)
 - **IoT Integration**: Hardware sensors API.

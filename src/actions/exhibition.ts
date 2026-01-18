@@ -41,7 +41,7 @@ export async function createExhibition(data: any) {
 
 export async function updateExhibition(id: string, data: any) {
     try {
-        await checkAdmin();
+        const user = await checkAdmin();
         await dbConnect();
 
         await Exhibition.findByIdAndUpdate(id, data);
@@ -54,12 +54,25 @@ export async function updateExhibition(id: string, data: any) {
 }
 
 export async function getExhibition(id: string) {
-    // Admin read (or public? This seems to be for editing)
     try {
         await dbConnect();
         const exhibition = await Exhibition.findById(id).lean();
         return JSON.parse(JSON.stringify(exhibition));
     } catch (error) {
         return null;
+    }
+}
+
+export async function getAllExhibitions() {
+    try {
+        await checkAdmin();
+        await dbConnect();
+        const exhibitions = await Exhibition.find({})
+            .sort({ startDate: 1 })
+            .select('title slug startDate endDate status coverImage')
+            .lean();
+        return JSON.parse(JSON.stringify(exhibitions));
+    } catch (error) {
+        return [];
     }
 }

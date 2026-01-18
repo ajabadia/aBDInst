@@ -8,6 +8,18 @@ const InstrumentSchema = new Schema({
     version: { type: String },
     years: [{ type: String }], // Array of strings to support ranges or multiple years
 
+    status: {
+        type: String,
+        enum: ['draft', 'pending', 'published', 'archived', 'rejected'],
+        default: 'published'
+    },
+    statusHistory: [{
+        status: String,
+        changedBy: { type: String, ref: 'User' },
+        date: { type: Date, default: Date.now },
+        note: String
+    }],
+
     // Dynamic specifications
     specs: [{
         category: { type: String, required: true },

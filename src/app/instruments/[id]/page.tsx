@@ -4,6 +4,7 @@ import { getInstrumentById } from '@/actions/instrument';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import InstrumentHeaderButtons from '@/components/InstrumentHeaderButtons';
+import SubmitForReviewButton from '@/components/SubmitForReviewButton';
 import ImageGallery from '@/components/ImageGallery';
 import SpecRow from '@/components/SpecRow';
 import PrintSpecSheet from '@/components/PrintSpecSheet';
@@ -20,7 +21,7 @@ import { getRelatedGear } from '@/actions/instrument';
 import { getComments } from '@/actions/comments';
 import { getResources } from '@/actions/resource';
 import { getEntityStatus } from '@/actions/scheduler';
-import { ArrowLeft, FileText, Box, ChevronRight, Layers, Globe, ExternalLink, Star, Trophy, Museum } from 'lucide-react';
+import { ArrowLeft, FileText, Box, ChevronRight, Layers, Globe, ExternalLink, Star, Trophy, Building2 } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
 import { cn } from '@/lib/utils';
@@ -121,16 +122,41 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                             {/* EXHIBITION BADGE */}
                             {entityStatus.activeExhibitions.map((ex: any) => (
                                 <span key={ex._id} className="ml-2 px-3 py-1 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-bold uppercase tracking-wider flex items-center gap-1 border border-purple-200 dark:border-purple-700/50">
-                                    <Museum size={12} /> {ex.title}
+                                    <Building2 size={12} /> {ex.title}
                                 </span>
                             ))}
                         </div>
                     </div>
-                    <InstrumentHeaderButtons
-                        instrumentId={instrument._id || instrument.id}
-                        canEdit={canEdit}
-                        isLoggedIn={isLoggedIn}
-                    />
+                    <div className="flex flex-col gap-2 items-end">
+                        <InstrumentHeaderButtons
+                            instrumentId={instrument._id || instrument.id}
+                            canEdit={canEdit}
+                            isLoggedIn={isLoggedIn}
+                        />
+
+                        {/* Status badges & Review Flow */}
+                        {(instrument.status === 'draft' || instrument.status === 'rejected' || instrument.status === 'pending') && (
+                            <div className="flex flex-col items-end gap-2 mt-2">
+                                <div className="flex items-center gap-2">
+                                    <span className={cn(
+                                        "text-xs font-bold uppercase tracking-wider px-2 py-1 rounded-full",
+                                        instrument.status === 'pending' ? "bg-orange-100 text-orange-700" :
+                                            instrument.status === 'rejected' ? "bg-red-100 text-red-700" :
+                                                "bg-gray-200 text-gray-700"
+                                    )}>
+                                        {instrument.status === 'pending' ? 'Pendiente de Revisión' :
+                                            instrument.status === 'rejected' ? 'Rechazado' : 'Borrador Privado'}
+                                    </span>
+                                </div>
+                                {instrument.status === 'rejected' && instrument.statusHistory?.length > 0 && (
+                                    <p className="text-xs text-red-500 max-w-[200px] text-right">
+                                        Nota: {instrument.statusHistory[instrument.statusHistory.length - 1].note}
+                                    </p>
+                                )}
+                                <SubmitForReviewButton id={instrument._id || instrument.id} currentStatus={instrument.status} />
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
 

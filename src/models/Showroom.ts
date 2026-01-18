@@ -30,7 +30,7 @@ export interface IShowroom extends Document {
 const ShowroomSchema = new Schema<IShowroom>({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     name: { type: String, required: true },
-    slug: { type: String, required: true, unique: true, index: true },
+    slug: { type: String, required: true, unique: true },
     description: { type: String },
     items: [{
         collectionId: { type: Schema.Types.ObjectId, ref: 'UserCollection', required: true },

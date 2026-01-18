@@ -1,5 +1,4 @@
 import { auth } from '@/auth';
-import { getStorageProvider } from '@/lib/storage-providers/factory';
 
 export async function uploadImage(formData: FormData) {
     try {
@@ -10,13 +9,19 @@ export async function uploadImage(formData: FormData) {
 
         const userId = (session.user as any).id;
         const file = formData.get('file') as File;
+        const folder = formData.get('folder') as string | undefined; // Support custom folder
+
         if (!file) throw new Error('No file provided');
 
         // Get configured provider (or default)
+        // Dynamic import to prevent bundling leaks to client
+        const { getStorageProvider } = await import('@/lib/storage-providers/factory');
         const provider = await getStorageProvider(userId);
 
         // Upload
-        const url = await provider.upload(file, userId);
+        const url = await provider.upload(file, userId, folder);
+
+        // const url = "mock_url"; // DEBUG: Temporary mock to verify build fix
 
         return { success: true, url };
 

@@ -209,6 +209,62 @@ export async function getDefaultConfig() {
 }
 
 
+// --- CATALOG MANAGEMENT ---
+
+export async function getAllInstrumentsAdmin(filter: 'all' | 'published' | 'draft' = 'all', search: string = '') {
+    try {
+        await checkAdmin();
+        const Instrument = (await import('@/models/Instrument')).default;
+
+        const query: Record<string, any> = {};
+
+        if (filter !== 'all') {
+            query.status = filter;
+        }
+
+        if (search) {
+            const safeSearch = escapeRegExp(search);
+            query.$or = [
+                { brand: { $regex: safeSearch, $options: 'i' } },
+                { model: { $regex: safeSearch, $options: 'i' } }
+            ];
+        }
+
+        const instruments = await Instrument.find(query)
+            .sort({ updatedAt: -1 })
+            .lean();
+
+        return { success: true, data: JSON.parse(JSON.stringify(instruments)) };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function setInstrumentStatus(id: string, status: 'published' | 'draft' | 'archived') {
+    try {
+        const admin = await checkAdmin();
+        const Instrument = (await import('@/models/Instrument')).default;
+
+        await Instrument.findByIdAndUpdate(id, {
+            status,
+            $push: {
+                statusHistory: {
+                    status,
+                    changedBy: admin._id,
+                    date: new Date(),
+                    note: 'Admin manual update'
+                }
+            }
+        });
+
+        revalidatePath('/dashboard/admin/catalog');
+        return { success: true };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+
 // --- MODERATION ACTIONS ---
 
 export async function manageReport(commentId: string, action: 'dismiss' | 'delete') {

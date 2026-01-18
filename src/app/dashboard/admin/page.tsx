@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getUsers } from '@/actions/admin';
-import { Users, Bot, Tag, MessageSquare, Mail, ShieldAlert, Server } from 'lucide-react';
+import { Users, Bot, Tag, MessageSquare, Mail, ShieldAlert, Server, Trophy } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminPage() {
@@ -112,7 +112,50 @@ export default function AdminPage() {
                     </div>
                 </Link>
 
+                {/* Requests Management */}
+                <Link href="/dashboard/admin/requests" className="glass-panel p-8 rounded-[2rem] shadow-apple-sm group border-black/5 dark:border-white/5 hover:border-red-500/20 transition-all">
+                    <div className="flex items-center gap-5 h-full">
+                        <div className="p-4 bg-red-500/10 text-red-500 rounded-[1.25rem] group-hover:bg-red-500 group-hover:text-white transition-all duration-500">
+                            <ShieldAlert size={28} />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Solicitudes</h3>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-1 group-hover:text-red-500 transition-colors">Aprobación de instrumentos</p>
+                        </div>
+                    </div>
+                </Link>
+
+                {/* Catalog Management */}
+                <Link href="/dashboard/admin/catalog" className="glass-panel p-8 rounded-[2rem] shadow-apple-sm group border-black/5 dark:border-white/5 hover:border-blue-500/20 transition-all">
+                    <div className="flex items-center gap-5 h-full">
+                        <div className="p-4 bg-blue-500/10 text-blue-500 rounded-[1.25rem] group-hover:bg-blue-500 group-hover:text-white transition-all duration-500">
+                            <Server size={28} />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Catálogo</h3>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-1 group-hover:text-blue-500 transition-colors">Gestión Global</p>
+                        </div>
+                    </div>
+                </Link>
+
+
+
+                {/* Exhibitions Management */}
+                <Link href="/dashboard/admin/exhibitions" className="glass-panel p-8 rounded-[2rem] shadow-apple-sm group border-black/5 dark:border-white/5 hover:border-purple-500/20 transition-all">
+                    <div className="flex items-center gap-5 h-full">
+                        <div className="p-4 bg-purple-500/10 text-purple-500 rounded-[1.25rem] group-hover:bg-purple-500 group-hover:text-white transition-all duration-500">
+                            <Trophy size={28} />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Exhibiciones</h3>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-1 group-hover:text-purple-500 transition-colors">Concursos y Eventos</p>
+                        </div>
+                    </div>
+                </Link>
+
             </div>
-        </div>
+        </div >
     );
 }
+
+// ApprovalQueue removed from here as it is now in /requests/page.tsx

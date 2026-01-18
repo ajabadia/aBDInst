@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { ChevronLeft, ChevronRight, Calendar, Newspaper, Trophy, Museum } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Calendar, Newspaper, Trophy, Building2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
 
@@ -79,7 +79,7 @@ export default function SchedulerClient({ initialData, month, year }: any) {
                     </Link>
                     <Link href="/dashboard/admin/exhibitions/new">
                         <Button className="bg-purple-600 hover:bg-purple-700 text-white" size="sm">
-                            <Museum size={14} className="mr-2" /> Nueva Expo
+                            <Building2 size={14} className="mr-2" /> Nueva Expo
                         </Button>
                     </Link>
                 </div>
@@ -120,7 +120,7 @@ export default function SchedulerClient({ initialData, month, year }: any) {
                                         } else {
                                             return (
                                                 <div key={idx} className="text-[10px] p-1.5 rounded truncate font-medium flex items-center gap-1 bg-purple-100 text-purple-700">
-                                                    <Museum size={10} />
+                                                    <Building2 size={10} />
                                                     {ev.data.title}
                                                 </div>
                                             );

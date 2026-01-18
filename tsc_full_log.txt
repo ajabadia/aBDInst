@@ -1,0 +1,32 @@
+﻿src/actions/ai.ts(5,36): error TS2307: Cannot find module '@google/generative-ai' or its corresponding type declarations.
+src/actions/badge.ts(8,10): error TS2305: Module '"@/lib/schemas"' has no exported member 'BadgeSchema'.
+src/actions/instrument.ts(49,13): error TS1117: An object literal cannot have multiple properties with the same name.
+src/actions/scheduler.ts(51,9): error TS7034: Variable 'activeExhibitions' implicitly has type 'any[]' in some locations where its type cannot be determined.
+src/actions/scheduler.ts(66,54): error TS7005: Variable 'activeExhibitions' implicitly has an 'any[]' type.
+src/actions/showroom.ts(17,32): error TS2339: Property '_id' does not exist on type '(FlattenMaps<any> & Required<{ _id: unknown; }> & { __v: number; })[] | (FlattenMaps<any> & Required<{ _id: unknown; }> & { __v: number; })'.
+  Property '_id' does not exist on type '(FlattenMaps<any> & Required<{ _id: unknown; }> & { __v: number; })[]'.
+src/app/blog/[slug]/page.tsx(126,42): error TS2304: Cannot find name 'ArrowRight'.
+src/app/dashboard/blog/page.tsx(5,10): error TS2305: Module '"@/lib/utils"' has no exported member 'formatDate'.
+src/app/dashboard/page.tsx(22,56): error TS2339: Property 'badges' does not exist on type '(FlattenMaps<any> & Required<{ _id: unknown; }> & { __v: number; })[] | (FlattenMaps<any> & Required<{ _id: unknown; }> & { __v: number; })'.
+  Property 'badges' does not exist on type '(FlattenMaps<any> & Required<{ _id: unknown; }> & { __v: number; })[]'.
+src/app/instruments/[id]/page.tsx(24,93): error TS2305: Module '"lucide-react"' has no exported member 'Museum'.
+src/app/page.tsx(13,52): error TS2554: Expected 0 arguments, but got 1.
+src/app/page.tsx(14,55): error TS2554: Expected 0 arguments, but got 1.
+src/app/s/[slug]/kiosk/page.tsx(1,10): error TS2305: Module '"@/actions/showroom"' has no exported member 'getPublicShowroom'.
+src/app/s/[slug]/page.tsx(1,10): error TS2305: Module '"@/actions/showroom"' has no exported member 'getPublicShowroom'.
+src/app/showrooms/[slug]/page.tsx(14,9): error TS2448: Block-scoped variable 'exhibition' used before its declaration.
+src/app/showrooms/[slug]/page.tsx(15,44): error TS2448: Block-scoped variable 'exhibition' used before its declaration.
+src/app/showrooms/[slug]/page.tsx(74,26): error TS2304: Cannot find name 'Button'.
+src/app/showrooms/[slug]/page.tsx(76,27): error TS2304: Cannot find name 'Button'.
+src/app/showrooms/page.tsx(2,10): error TS2724: '"@/actions/exhibition"' has no exported member named 'getExhibitions'. Did you mean 'getExhibition'?
+src/components/dashboard/admin/SchedulerClient.tsx(6,66): error TS2305: Module '"lucide-react"' has no exported member 'Museum'.
+src/components/dashboard/BadgeCase.tsx(35,48): error TS2339: Property 'imageUrl' does not exist on type 'BadgeDefinition'.
+src/components/dashboard/BadgeCase.tsx(36,48): error TS2339: Property 'name' does not exist on type 'BadgeDefinition'.
+src/components/dashboard/BadgeCase.tsx(44,41): error TS2339: Property 'imageUrl' does not exist on type 'BadgeDefinition'.
+src/components/dashboard/showrooms/ShowroomEditor.tsx(5,10): error TS2305: Module '"@/actions/showroom"' has no exported member 'updateShowroom'.
+src/components/dashboard/showrooms/ShowroomEditor.tsx(8,24): error TS2307: Cannot find module '@/components/ui/Switch' or its corresponding type declarations.
+src/components/dashboard/showrooms/ShowroomListClient.tsx(18,13): error TS2353: Object literal may only specify known properties, and 'name' does not exist in type 'FormData'.
+src/components/dashboard/showrooms/ShowroomListClient.tsx(22,32): error TS2339: Property 'data' does not exist on type '{ success: boolean; error?: undefined; } | { success: boolean; error: any; }'.
+  Property 'data' does not exist on type '{ success: boolean; error?: undefined; }'.
+src/components/dashboard/showrooms/ShowroomListClient.tsx(24,53): error TS2339: Property 'data' does not exist on type '{ success: boolean; error?: undefined; } | { success: boolean; error: any; }'.
+  Property 'data' does not exist on type '{ success: boolean; error?: undefined; }'.

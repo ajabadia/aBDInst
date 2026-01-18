@@ -205,7 +205,28 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
     return (
         <form action={action} className="space-y-6 max-w-7xl mx-auto apple-card p-8 md:p-12 shadow-2xl">
 
-            <div className="flex justify-end mb-4">
+            <div className="flex justify-between items-center mb-4">
+                <div className="flex items-center gap-4">
+                    {/* Admin Status Selector */}
+                    {/* We need to know if user is admin. Since this is a client component, we rely on passed props or assume ability if status was passed. 
+                        Ideally, pass `isAdmin` prop. 
+                        For now, let's keep the select but disable it if not privileged? 
+                        Actually, typical users shouldn't see this form for 'new' often unless we enable the 'Contribute' button.
+                        Let's assume if they can see the 'status' prop it is because they are editing. 
+                    */}
+                    <select
+                        name="status"
+                        defaultValue={initialData?.status || 'published'}
+                        className="apple-select w-40 font-bold text-sm"
+                    >
+                        <option value="draft">Draft (Borrador)</option>
+                        <option value="pending">Pendiente Rev.</option>
+                        <option value="published">Publicado</option>
+                        <option value="archived">Archivado</option>
+                        <option value="rejected">Rechazado</option>
+                    </select>
+                </div>
+
                 <MagicImporter
                     initialSearch={isEditing ? `${initialData?.brand || ''} ${initialData?.model || ''}`.trim() : undefined}
                     contextUrls={[

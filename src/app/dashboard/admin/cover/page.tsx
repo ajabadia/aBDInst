@@ -1,6 +1,8 @@
 import FeaturedContentClient from '@/components/dashboard/admin/FeaturedContentClient';
 import { getFeaturedContent } from '@/actions/home';
 import { getArticles } from '@/actions/blog';
+import { getAllExhibitions } from '@/actions/exhibition';
+import { getSystemConfig } from '@/actions/admin';
 import { auth } from '@/auth';
 import { redirect } from 'next/navigation';
 
@@ -13,7 +15,14 @@ export default async function AdminCoverPage() {
     }
 
     const featured = await getFeaturedContent();
-    const articles = await getArticles(); // Fetch all articles (drafts included if admin)
+    const articles = await getArticles();
+    const exhibitions = await getAllExhibitions();
+
+    // Fetch global landing settings
+    const landingConfig = await getSystemConfig('landing_settings') || {
+        heroEnabled: true,
+        featuredExhibitionId: null
+    };
 
     return (
         <div className="space-y-6">
@@ -24,7 +33,9 @@ export default async function AdminCoverPage() {
 
             <FeaturedContentClient
                 initialFeaturedId={featured?._id}
+                initialSettings={landingConfig}
                 articles={articles}
+                exhibitions={exhibitions}
             />
         </div>
     );

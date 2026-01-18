@@ -10,6 +10,19 @@
     "seed": "tsx src/scripts/seed-admin.ts",
     "test": "vitest"
   },
+  "browser": {
+    "fs": false,
+    "net": false,
+    "tls": false,
+    "child_process": false,
+    "crypto": false,
+    "os": false,
+    "path": false,
+    "stream": false,
+    "http": false,
+    "https": false,
+    "zlib": false
+  },
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.1",
     "@capacitor/android": "^8.0.0",
@@ -22,7 +35,10 @@
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@ducanh2912/next-pwa": "^10.2.9",
+    "@google/generative-ai": "^0.24.1",
     "@sentry/nextjs": "^10.32.1",
+    "@vercel/analytics": "^1.6.1",
+    "@vercel/speed-insights": "^1.3.1",
     "bcryptjs": "^3.0.3",
     "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
@@ -37,6 +53,7 @@
     "googleapis": "^169.0.0",
     "html5-qrcode": "^2.3.8",
     "https-proxy-agent": "^7.0.6",
+    "ioredis": "^5.9.2",
     "jspdf": "^3.0.4",
     "jspdf-autotable": "^5.0.2",
     "lucide-react": "^0.562.0",

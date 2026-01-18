@@ -2,6 +2,47 @@
 
 import { auth } from '@/auth';
 import * as cheerio from 'cheerio';
+import { GoogleGenerativeAI } from "@google/generative-ai";
+
+// Prompt Templates
+const BADGE_PROMPT_TEMPLATE = `
+Design a premium, 3D glassmorphism style icon for a gamification badge.
+Concept: {{NAME}}
+Description: {{DESCRIPTION}}
+Visual Elements: Simple, elegant, abstract, colorful.
+Background: Solid distinct color (E.g. #1e1e1e or similar) for easy removal.
+Style: Apple App Icon style, high gloss, soft shadows.
+`;
+
+export async function generateBadgePrompt(name: string, description: string) {
+    return BADGE_PROMPT_TEMPLATE
+        .replace('{{NAME}}', name)
+        .replace('{{DESCRIPTION}}', description);
+}
+
+// Placeholder for Image Generation (Since we might not have Imagen/DALL-E configured yet)
+export async function generateBadgeImage(prompt: string) {
+    // In a real scenario, this calls DALL-E 3 or Imagen 2
+    // For now, we return a mock success or try to use a free endpoint if available?
+    // Let's just simulate delay and return a placeholder specific URL from Unsplash or similar as "Generated"
+
+    // Simulate AI Work
+    await new Promise(resolve => setTimeout(resolve, 2000));
+
+    // Return a random "premium" abstract 3d icon from Unsplash for demo
+    const mockImages = [
+        "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1633511090164-b43840ea1607?q=80&w=2564&auto=format&fit=crop",
+        "https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=2574&auto=format&fit=crop"
+    ];
+
+    return {
+        success: true,
+        url: mockImages[Math.floor(Math.random() * mockImages.length)],
+        note: "Simulated AI Generation (Connect Imagen API to enable real generation)"
+    };
+}
+
 import { extractFromUrl } from '@/lib/scraper-mapping';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';

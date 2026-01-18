@@ -31,14 +31,16 @@ export default function ShowroomListClient({ initialShowrooms }: { initialShowro
     return (
         <div>
             {initialShowrooms.length > 0 && (
-                <Button onClick={handleCreate} disabled={isCreating} icon={isCreating ? Loader2 : Plus}>
+                <Button onClick={handleCreate} disabled={isCreating}>
+                    {isCreating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Plus className="mr-2 h-4 w-4" />}
                     {isCreating ? 'Creando...' : 'Crear Showroom'}
                 </Button>
             )}
             {/* If empty state, the parent handles the button or we can reuse this logic there if we passed a prop */}
             {initialShowrooms.length === 0 && (
                 <div className="flex justify-center mt-6">
-                    <Button onClick={handleCreate} disabled={isCreating} className="px-8 py-6 text-lg" icon={isCreating ? Loader2 : Plus}>
+                    <Button onClick={handleCreate} disabled={isCreating} className="px-8 py-6 text-lg">
+                        {isCreating ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <Plus className="mr-2 h-5 w-5" />}
                         {isCreating ? 'Iniciando...' : 'Crear mi primer Showroom'}
                     </Button>
                 </div>

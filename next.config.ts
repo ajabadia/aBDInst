@@ -34,6 +34,26 @@ const nextConfig: NextConfig = {
       allowedOrigins: ['localhost:3000', '192.168.56.1:3000', '192.168.1.135:3000'],
     },
   },
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+        child_process: false,
+        crypto: false, // crypto-browserify might be needed if actually used, but for now blocking
+        'google-auth-library': false, // block google auth stuff
+      };
+
+      // Force alias factory to stub for client
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        '@/lib/storage-providers/factory': './src/lib/storage-providers/stub.ts',
+      };
+    }
+    return config;
+  },
   turbopack: {},
 };
 

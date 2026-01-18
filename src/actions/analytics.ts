@@ -20,7 +20,7 @@ export async function getMarketTrends(query: string) {
             price: { $gt: 0 }
         })
             .select('price date source title url')
-            .sort({ date: 1 })
+            .sort({ date: 1 } as Record<string, 1 | -1>)
             .limit(200); // Limit data points for performance
 
         // Calculate Trend Line (Simple Moving Average or Linear Regression)

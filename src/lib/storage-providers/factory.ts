@@ -1,19 +1,18 @@
-
-import { CloudinaryProvider } from './cloudinary';
-import { GoogleDriveProvider } from './google-drive';
-import { DropboxProvider } from './dropbox';
-import { TeraboxProvider } from './terabox';
+import 'server-only';
+// Providers & Dependencies (Imported dynamically to avoid bundling issues)
 import { IStorageProvider } from './index';
-import { decryptCredentials } from '@/lib/encryption';
-import User from '@/models/User';
-import dbConnect from '@/lib/db';
 
 export async function getStorageProvider(userId: string): Promise<IStorageProvider> {
+    // Dynamic imports to prevent Client Bundle pollution (Mongoose, Crypto, Net, etc.)
+    const { default: dbConnect } = await import('@/lib/db');
+    const { default: User } = await import('@/models/User');
+    const { CloudinaryProvider } = await import('./cloudinary');
+    const { decryptCredentials } = await import('@/lib/encryption');
+
     await dbConnect();
     const user = await User.findById(userId).select('+storageProvider.credentials');
 
     if (!user?.storageProvider || user.storageProvider.type === 'none' || user.storageProvider.type === 'cloudinary' && !user.storageProvider.credentials) {
-        // Default fallback to environment env Cloudinary if configured, or fail
         if (process.env.CLOUDINARY_CLOUD_NAME) {
             return new CloudinaryProvider({
                 cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
@@ -27,13 +26,7 @@ export async function getStorageProvider(userId: string): Promise<IStorageProvid
     const providerType = user.storageProvider.type;
     const encryptedCreds = user.storageProvider.credentials;
 
-    // Explicit check for Cloudinary with missing credentials in DB but present in ENV handled above? 
-    // Actually if type is 'cloudinary' but no credentials in DB, we might want to use env vars?
-    // Let's assume if user selected Cloudinary in UI, they provided creds OR we should fallback.
-    // However, the check above handles the "default" case. 
-
     if (!encryptedCreds && providerType !== 'none') {
-        // Fallback for when type is set but no creds (shouldn't happen ideally)
         if (providerType === 'cloudinary' && process.env.CLOUDINARY_CLOUD_NAME) {
             return new CloudinaryProvider({
                 cloudName: process.env.CLOUDINARY_CLOUD_NAME || '',
@@ -49,14 +42,19 @@ export async function getStorageProvider(userId: string): Promise<IStorageProvid
     switch (providerType) {
         case 'cloudinary':
             return new CloudinaryProvider(credentials);
-        case 'google-drive':
+        case 'google-drive': {
+            const { GoogleDriveProvider } = await import('./google-drive');
             return new GoogleDriveProvider(credentials);
-        case 'dropbox':
+        }
+        case 'dropbox': {
+            const { DropboxProvider } = await import('./dropbox');
             return new DropboxProvider(credentials);
-        case 'terabox':
+        }
+        case 'terabox': {
+            const { TeraboxProvider } = await import('./terabox');
             return new TeraboxProvider(credentials);
+        }
         default:
-            // Final fallback
             if (process.env.CLOUDINARY_CLOUD_NAME) {
                 return new CloudinaryProvider({
                     cloudName: process.env.CLOUDINARY_CLOUD_NAME,

@@ -35,7 +35,7 @@ const ArticleSchema = new Schema({
 }, { timestamps: true });
 
 // Indexes
-ArticleSchema.index({ slug: 1 });
+
 ArticleSchema.index({ status: 1 });
 
 const Article = models?.Article || model('Article', ArticleSchema);

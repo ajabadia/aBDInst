@@ -115,12 +115,11 @@ export async function getUserShowrooms() {
     return JSON.parse(JSON.stringify(showrooms));
 }
 
-export async function createShowroom(formData: FormData) {
+export async function createShowroom(payload: { name: string; description: string }) {
     const session = await (await import('@/auth')).auth();
     if (!session) return { success: false, error: 'Unauthorized' };
 
-    const name = formData.get('name') as string;
-    const description = formData.get('description') as string;
+    const { name, description } = payload;
 
     if (!name) return { success: false, error: 'Name is required' };
 
@@ -130,7 +129,7 @@ export async function createShowroom(formData: FormData) {
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Date.now().toString().slice(-4);
 
     try {
-        await Showroom.create({
+        const newShowroom = await Showroom.create({
             userId: session.user.id,
             name,
             description,
@@ -142,7 +141,8 @@ export async function createShowroom(formData: FormData) {
 
         const { revalidatePath } = await import('next/cache');
         revalidatePath('/dashboard/showrooms');
-        return { success: true };
+        // Return the created object so client can redirect
+        return { success: true, data: JSON.parse(JSON.stringify(newShowroom)) };
     } catch (e: any) {
         return { success: false, error: e.message };
     }
@@ -158,4 +158,45 @@ export async function deleteShowroom(id: string) {
     const { revalidatePath } = await import('next/cache');
     revalidatePath('/dashboard/showrooms');
     return { success: true };
+}
+
+export async function getPublicShowroom(slug: string) {
+    await dbConnect();
+
+    const showroom = await Showroom.findOne({ slug, isPublic: true })
+        .populate({
+            path: 'items.collectionId',
+            populate: { path: 'instrumentId' }
+        })
+        .populate('userId', 'name image')
+        .lean();
+
+    if (!showroom) return null;
+
+    return JSON.parse(JSON.stringify(showroom));
+}
+
+export async function updateShowroom(id: string, payload: { name?: string; description?: string; theme?: string; isPublic?: boolean; items?: any[] }) {
+    const session = await (await import('@/auth')).auth();
+    if (!session) return { success: false, error: 'Unauthorized' };
+
+    await dbConnect();
+
+    try {
+        const showroom = await Showroom.findOneAndUpdate(
+            { _id: id, userId: session.user.id },
+            { $set: payload },
+            { new: true }
+        );
+
+        if (!showroom) return { success: false, error: 'Showroom not found or unauthorized' };
+
+        const { revalidatePath } = await import('next/cache');
+        revalidatePath('/dashboard/showrooms');
+        revalidatePath(`/s/${showroom.slug}`);
+
+        return { success: true, data: JSON.parse(JSON.stringify(showroom)) };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
 }
