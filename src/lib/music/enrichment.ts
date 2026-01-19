@@ -22,7 +22,7 @@ import { notifyAdmins } from '@/actions/notifications';
 
 interface AIArtist {
     name: string;
-    key: string;
+    key?: string;
     yearsUsed?: string;
     notes?: string;
 }
@@ -57,7 +57,7 @@ export async function ensureArtistsExist(artists: AIArtist[], userId?: string): 
     const artistMap = new Map<string, string>(); // key → _id
 
     for (const artist of artists) {
-        const sanitizedKey = sanitizeArtistKey(artist.key);
+        const sanitizedKey = sanitizeArtistKey(artist.key || artist.name);
 
         // Check if exists
         let existing = await CatalogMetadata.findOne({
