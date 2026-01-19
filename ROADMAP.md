@@ -29,6 +29,7 @@
 
 ### 3. Public View
 - [ ] **Carousel/Slider**: Replace static image card with a mini-carousel in the grid (or just on hover?).
+- [ ] **QR Code Generation**: Generate a unique QR code for each showroom to allow physical kiosks/visitors to scan and jump directly to the digital version.
 - [ ] **Kiosk Upgrade**: Clicking "Modo Kiosko" cycles through ALL slides of ALL instruments automatically.
 
 ---
@@ -113,16 +114,15 @@
   - Single source of truth for Discogs/Spotify integration
 
 ### Pending DRY Refactoring 🚧
-- [ ] **Image Upload Module** (`@/lib/media/upload.ts`)
-  - Centralize image upload logic (Cloudinary/local storage)
-  - Currently duplicated in:
-    - Instrument image upload
-    - User avatar upload
-    - Showroom cover image upload
-    - Metadata logo upload
-    - Music album cover upload
-  - Create unified `uploadImage(file, options)` function
-  - Handle resizing, optimization, and format conversion in one place
+- [ ] **Unified Media Manager** (`@/lib/media/`)
+  - **Concept**: Single centralized module for all image and asset operations (DRY).
+  - **Coverage**: Apply to Instruments, Metadata (Artists/Brands), Showroom Slides, Avatars, Badges, and Music.
+  - **Features**:
+    - `mediaEngine.upload()`: Unified handler for Cloudinary/Local/S3.
+    - `mediaEngine.optimize()`: Auto-resizing, WebP conversion, and SVG sanitization.
+    - `MediaLibrary`: A "Gallery" component to reuse previously uploaded images across the app.
+    - `PrimarySelector`: Reusable logic/UI for selecting the primary image in any collection.
+    - `ExternalEnricher`: Standardized logic to pull images from Discogs, Spotify, or Web Scrapers.
 
 - [ ] **Form Validation Module** (`@/lib/validation/`)
   - Extract common validation patterns
@@ -141,6 +141,15 @@
 - [ ] **Authentication Guards** (`@/lib/auth/guards.ts`)
   - Centralize role-based access control
   - Currently duplicated in multiple server actions
+
+- [ ] **Unified AI Service** (`@/lib/ai/`)
+  - **Concept**: Centralize all AI-related logic (Prompts, Parsing, Retries, and JSON extraction).
+  - **Coverage**: Magic Import (Instruments), AI Writer (Blog/Notes), Market Scraper, and Music Detection.
+  - **Features**:
+    - `aiEngine.generateJSON()`: Reusable logic to enforce structured outputs and handle sanitization.
+    - `aiEngine.getDynamicPrompt()`: Unified retrieval from System Config.
+    - `aiEngine.parseMarkdownJSON()`: Extract JSON from AI markdown blocks (fix common AI quirks).
+    - `PromptVersioning`: Track and rollback prompt changes centrally.
 
 ### Benefits of DRY Refactoring:
 - 🎯 Easier maintenance (fix once, apply everywhere)
