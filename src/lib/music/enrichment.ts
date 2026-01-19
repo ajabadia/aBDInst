@@ -290,3 +290,97 @@ export async function enrichInstrumentWithMusic(
         return { success: false, stats };
     }
 }
+
+/**
+ * Get or create a single album from Discogs/Spotify
+ * Reusable for both user imports and AI enrichment
+ */
+export async function getOrCreateAlbum(
+    source: 'discogs' | 'spotify',
+    externalId: string,
+    userId?: string
+): Promise<{ success: boolean, album?: any, error?: string }> {
+    await dbConnect();
+
+    try {
+        let globalAlbum: any = null;
+
+        // 1. Check if album already exists in cache
+        if (source === 'discogs') {
+            globalAlbum = await MusicAlbum.findOne({ discogsId: externalId });
+        } else if (source === 'spotify') {
+            globalAlbum = await MusicAlbum.findOne({ spotifyId: externalId });
+        }
+
+        // 2. If not in cache, fetch from API and save
+        if (!globalAlbum) {
+            let albumData: any = null;
+
+            if (source === 'discogs') {
+                const release = await getDiscogsRelease(externalId);
+                if (!release) return { success: false, error: 'Release not found on Discogs' };
+
+                // Filter out spacer.gif
+                const coverImage = release.images?.[0]?.resource_url || release.thumb;
+                const validCoverImage = coverImage && !coverImage.includes('spacer.gif') ? coverImage : null;
+
+                albumData = {
+                    artist: release.artists?.map((a: any) => a.name).join(', ') || 'Unknown Artist',
+                    title: release.title,
+                    year: release.year,
+                    label: release.labels?.[0]?.name,
+                    genres: release.genres,
+                    styles: release.styles,
+                    format: release.formats?.[0]?.name,
+                    discogsId: externalId,
+                    coverImage: validCoverImage,
+                    tracklist: release.tracklist?.map((t: any) => ({
+                        position: t.position,
+                        title: t.title,
+                        duration: t.duration
+                    })),
+                    description: release.notes,
+                    createdBy: userId
+                };
+            } else if (source === 'spotify') {
+                const album = await getSpotifyAlbum(externalId);
+                if (!album) return { success: false, error: 'Album not found on Spotify' };
+
+                albumData = {
+                    artist: album.artists?.map((a: any) => a.name).join(', '),
+                    title: album.name,
+                    year: album.release_date ? new Date(album.release_date).getFullYear() : null,
+                    label: album.label,
+                    genres: album.genres,
+                    spotifyId: externalId,
+                    coverImage: album.images?.[0]?.url,
+                    tracklist: album.tracks?.items?.map((t: any) => ({
+                        position: t.track_number.toString(),
+                        title: t.name,
+                        duration: Math.floor(t.duration_ms / 1000).toString()
+                    })),
+                    description: album.copyrights?.[0]?.text,
+                    createdBy: userId
+                };
+            }
+
+            if (albumData) {
+                globalAlbum = await MusicAlbum.create(albumData);
+                console.log(`✅ Created album in cache: ${albumData.title} by ${albumData.artist}`);
+            }
+        } else {
+            console.log(`✅ Album found in cache: ${globalAlbum.title}`);
+        }
+
+        if (!globalAlbum) return { success: false, error: 'Failed to find or create album' };
+
+        return { success: true, album: globalAlbum };
+    } catch (error: any) {
+        console.error('❌ Error in getOrCreateAlbum:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+// Re-export for convenience
+export { searchDiscogs, getDiscogsRelease } from './discogs';
+export { searchSpotifyAlbums, getSpotifyAlbum } from './spotify';
