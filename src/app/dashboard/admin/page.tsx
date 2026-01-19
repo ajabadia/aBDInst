@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getUsers } from '@/actions/admin';
-import { Users, Bot, Tag, MessageSquare, Mail, ShieldAlert, Server, Trophy } from 'lucide-react';
+import { Users, Bot, Tag, MessageSquare, Mail, ShieldAlert, Server, Trophy, Globe } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminPage() {
