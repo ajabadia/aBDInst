@@ -175,7 +175,7 @@ export async function createInstrumentArtistRelations(
     await dbConnect();
 
     for (const artist of artists) {
-        const sanitizedKey = sanitizeArtistKey(artist.key);
+        const sanitizedKey = sanitizeArtistKey(artist.key || artist.name);
         const artistMetadataId = artistMap.get(sanitizedKey);
 
         if (!artistMetadataId) continue;
