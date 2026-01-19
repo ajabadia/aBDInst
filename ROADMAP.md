@@ -1,81 +1,65 @@
-# Roadmap del Proyecto: Fase 3 (Advanced Features & Community)
+# Instrument Collector - Project Roadmap
 
-Este documento detalla el plan de implementación para las próximas características avanzadas de Instrument Collector.
+## 🚀 Current Status: Showroom V2 (Completed)
+- **Features**: Custom Cover Images, Granular Privacy/Visibility (Draft, Private, Public, Unlisted), Kiosk Mode Toggle.
+- **Tech**: Next.js 14 Server Actions, MongoDB Mongoose, TypeScript.
 
-## 1. Public Showrooms (Compartir Colección) ✅ **(COMPLETADO)**
-Permitir a los usuarios compartir partes de su colección públicamente.
-- **Ruta**: `/dashboard/showrooms` y `/s/[slug]`.
-- **Funcionalidad**:
-    - Crear múltiples "Exhibiciones" (ej. "Mis Guitarras Vintage", "Pedalera de Directo").
-    - **Privacidad**: Ocultar precios, valores y números de serie por defecto.
-    - **Estética**: Layouts "Hero" inmersivos.
-- **Tecnología**: Modelo `Showroom` en MongoDB.
+---
 
-## 2. Herramientas Profesionales (Seguros & PDF)
-- **Generador de Reportes**: Exportación de inventario en PDF.
-- **Caso de Uso**: Pólizas de seguro y auditorías.
-- **Contenido**:
-    - Resumen de valor total.
-    - Listado de ítems con fotos principales, N/S y condición.
-    - Firma digital de generación.
+## 📅 Short-Term: Showroom V3 - Phase 1 (The Slide Engine)
+*Goal: Transform static single-image items into dynamic multi-slide exhibits.*
 
-## 3. Blog & Base de Conocimiento (AI-Powered)
-Sistema de gestión de contenidos (CMS) asistido por IA.
-- **Objetivo**: SEO y educación de la comunidad.
-- **Flujo Admin**:
-    1.  Admin propone tema.
-    2.  IA redacta borrador estructurado con datos del catálogo.
-    3.  Admin revisa y publica.
-- **Modelo**: `Article` (título, contenido, autor, tags).
+### 1. Data Model Evolution
+- [ ] **Update `IShowroomItem`**: Add `slides: ISlide[]` array.
+    ```typescript
+    interface ISlide {
+        id: string;
+        type: 'image' | 'text' | 'specs_grid';
+        content: string; // URL or Text
+        caption?: string;
+    }
+    ```
+- [ ] **Migration Strategy**: Use existing `collectionId.images[0]` as fallback if `slides` is empty.
 
-## 4. Hardware & IoT (Taller 2.0)
-Monitorización ambiental proactiva.
-- **Funcionalidad**:
-    - Ingesta de datos de sensores (Temp/Humedad).
-    - Alertas en tiempo real (ej. "Peligro: Baja humedad en estudio").
-- **IoT Integration**: Hardware sensors API.
+### 2. Editor & UX
+- [ ] **Slide Editor**: UI to add/remove/order slides for a specific instrument in the showroom.
+- [ ] **"Magic Import 1.0"**: When adding an instrument, optionally auto-generate:
+    - Slide 1: Main Photo.
+    - Slide 2: Placard Text (if exists).
 
-## Phase 4: Museum, Social & Gamification ✅ **(COMPLETADO)**
-- **Gamification & Rewards**:
-    - **Back-end**: Badges y triggers implementados.
-    - **Front-end**: "Trophy Case" implementado en `/dashboard/profile`.
-- **Exhibitions (Exposiciones)**:
-    - **Status**: Lifecycle Manager completo.
-    - **Management**: Panel de Admin disponible en `/dashboard/admin/exhibitions`.
-- **Landing Page Admin**:
-    - **Status**: Configuración global (Hero/Featured Exhibition) en `/dashboard/admin/cover`.
-- **Admin Tools Expansion**:
-    - **Requests Queue**: `/dashboard/admin/requests`.
-    - **Catalog Manager**: `/dashboard/admin/catalog`.
-    - **Evolución**: Mejorar filtros y ordenación en Catalog Admin reutilizando componentes del catálogo público.
+### 3. Public View
+- [ ] **Carousel/Slider**: Replace static image card with a mini-carousel in the grid (or just on hover?).
+- [ ] **Kiosk Upgrade**: Clicking "Modo Kiosko" cycles through ALL slides of ALL instruments automatically.
 
-## 5. Advanced Instrument Submission (Phase 5) 🚧 **(PRIORIDAD)**
-- **Search First**: Flujo obligatorio de búsqueda antes de crear.
-- **Global DB**: Alta en base de datos global pero en estado Draft/Pending.
-- **Magic Import 2.0**:
-    - **Prompt Generator**: Para usuarios sin API Key (External AI).
-    - **JSON Validation**: Ingesta de datos externos (Wizard).
-    - **Bulk Import**: Revisar/Unificar lógica para permitir subir JSONs externos (o AI-generated) en el importador masivo.
-- **Auditoría**: Traza completa de quien crea y modifica (`statusHistory`).
-- **Seguridad**: Rate limiting, CAPTCHA para prevenir spam/abuso.
-- **UX**: Mejorar campos de entrada (specs más grande, URLs separadas), sanitización de JSON.
+---
 
-## 6. Testing & Estabilidad
-- **Tests Unitarios**: Vitest configurado.
-- **Tests E2E (Playwright)**:
-    - [ ] Auth Specs (Resolviendo timeouts).
-    - [ ] CRUD Specs.
+## 🔭 Mid-Term: Showroom V3 - Phase 2 (Digital Museum)
+*Goal: Structure and Storytelling.*
 
-## 7. Hardware & IoT (Taller 2.0)
-- **IoT Integration**: Hardware sensors API.
-- **Luthier AI**: Diagnóstico visual de problemas de mantenimiento.
+### 1. Hierarchy
+- [ ] **Rooms/Sections**: `Showroom -> Room (e.g., "The 70s") -> Items`.
+- [ ] **Curatorial Cards**: Items that are *not* instruments, but text/posters describing the section.
 
-## 8. Future Concepts
-- **Blockchain**: Certificados de posesión.
-- **PWA Hardening**: Notificaciones push.
-- **Marketplace Live**: Precios tiempo real.
+### 2. Advanced Editor
+- [ ] **Drag & Drop**: Reorder items and slides visually.
+- [ ] **Layouts**: Choose slide layouts (Hero, Split, Grid).
 
-## 5. Hardware & IoT (Taller 2.0)
-- **IoT Integration**: Hardware sensors API.
-- **Luthier AI**: Diagnóstico visual de problemas de mantenimiento mediante fotos.
-- **Smart Sales**: Generador de descripciones de venta persuasivas para Reverb/Wallapop.
+---
+
+## 🔮 Long-Term: Domain Expansion (Music Collection)
+*Goal: Link Instruments to the Music they created.*
+
+### 1. New Core Models
+- [ ] **`Album`**: Title, Artist, Year, Cover Art, Format (Vinyl, CD...).
+- [ ] **`Track`**: Song list.
+
+### 2. The "Killer Feature" (Cross-Linking)
+- [ ] **Relationship**: `Instrument <-> Track`. "This Gibson Les Paul was used on 'Whole Lotta Love'".
+- [ ] **Polymorphic Showrooms**: A showroom can contain Instruments AND Albums mixed together.
+
+---
+
+## 🧠 Research & Best Practices (Ongoing)
+- [ ] **UX Patterns**: Study "Digital Museum" kiosks (bitesize content, high contrast, storytelling).
+- [ ] **Audio/Video**: Explore adding audio clips (instrument samples) or video (performances) to slides.
+- [ ] **Performance**: Evaluate lazy-loading strategies for heavy media showrooms.

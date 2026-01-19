@@ -1,10 +1,21 @@
 import mongoose, { Schema, Document, Model } from 'mongoose';
 
+// Showroom V3: Slide Engine
+export interface ISlide {
+    _id?: string; // auto-generated
+    type: 'image' | 'text';
+    url?: string;     // For images
+    text?: string;    // For text/placard
+    caption?: string;
+    layout?: 'cover' | 'contain' | 'split'; // For future layout control
+}
+
 export interface IShowroomItem {
     collectionId: mongoose.Types.ObjectId;
-    publicNote?: string;
-    placardText?: string;
+    publicNote?: string; // Legacy/Fallback
+    placardText?: string; // Legacy/Fallback
     displayOrder: number;
+    slides: ISlide[];
 }
 
 export interface IShowroom extends Document {
@@ -33,6 +44,14 @@ export interface IShowroom extends Document {
     updatedAt: Date;
 }
 
+const SlideSchema = new Schema({
+    type: { type: String, enum: ['image', 'text'], required: true },
+    url: { type: String },
+    text: { type: String },
+    caption: { type: String },
+    layout: { type: String, default: 'cover' }
+});
+
 const ShowroomSchema = new Schema<IShowroom>({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     name: { type: String, required: true },
@@ -43,7 +62,8 @@ const ShowroomSchema = new Schema<IShowroom>({
         collectionId: { type: Schema.Types.ObjectId, ref: 'UserCollection', required: true },
         publicNote: String,
         placardText: String,
-        displayOrder: { type: Number, default: 0 }
+        displayOrder: { type: Number, default: 0 },
+        slides: { type: [SlideSchema], default: [] }
     }],
     theme: { type: String, enum: ['minimal', 'dark', 'glass', 'boutique'], default: 'minimal' },
     // Deprecated: isPublic (kept for migration, mapped to visibility)

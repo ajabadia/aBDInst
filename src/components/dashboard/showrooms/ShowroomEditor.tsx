@@ -78,7 +78,28 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
     };
 
     const addItem = (collectionId: string) => {
-        setItems([...items, { collectionId, publicNote: '', displayOrder: items.length }]);
+        // V3: Magic Import - Generate default slides
+        const details = collection.find(c => c._id === collectionId);
+        const defaultSlides = [];
+
+        // Slide 1: Main Image
+        const mainImage = details?.images?.[0]?.url || details?.instrumentId?.genericImages?.[0];
+        if (mainImage) {
+            defaultSlides.push({
+                type: 'image',
+                url: mainImage,
+                layout: 'cover',
+                caption: 'Vista Principal'
+            });
+        }
+
+        setItems([...items, {
+            collectionId,
+            publicNote: '',
+            placardText: '',
+            displayOrder: items.length,
+            slides: defaultSlides
+        }]);
     };
 
     const removeItem = (collectionId: string) => {
@@ -378,6 +399,42 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
                                                             }}
                                                         />
                                                     </div>
+                                                </div>
+
+                                                {/* V3 Slides Preview */}
+                                                <div className="pt-2 border-t border-black/5 dark:border-white/5">
+                                                    <div className="flex justify-between items-center mb-2">
+                                                        <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">
+                                                            Diapositivas ({item.slides?.length || 0})
+                                                        </label>
+                                                        <button type="button" className="text-xs text-ios-blue font-bold px-2 py-1 bg-ios-blue/10 rounded-full hover:bg-ios-blue/20 transition-colors">
+                                                            Gestionar
+                                                        </button>
+                                                    </div>
+
+                                                    {item.slides && item.slides.length > 0 ? (
+                                                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                                                            {item.slides.map((slide: any, sIdx: number) => (
+                                                                <div key={sIdx} className="w-20 h-20 bg-gray-100 dark:bg-white/5 rounded-lg relative overflow-hidden shrink-0 border border-black/5 dark:border-white/5 group/slide">
+                                                                    {slide.type === 'image' && (
+                                                                        <img src={slide.url} alt="Slide" className="w-full h-full object-cover" />
+                                                                    )}
+                                                                    {slide.type === 'text' && (
+                                                                        <div className="w-full h-full p-2 bg-white dark:bg-black flex items-center justify-center">
+                                                                            <span className="text-[10px] text-center text-gray-500 line-clamp-3">
+                                                                                {slide.text}
+                                                                            </span>
+                                                                        </div>
+                                                                    )}
+                                                                    <div className="absolute top-1 right-1 bg-black/50 text-white rounded text-[8px] px-1">
+                                                                        {sIdx + 1}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    ) : (
+                                                        <p className="text-xs text-gray-400 italic">No hay diapositivas generadas.</p>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
