@@ -12,6 +12,7 @@ import Image from 'next/image';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { FileText } from 'lucide-react';
+import ImageUpload from '@/components/ImageUpload';
 // No op (lines removed)
 
 // Simple Switch Component if not available
@@ -37,7 +38,13 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
         description: showroom.description || '',
         theme: showroom.theme || 'minimal',
         isPublic: showroom.isPublic,
-        privacy: showroom.privacy || { showPrices: false, showSerialNumbers: false, showAcquisitionDate: false }
+        coverImage: showroom.coverImage || '',
+        privacy: {
+            showPrices: showroom.privacy?.showPrices || false,
+            showSerialNumbers: showroom.privacy?.showSerialNumbers || false,
+            showAcquisitionDate: showroom.privacy?.showAcquisitionDate || false,
+            showStatus: showroom.privacy?.showStatus || false
+        }
     });
 
     const [items, setItems] = useState<any[]>(showroom.items || []);
@@ -178,6 +185,15 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
                         </div>
 
                         <div className="space-y-2">
+                            <label className="text-sm font-medium">Cartel (Portada)</label>
+                            <ImageUpload
+                                endpoint="/api/upload/showroom-cover"
+                                currentImage={formData.coverImage}
+                                onUpload={(url) => setFormData({ ...formData, coverImage: url })}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
                             <label className="text-sm font-medium">Descripción</label>
                             <textarea
                                 className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2 h-24"
@@ -217,6 +233,16 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
                             checked={formData.privacy.showSerialNumbers}
                             onCheckedChange={c => setFormData({ ...formData, privacy: { ...formData.privacy, showSerialNumbers: c } })}
                         />
+                        <SimpleSwitch
+                            label="Mostrar Estado (Mint, Good...)"
+                            checked={formData.privacy.showStatus}
+                            onCheckedChange={c => setFormData({ ...formData, privacy: { ...formData.privacy, showStatus: c } })}
+                        />
+                        <SimpleSwitch
+                            label="Mostrar Fecha de Adquisición"
+                            checked={formData.privacy.showAcquisitionDate}
+                            onCheckedChange={c => setFormData({ ...formData, privacy: { ...formData.privacy, showAcquisitionDate: c } })}
+                        />
                     </div>
 
                     <Button variant="destructive" className="w-full" onClick={handleDelete} icon={Trash2}>
@@ -243,33 +269,62 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
                                 const details = getItemDetails(item.collectionId);
                                 if (!details) return null;
                                 return (
-                                    <div key={item.collectionId} className="flex gap-4 p-3 bg-gray-50 dark:bg-black/20 rounded-xl items-center group">
-                                        <div className="w-12 h-12 bg-white rounded-lg overflow-hidden shrink-0 relative">
-                                            {details.images?.[0]?.url || details.instrumentId?.genericImages?.[0] ? (
-                                                <Image
-                                                    src={details.images?.[0]?.url || details.instrumentId?.genericImages?.[0]}
-                                                    alt="thumb"
-                                                    fill
-                                                    className="object-cover"
-                                                />
-                                            ) : <div className="w-full h-full bg-gray-200" />}
+                                    <div key={item.collectionId} className="p-4 bg-gray-50 dark:bg-black/20 rounded-xl space-y-4 group border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-colors">
+                                        <div className="flex gap-4 items-start">
+                                            <div className="w-16 h-16 bg-white rounded-lg overflow-hidden shrink-0 relative shadow-sm">
+                                                {details.images?.[0]?.url || details.instrumentId?.genericImages?.[0] ? (
+                                                    <Image
+                                                        src={details.images?.[0]?.url || details.instrumentId?.genericImages?.[0]}
+                                                        alt="thumb"
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                ) : <div className="w-full h-full bg-gray-200" />}
+                                            </div>
+                                            <div className="flex-grow min-w-0">
+                                                <div className="flex justify-between items-start">
+                                                    <div>
+                                                        <p className="font-bold text-lg leading-tight">{details.instrumentId?.brand} {details.instrumentId?.model}</p>
+                                                        <p className="text-xs text-gray-500 font-mono uppercase mt-1">{details.year || 'N/A'} • {details.instrumentId?.type}</p>
+                                                    </div>
+                                                    <button onClick={() => removeItem(item.collectionId)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors">
+                                                        <X size={18} />
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="flex-grow min-w-0">
-                                            <p className="font-bold truncate">{details.instrumentId?.brand} {details.instrumentId?.model}</p>
-                                            <input
-                                                className="text-xs bg-transparent border-b border-transparent hover:border-gray-300 w-full focus:outline-none focus:border-blue-500 placeholder-gray-400"
-                                                placeholder="Añadir nota pública..."
-                                                value={item.publicNote || ''}
-                                                onChange={(e) => {
-                                                    const newItems = [...items];
-                                                    newItems[idx].publicNote = e.target.value;
-                                                    setItems(newItems);
-                                                }}
-                                            />
+
+                                        {/* Curator Fields */}
+                                        <div className="space-y-3 pt-2 border-t border-black/5 dark:border-white/5">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Cartel de Museo (Placard)</label>
+                                                    <textarea
+                                                        className="w-full text-sm bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 min-h-[80px] focus:ring-2 ring-ios-blue/20 outline-none"
+                                                        placeholder="Texto breve y poético para el cartel..."
+                                                        value={item.placardText || ''}
+                                                        onChange={(e) => {
+                                                            const newItems = [...items];
+                                                            newItems[idx].placardText = e.target.value;
+                                                            setItems(newItems);
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1">
+                                                    <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Ficha Técnica / Nota</label>
+                                                    <textarea
+                                                        className="w-full text-sm bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 min-h-[80px] focus:ring-2 ring-ios-blue/20 outline-none"
+                                                        placeholder="Datos técnicos, historia de la adquisición..."
+                                                        value={item.publicNote || ''}
+                                                        onChange={(e) => {
+                                                            const newItems = [...items];
+                                                            newItems[idx].publicNote = e.target.value;
+                                                            setItems(newItems);
+                                                        }}
+                                                    />
+                                                </div>
+                                            </div>
                                         </div>
-                                        <button onClick={() => removeItem(item.collectionId)} className="p-2 text-gray-400 hover:text-red-500">
-                                            <X size={18} />
-                                        </button>
                                     </div>
                                 );
                             })}

@@ -43,6 +43,40 @@ export async function createInstrument(data: FormData) {
 
         await dbConnect();
 
+        // Check if instrument already exists (Soft check before DB constraint)
+        // This is useful to return the existing ID for redirection
+        const existingInstrument = await Instrument.findOne({
+            brand: { $regex: new RegExp(`^${escapeRegExp(data.get('brand') as string)}$`, 'i') },
+            model: { $regex: new RegExp(`^${escapeRegExp(data.get('model') as string)}$`, 'i') },
+            version: data.get('version') ? { $regex: new RegExp(`^${escapeRegExp(data.get('version') as string)}$`, 'i') } : null
+        }).select('_id');
+
+        if (existingInstrument) {
+            // User intention was to add this instrument. If it exists, we likely want to add it to their collection
+            // if they don't have it already.
+            const UserCollection = (await import('@/models/UserCollection')).default;
+            const existingInCollection = await UserCollection.findOne({
+                userId: session.user.id,
+                instrumentId: existingInstrument._id
+            });
+
+            if (!existingInCollection) {
+                await UserCollection.create({
+                    userId: session.user.id,
+                    instrumentId: existingInstrument._id,
+                    status: 'active',
+                    acquisition: { date: new Date(), price: 0, currency: 'EUR' },
+                    notes: 'Añadido automáticamente al detectar existencia previa'
+                });
+            }
+
+            return {
+                success: false,
+                error: 'DUPLICATE_INSTRUMENT', // Specific code for frontend
+                id: existingInstrument._id.toString()
+            };
+        }
+
         const rawData = {
             type: data.get('type'),
             subtype: data.get('subtype')?.toString() || undefined,
@@ -65,12 +99,14 @@ export async function createInstrument(data: FormData) {
             excludedImages: data.get('excludedImages') ? JSON.parse(data.get('excludedImages') as string) : [],
             isBaseModel: data.get('isBaseModel') === 'true',
 
-            status: isPrivileged ? (data.get('status')?.toString() || 'published') : 'pending',
+            // Force PENDING/DRAFT for all new submissions via this action to prevent accidental spam/fakes
+            // Even admins should review their "Magic Imports" before publishing.
+            status: data.get('status')?.toString() || 'pending',
             statusHistory: [{
-                status: isPrivileged ? (data.get('status')?.toString() || 'published') : 'pending',
+                status: data.get('status')?.toString() || 'pending',
                 changedBy: session.user.id,
                 date: new Date(),
-                note: isPrivileged ? 'Created by Admin/Editor' : 'Submitted for review'
+                note: isPrivileged ? 'Created by Admin (Draft)' : 'Submitted for review'
             }]
         };
 
@@ -90,13 +126,12 @@ export async function createInstrument(data: FormData) {
 
         const instrument = await Instrument.create(instrumentData);
 
-        // Auto-add to user's collection as they are defining it (implied ownership usually, or at least "My Contributions")
-        // The user request explicitly says "apareciendo en su colección"
+        // Auto-add to user's collection as they are defining it
         const UserCollection = (await import('@/models/UserCollection')).default;
         await UserCollection.create({
             userId: session.user.id,
             instrumentId: instrument._id,
-            status: 'owned',
+            status: 'active', // Default status
             acquisition: {
                 date: new Date(),
                 price: 0,
@@ -109,6 +144,69 @@ export async function createInstrument(data: FormData) {
         return { success: true, id: instrument._id.toString() };
     } catch (error: any) {
         console.error('Create Instrument Error:', error);
+
+        // Handle E11000 duplicate key error explicitly
+        if (error.code === 11000) {
+            // Try to find the existing one to return its ID
+            try {
+                const existing = await Instrument.findOne({
+                    brand: data.get('brand'),
+                    model: data.get('model'),
+                    version: data.get('version') || null
+                }).select('_id');
+
+                if (existing) {
+                    // Also auto-add to collection here if caught by DB constraint
+                    const UserCollection = (await import('@/models/UserCollection')).default;
+
+                    // Re-fetch session to be safe in catch block scope, though closure should work.
+                    // If TS complains about 'session' not found, it must be block-scoped or similar issue.
+                    // But 'session' is const at top of try block.
+                    // Ah, 'try' block variables are NOT accessible in 'catch' block in JS/TS!
+                    const session = await auth();
+                    if (session?.user?.id) {
+                        const existingInCollection = await UserCollection.findOne({
+                            userId: session.user.id,
+                            instrumentId: existing._id
+                        });
+
+                        if (!existingInCollection) {
+                            await UserCollection.create({
+                                userId: session.user.id,
+                                instrumentId: existing._id,
+                                status: 'active',
+                                acquisition: { date: new Date(), price: 0, currency: 'EUR' },
+                                notes: 'Añadido automáticamente al detectar existencia previa'
+                            });
+                        } else if (existingInCollection.status === 'wishlist') {
+                            // If it was in wishlist, upgrade to owned since the user is trying to "create/add" it
+                            await UserCollection.findByIdAndUpdate(existingInCollection._id, {
+                                status: 'active',
+                                acquisition: { date: new Date() },
+                                $push: {
+                                    events: {
+                                        type: 'status_change',
+                                        date: new Date(),
+                                        title: 'Adquirido',
+                                        description: 'Movido de Wishlist a Colección al re-intentar creación'
+                                    }
+                                }
+                            });
+                        }
+                    }
+
+                    return {
+                        success: false,
+                        error: 'DUPLICATE_INSTRUMENT',
+                        id: existing._id.toString()
+                    };
+                }
+            } catch (e) {
+                // ignore
+            }
+            return { success: false, error: "Este instrumento ya existe en la base de datos." };
+        }
+
         return { success: false, error: error.message };
     }
 }
@@ -152,7 +250,7 @@ export async function addToCollection(instrumentId: string) {
         await UserCollection.create({
             userId: session.user.id,
             instrumentId: instrumentId,
-            status: 'owned', // Default status
+            status: 'active', // Default status
             acquisition: {
                 date: new Date(),
                 price: 0,

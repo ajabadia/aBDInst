@@ -12,10 +12,18 @@ export default function ShowroomCard({ showroom }: ShowroomCardProps) {
     return (
         <div className="group apple-card bg-white dark:bg-white/5 overflow-hidden flex flex-col h-full hover:shadow-apple-lg transition-all duration-300">
             {/* Preview Banner */}
-            <div className={`h-32 w-full ${showroom.theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'} relative flex items-center justify-center`}>
-                <Layout className="text-black/10 dark:text-white/10 w-16 h-16" />
+            <div className={`h-32 w-full ${showroom.theme === 'dark' ? 'bg-gray-900' : 'bg-gray-100'} relative flex items-center justify-center overflow-hidden`}>
+                {showroom.coverImage ? (
+                    <div className="absolute inset-0">
+                        {/* We use standard img for simple cards or Next Image with fill */}
+                        <img src={showroom.coverImage} alt={showroom.name} className="w-full h-full object-cover" />
+                    </div>
+                ) : (
+                    <Layout className="text-black/10 dark:text-white/10 w-16 h-16" />
+                )}
+
                 {showroom.items && showroom.items.length > 0 && (
-                    <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-full backdrop-blur-md">
+                    <div className="absolute bottom-3 right-3 bg-black/50 text-white text-xs font-bold px-2 py-1 rounded-full backdrop-blur-md z-10">
                         {showroom.items.length} ítems
                     </div>
                 )}

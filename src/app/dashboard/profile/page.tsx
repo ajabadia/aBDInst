@@ -5,6 +5,7 @@ import Image from 'next/image';
 import TrophyCase from '@/components/gamification/TrophyCase';
 import { Settings, Share2, MapPin, Calendar, Music, Trophy } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import NotificationSettings from '@/components/dashboard/NotificationSettings';
 
 export default function ProfilePage() {
     const { data: session } = useSession();
@@ -125,6 +126,11 @@ export default function ProfilePage() {
                             {/* Progress logic pending */}
                         </div>
                         <p className="text-xs text-gray-400">Sube 3 instrumentos más para alcanzar el Nivel 2</p>
+                    </div>
+
+                    <div className="pt-6">
+                        <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Ajustes</h3>
+                        <NotificationSettings />
                     </div>
                 </div>
 

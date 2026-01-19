@@ -5,6 +5,10 @@ const withPWA = withPWAInit({
   dest: "public",
   disable: process.env.NODE_ENV === "development", // Disable PWA in dev
   register: true,
+  workboxOptions: {
+    importScripts: ["/sw-push.js"], // Import our custom push listener
+    skipWaiting: true,
+  },
 });
 
 const nextConfig: NextConfig = {

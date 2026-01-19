@@ -6,11 +6,13 @@ import { toast } from 'sonner';
 
 interface ImageUploadProps {
     onUpload: (url: string) => void;
+    endpoint?: string;
+    currentImage?: string;
 }
 
-export default function ImageUpload({ onUpload }: ImageUploadProps) {
+export default function ImageUpload({ onUpload, endpoint = '/api/upload/collection-image', currentImage }: ImageUploadProps) {
     const [uploading, setUploading] = useState(false);
-    const [preview, setPreview] = useState<string | null>(null);
+    const [preview, setPreview] = useState<string | null>(currentImage || null);
 
     async function handleChange(e: React.ChangeEvent<HTMLInputElement>) {
         const file = e.target.files?.[0];
@@ -22,7 +24,7 @@ export default function ImageUpload({ onUpload }: ImageUploadProps) {
             const formData = new FormData();
             formData.append('file', file);
 
-            const response = await fetch('/api/upload/collection-image', {
+            const response = await fetch(endpoint, {
                 method: 'POST',
                 body: formData
             });

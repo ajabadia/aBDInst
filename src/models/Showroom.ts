@@ -3,6 +3,7 @@ import mongoose, { Schema, Document, Model } from 'mongoose';
 export interface IShowroomItem {
     collectionId: mongoose.Types.ObjectId;
     publicNote?: string;
+    placardText?: string;
     displayOrder: number;
 }
 
@@ -10,6 +11,7 @@ export interface IShowroom extends Document {
     userId: mongoose.Types.ObjectId;
     name: string;
     slug: string;
+    coverImage?: string;
     description?: string;
     items: IShowroomItem[];
     theme: 'minimal' | 'dark' | 'glass' | 'boutique';
@@ -18,6 +20,7 @@ export interface IShowroom extends Document {
         showPrices: boolean;
         showSerialNumbers: boolean;
         showAcquisitionDate: boolean;
+        showStatus: boolean;
     };
     stats: {
         views: number;
@@ -31,10 +34,12 @@ const ShowroomSchema = new Schema<IShowroom>({
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
     name: { type: String, required: true },
     slug: { type: String, required: true, unique: true },
+    coverImage: { type: String },
     description: { type: String },
     items: [{
         collectionId: { type: Schema.Types.ObjectId, ref: 'UserCollection', required: true },
         publicNote: String,
+        placardText: String,
         displayOrder: { type: Number, default: 0 }
     }],
     theme: { type: String, enum: ['minimal', 'dark', 'glass', 'boutique'], default: 'minimal' },
@@ -42,7 +47,8 @@ const ShowroomSchema = new Schema<IShowroom>({
     privacy: {
         showPrices: { type: Boolean, default: false },
         showSerialNumbers: { type: Boolean, default: false },
-        showAcquisitionDate: { type: Boolean, default: false }
+        showAcquisitionDate: { type: Boolean, default: false },
+        showStatus: { type: Boolean, default: false }
     },
     stats: {
         views: { type: Number, default: 0 },

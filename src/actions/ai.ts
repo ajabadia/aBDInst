@@ -243,8 +243,7 @@ export async function analyzeInstrumentUrl(url: string) {
 
                 const { getSystemConfig } = await import('./admin');
                 const modelName = await getSystemConfig('ai_model_name') || 'gemini-2.0-flash-exp';
-
-                const fallbackPrompt = `
+                const fallbackPrompt = await getSystemConfig('ai_scraper_fallback_prompt') || `
                     You are an expert instrument appraiser. I cannot access the website content due to privacy protection.
                     
                     ANALYZE ONLY THIS URL: "${url}"
@@ -501,7 +500,8 @@ export async function generateBlogContent(prompt: string, context: { title?: str
         Linked Instruments: ${JSON.stringify(context.linkedInstruments || [], null, 2)}
         `;
 
-        const systemPrompt = `
+        const { getSystemConfig } = await import('@/actions/admin');
+        const systemPrompt = await getSystemConfig('ai_writer_prompt') || `
         You are an expert music journalist and instrument historian. 
         Assist the user in writing a blog article. 
         Tone: Professional, Passionate, Informative.

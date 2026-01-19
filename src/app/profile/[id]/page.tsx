@@ -25,7 +25,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
         notFound();
     }
 
-    const { user, stats, collection, isFollowing } = data;
+    const { user, stats, collection, isFollowing, showrooms } = data;
 
     return (
         <div className="min-h-screen pb-32">
@@ -106,6 +106,48 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                     ))}
                 </div>
 
+                {/* Showrooms Area */}
+                {data.showrooms && data.showrooms.length > 0 && (
+                    <section className="space-y-8 mb-16">
+                        <div className="flex items-center gap-4">
+                            <h3 className="text-2xl font-bold tracking-tight">Showrooms</h3>
+                            <div className="h-[1px] flex-1 bg-black/5 dark:bg-white/5 rounded-full" />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {data.showrooms.map((s: any) => (
+                                <a key={s._id} href={`/s/${s.slug}`} className="group relative aspect-[21/9] rounded-3xl overflow-hidden bg-gray-100 dark:bg-gray-800 block shadow-apple-sm hover:shadow-apple-md transition-shadow">
+                                    {/* Banner Image */}
+                                    {s.coverImage ? (
+                                        <Image src={s.coverImage} alt={s.title} fill className="object-cover transition-transform duration-700 group-hover:scale-105" />
+                                    ) : (
+                                        <div className="w-full h-full bg-gradient-to-br from-indigo-500 to-purple-600" />
+                                    )}
+
+                                    {/* Overlay */}
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent group-hover:from-black/50 transition-colors" />
+
+                                    {/* Content */}
+                                    <div className="absolute inset-0 p-8 flex flex-col justify-end text-white">
+                                        <div className="transform transition-transform duration-500 group-hover:-translate-y-1">
+                                            <div className="flex items-center gap-2 mb-2">
+                                                <span className="px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-sm text-[10px] font-bold uppercase tracking-widest border border-white/10">
+                                                    {s.type === 'contest' ? 'Concurso' : s.type === 'showroom' ? 'Showroom' : 'Exhibición'}
+                                                </span>
+                                                {s.status === 'ended' && (
+                                                    <span className="px-2 py-0.5 rounded-full bg-black/40 backdrop-blur-sm text-[10px] font-bold uppercase tracking-widest border border-white/10 text-gray-300">
+                                                        Finalizado
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <h4 className="text-2xl md:text-4xl font-bold tracking-tight leading-none">{s.title}</h4>
+                                        </div>
+                                    </div>
+                                </a>
+                            ))}
+                        </div>
+                    </section>
+                )}
+
                 {/* Collection Area */}
                 <section className="space-y-8">
                     <div className="flex items-center gap-4">
@@ -119,7 +161,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ id: st
                                 <InstrumentCard inst={item.instrumentId} />
                             </div>
                         ))}
-                        
+
                         {collection.length === 0 && (
                             <div className="col-span-full py-24 text-center glass-panel rounded-[2rem] border-dashed border-2">
                                 <Box className="w-12 h-12 mx-auto mb-4 text-gray-300 opacity-50" />

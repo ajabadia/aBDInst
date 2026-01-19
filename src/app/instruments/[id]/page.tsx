@@ -190,7 +190,7 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                                 instrumentId={instrument._id || instrument.id}
                                 brand={instrument.brand}
                                 model={instrument.model}
-                                year={instrument.specs?.find((s: any) => s.key.toLowerCase().includes('year'))?.value}
+                                year={instrument.years?.[0] || instrument.specs?.find((s: any) => (s.label || s.key || '').toLowerCase().includes('year'))?.value}
                                 location={ownedItems[0]?.location}
                                 serial={ownedItems[0]?.inventorySerial || ownedItems[0]?.serialNumber}
                             />

@@ -176,7 +176,7 @@ export async function getPublicShowroom(slug: string) {
     return JSON.parse(JSON.stringify(showroom));
 }
 
-export async function updateShowroom(id: string, payload: { name?: string; description?: string; theme?: string; isPublic?: boolean; items?: any[] }) {
+export async function updateShowroom(id: string, payload: { name?: string; description?: string; theme?: string; isPublic?: boolean; items?: any[]; privacy?: any; coverImage?: string }) {
     const session = await (await import('@/auth')).auth();
     if (!session) return { success: false, error: 'Unauthorized' };
 

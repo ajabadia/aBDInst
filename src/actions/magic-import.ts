@@ -3,15 +3,18 @@
 import { InstrumentSchema } from '@/lib/schemas';
 // import { Instrument } from '@/types/instrument';
 
+import { getSystemConfig } from '@/actions/admin';
+
 export async function generateInstrumentPrompt(
+    name: string,
     description: string,
     specs: string,
     urls: string,
     imageUrls: string
 ) {
-    const prompt = `
+    const defaultPrompt = `
 You are an expert musical instrument archivist and appraiser.
-I need you to extract structured data for a specific instrument based on the rough notes and links provided below.
+I need you to extract structured data for a specific instrument: "${name}".
 
 INPUT DATA:
 Description/Notes: "${description}"
@@ -49,7 +52,32 @@ OUTPUT SCHEMA:
 }
 `;
 
-    return { success: true, prompt: prompt.trim() };
+    const configPrompt = await getSystemConfig('ai_user_import_prompt');
+
+    // Inject variables if using custom prompt, or use default which already has them interpolated
+    let finalPrompt = '';
+
+    if (configPrompt) {
+        // Simple variable replacement for custom prompts (using {{var}} style or just appending if simple)
+        // For robustness, let's assume the admin will write a prompt that expects these inputs.
+        // But to pass pass variables safely we usually inject them.
+        // Let's adopt a standard: replace {{description}}, {{specs}}, etc.
+        finalPrompt = configPrompt
+            .replace('{{description}}', description)
+            .replace('{{specs}}', specs)
+            .replace('{{urls}}', urls)
+            .replace('{{imageUrls}}', imageUrls);
+
+        // Fallback if no placeholders found (legacy/bad config protection): Append data at end? 
+        // Or just trust the admin knows? Let's safeguard by checking if placeholders exist.
+        if (!configPrompt.includes('{{description}}')) {
+            finalPrompt = configPrompt + `\n\nINPUT DATA:\nDesc: ${description}\nSpecs: ${specs}\nURLs: ${urls}\nImages: ${imageUrls}`;
+        }
+    } else {
+        finalPrompt = defaultPrompt;
+    }
+
+    return { success: true, prompt: finalPrompt.trim() };
 }
 
 export async function validateInstrumentJSON(jsonString: string) {
@@ -84,7 +112,24 @@ export async function validateInstrumentJSON(jsonString: string) {
         }
 
         // 5. Normalize structure
-        if (!Array.isArray(parsed.specs)) parsed.specs = [];
+        if (!Array.isArray(parsed.specs)) {
+            parsed.specs = [];
+        } else {
+            // Fix spec items to match Zod schema: { category, label, value }
+            parsed.specs = parsed.specs.map((item: any) => {
+                // Map common AI variations to 'label'
+                const label = item.label || item.name || item.key || item.field || "Feature";
+                // Map 'category' or default
+                const category = item.category || item.group || item.section || "General";
+                // Map 'value' or stringify
+                let value = item.value;
+                if (value === undefined || value === null) value = "Yes"; // Boolean flags often come as true/null
+                if (typeof value !== 'string') value = String(value);
+
+                return { category, label, value };
+            }).filter((item: any) => item.label && item.value); // Filter out garbage
+        }
+
         if (!Array.isArray(parsed.years)) {
             parsed.years = parsed.years ? [parsed.years.toString()] : [];
         }

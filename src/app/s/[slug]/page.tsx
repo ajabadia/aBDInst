@@ -32,10 +32,24 @@ export default async function PublicShowroomPage(props: { params: Promise<{ slug
         <div className={`min-h-screen ${containerClass} transition-colors duration-500`}>
             {/* Header / Hero */}
             <div className={`relative px-6 py-20 md:py-32 text-center md:text-left overflow-hidden border-b ${isDark ? 'border-white/10' : 'border-black/5'}`}>
-                {/* Background Decor */}
-                <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
-                    <Music size={400} />
-                </div>
+                {/* Background Decor or Cover Image */}
+                {showroom.coverImage ? (
+                    <>
+                        <div className="absolute inset-0 z-0">
+                            <Image
+                                src={showroom.coverImage}
+                                alt="Cover"
+                                fill
+                                className="object-cover opacity-20 blur-sm"
+                            />
+                            <div className={`absolute inset-0 ${isDark ? 'bg-black/60' : 'bg-white/60'}`} />
+                        </div>
+                    </>
+                ) : (
+                    <div className="absolute top-0 right-0 p-20 opacity-5 pointer-events-none">
+                        <Music size={400} />
+                    </div>
+                )}
 
                 <div className="max-w-7xl mx-auto relative z-10 flex flex-col md:flex-row items-end justify-between gap-8">
                     <div className="space-y-6 max-w-2xl">
@@ -62,7 +76,11 @@ export default async function PublicShowroomPage(props: { params: Promise<{ slug
             <div className="max-w-7xl mx-auto px-6 py-20">
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-y-16 gap-x-10">
                     {showroom.items.map((item: any) => {
-                        const mainImage = item.userImages?.[0]?.url || item.instrumentId?.genericImages?.[0];
+                        // Access populated data correctly
+                        const collectionData = item.collectionId || {};
+                        const instrument = collectionData.instrumentId || {};
+
+                        const mainImage = collectionData.userImages?.[0]?.url || instrument.genericImages?.[0];
 
                         return (
                             <div key={item._id} className="group space-y-6">
@@ -71,7 +89,7 @@ export default async function PublicShowroomPage(props: { params: Promise<{ slug
                                     {mainImage ? (
                                         <Image
                                             src={mainImage}
-                                            alt={item.instrumentId?.model || 'Instrumento'}
+                                            alt={instrument.model || 'Instrumento'}
                                             fill
                                             className="object-cover transition-transform duration-700 group-hover:scale-105"
                                         />
@@ -84,7 +102,7 @@ export default async function PublicShowroomPage(props: { params: Promise<{ slug
                                     {/* Overlay Info */}
                                     <div className="absolute top-4 left-4">
                                         <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md ${isDark ? 'bg-white/10 text-white' : 'bg-black/80 text-white'}`}>
-                                            {item.instrumentId?.type?.replace('_', ' ')}
+                                            {instrument.type?.replace('_', ' ')}
                                         </span>
                                     </div>
                                 </div>
@@ -92,26 +110,44 @@ export default async function PublicShowroomPage(props: { params: Promise<{ slug
                                 {/* Text Info */}
                                 <div className="space-y-3">
                                     <div>
-                                        <h3 className="text-2xl font-bold leading-tight">{item.instrumentId?.model}</h3>
-                                        <p className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{item.instrumentId?.brand}</p>
+                                        <h3 className="text-2xl font-bold leading-tight">{instrument.model}</h3>
+                                        <p className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{instrument.brand}</p>
                                     </div>
 
                                     {/* Specs / Details */}
                                     <div className={`flex flex-wrap gap-4 text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                                        {item.instrumentId?.year && (
+                                        {instrument.year && (
                                             <span className="flex items-center gap-1.5">
-                                                <Calendar size={14} /> {item.instrumentId.year}
+                                                <Calendar size={14} /> {instrument.year}
                                             </span>
                                         )}
-                                        {privacy?.showSerialNumbers && item.serialNumber && (
+                                        {privacy?.showSerialNumbers && collectionData.serialNumber && (
                                             <span className="flex items-center gap-1.5">
-                                                <Tag size={14} /> S/N: {item.serialNumber}
+                                                <Tag size={14} /> S/N: {collectionData.serialNumber}
+                                            </span>
+                                        )}
+                                        {privacy?.showStatus && collectionData.status && (
+                                            <span className="flex items-center gap-1.5 capitalize">
+                                                <span className={`w-2 h-2 rounded-full ${collectionData.status === 'active' ? 'bg-green-500' : 'bg-gray-400'}`}></span>
+                                                {collectionData.status}
+                                            </span>
+                                        )}
+                                        {privacy?.showAcquisitionDate && collectionData.acquisition?.date && (
+                                            <span className="flex items-center gap-1.5">
+                                                Since {new Date(collectionData.acquisition.date).getFullYear()}
                                             </span>
                                         )}
                                     </div>
 
+                                    {/* Placard / Public Note */}
+                                    {item.placardText && (
+                                        <div className={`p-4 rounded-xl ${isDark ? 'bg-white/5' : 'bg-black/5'}`}>
+                                            <p className={`font-serif italic ${isDark ? 'text-gray-300' : 'text-gray-700'}`}>"{item.placardText}"</p>
+                                        </div>
+                                    )}
+
                                     {/* Owner's Note */}
-                                    {item.publicNote && (
+                                    {item.publicNote && !item.placardText && (
                                         <div className={`pl-4 border-l-2 ${isDark ? 'border-white/20' : 'border-black/10'}`}>
                                             <p className={`text-sm italic leading-relaxed ${isDark ? 'text-gray-400' : 'text-gray-600'}`}>
                                                 "{item.publicNote}"
@@ -120,9 +156,9 @@ export default async function PublicShowroomPage(props: { params: Promise<{ slug
                                     )}
 
                                     {/* Price if Allowed */}
-                                    {privacy?.showPrices && item.acquisition?.price && (
+                                    {privacy?.showPrices && collectionData.acquisition?.price && (
                                         <p className="text-lg font-bold">
-                                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: item.acquisition.currency || 'EUR' }).format(item.acquisition.price)}
+                                            {new Intl.NumberFormat('es-ES', { style: 'currency', currency: collectionData.acquisition.currency || 'EUR' }).format(collectionData.acquisition.price)}
                                         </p>
                                     )}
                                 </div>
