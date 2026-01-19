@@ -130,6 +130,10 @@
 ### 4. Advanced Tech (AI & AR)
 *   **AI Curator**: Auto-generate historical descriptions for catalog items (GPT-4o).
 *   **AI Audio Polish**: Noise reduction for user-recorded voiceovers.
+*   **Strategic Slide Editing**:
+    - **Timing & Auto-play**: Set per-slide duration and transitions.
+    - **Media Mixing**: Overlay voiceovers (locuciones) and background music/SFX on slides.
+    - **Image Library**: Select images from existing collection/gallery instead of forced re-upload.
 *   **Multimedia**: Audio samples (instrument sounds, album tracks) and Video reviews/clips.
 *   **Publication Scheduling**: Set Start/End dates for exhibition visibility (Immediate/Indefinite by default).
 *   **Catalog Integration**: Direct deep-links from an exhibit to the official technical catalog entry.

@@ -4,7 +4,6 @@ import { useState, useEffect, useCallback } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Maximize2, Minimize2, ChevronLeft, ChevronRight, Play, Pause, X } from 'lucide-react';
-import Link from 'next/link';
 
 interface KioskClientProps {
     showroom: any;
@@ -95,13 +94,24 @@ export default function KioskClient({ showroom }: KioskClientProps) {
         setCurrentIndex((prev) => (prev - 1 + items.length) % items.length);
     }, [items.length]);
 
-    const toggleFullscreen = () => {
-        if (!document.fullscreenElement) {
-            document.documentElement.requestFullscreen();
-            setIsFullscreen(true);
-        } else {
-            document.exitFullscreen();
-            setIsFullscreen(false);
+    // Sync fullscreen state with browser events
+    useEffect(() => {
+        const handleFullscreenChange = () => {
+            setIsFullscreen(!!document.fullscreenElement);
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+        return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    }, []);
+
+    const toggleFullscreen = async () => {
+        try {
+            if (!document.fullscreenElement) {
+                await document.documentElement.requestFullscreen();
+            } else {
+                await document.exitFullscreen();
+            }
+        } catch (err) {
+            console.error('Error toggling fullscreen:', err);
         }
     };
 
@@ -261,10 +271,17 @@ export default function KioskClient({ showroom }: KioskClientProps) {
             </div>
 
             {/* Controls Overlay */}
-            <div className={`absolute top-0 left-0 right-0 p-6 flex justify-between items-start transition-opacity duration-300 z-50 ${hideControls ? 'opacity-0' : 'opacity-100'}`}>
-                <Link href={`/s/${showroom.slug}`} className="p-3 bg-black/20 hover:bg-black/50 backdrop-blur-md rounded-full text-white/50 hover:text-white transition-all">
+            <div className={`absolute top-0 left-0 right-0 p-6 flex justify-between items-start transition-opacity duration-300 z-[60] ${hideControls ? 'opacity-0 pointer-events-none' : 'opacity-100 pointer-events-auto'}`}>
+                <button
+                    onClick={() => {
+                        if (document.fullscreenElement) document.exitFullscreen();
+                        window.location.href = `/s/${showroom.slug}`;
+                    }}
+                    className="p-3 bg-black/20 hover:bg-black/50 backdrop-blur-md rounded-full text-white/50 hover:text-white transition-all"
+                    title="Salir del modo kiosko"
+                >
                     <X size={24} />
-                </Link>
+                </button>
                 <div className="flex gap-4">
                     <button onClick={() => setIsPlaying(!isPlaying)} className="p-3 bg-black/20 hover:bg-black/50 backdrop-blur-md rounded-full text-white/50 hover:text-white transition-all">
                         {isPlaying ? <Pause size={24} /> : <Play size={24} />}
