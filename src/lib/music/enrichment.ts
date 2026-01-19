@@ -1,0 +1,292 @@
+/**
+ * Music Enrichment Module
+ * 
+ * Centralizes logic for enriching instruments with musical relationships:
+ * - Auto-creates artists in metadata
+ * - Searches and caches albums from Discogs
+ * - Creates instrument-artist-album relationships
+ * 
+ * Used by:
+ * - AI import wizard
+ * - Manual instrument editing
+ * - Bulk imports
+ */
+
+import dbConnect from '../db';
+import CatalogMetadata from '@/models/CatalogMetadata';
+import MusicAlbum from '@/models/MusicAlbum';
+import InstrumentArtist from '@/models/InstrumentArtist';
+import InstrumentAlbum from '@/models/InstrumentAlbum';
+import { searchDiscogs, getDiscogsRelease } from './discogs';
+
+interface AIArtist {
+    name: string;
+    key: string;
+    yearsUsed?: string;
+    notes?: string;
+}
+
+interface AIAlbum {
+    title: string;
+    artist: string;
+    year?: number;
+    notes?: string;
+}
+
+/**
+ * Sanitize artist key to ensure consistency
+ * "Pink Floyd" → "pink-floyd"
+ * "Kraftwerk" → "kraftwerk"
+ */
+function sanitizeArtistKey(key: string): string {
+    return key
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
+/**
+ * Ensure artists exist in CatalogMetadata
+ * Creates them if they don't exist (no duplicates)
+ */
+export async function ensureArtistsExist(artists: AIArtist[], userId?: string): Promise<Map<string, string>> {
+    await dbConnect();
+
+    const artistMap = new Map<string, string>(); // key → _id
+
+    for (const artist of artists) {
+        const sanitizedKey = sanitizeArtistKey(artist.key);
+
+        // Check if exists
+        let existing = await CatalogMetadata.findOne({
+            type: 'artist',
+            key: sanitizedKey
+        });
+
+        if (!existing) {
+            // Create new artist in metadata
+            existing = await CatalogMetadata.create({
+                type: 'artist',
+                key: sanitizedKey,
+                label: artist.name,
+                description: `Auto-created from AI detection${userId ? ` by user ${userId}` : ''}`
+            });
+
+            console.log(`✅ Created artist: ${artist.name} (${sanitizedKey})`);
+        }
+
+        artistMap.set(sanitizedKey, existing._id.toString());
+    }
+
+    return artistMap;
+}
+
+/**
+ * Ensure albums exist in MusicAlbum cache
+ * Searches Discogs if not found
+ */
+export async function ensureAlbumsExist(albums: AIAlbum[], userId?: string): Promise<Map<string, string>> {
+    await dbConnect();
+
+    const albumMap = new Map<string, string>(); // title+artist → _id
+
+    for (const album of albums) {
+        const searchKey = `${album.artist}-${album.title}`.toLowerCase();
+
+        // Check if exists in cache
+        let existing = await MusicAlbum.findOne({
+            $or: [
+                {
+                    artist: { $regex: new RegExp(album.artist, 'i') },
+                    title: { $regex: new RegExp(album.title, 'i') }
+                },
+                // Also check by exact title
+                { title: album.title }
+            ]
+        });
+
+        if (!existing) {
+            // Search Discogs
+            try {
+                const searchQuery = `${album.artist} ${album.title}`;
+                const discogsResults = await searchDiscogs(searchQuery);
+
+                if (discogsResults && discogsResults.length > 0) {
+                    // Take first result (most relevant)
+                    const firstResult = discogsResults[0];
+                    const release = await getDiscogsRelease(firstResult.id.toString());
+
+                    if (release) {
+                        // Filter spacer.gif
+                        const coverImage = release.images?.[0]?.resource_url || release.thumb;
+                        const validCoverImage = coverImage && !coverImage.includes('spacer.gif') ? coverImage : null;
+
+                        existing = await MusicAlbum.create({
+                            artist: release.artists?.map((a: any) => a.name).join(', ') || album.artist,
+                            title: release.title || album.title,
+                            year: release.year || album.year,
+                            label: release.labels?.[0]?.name,
+                            genres: release.genres,
+                            styles: release.styles,
+                            format: release.formats?.[0]?.name,
+                            discogsId: firstResult.id.toString(),
+                            coverImage: validCoverImage,
+                            tracklist: release.tracklist?.map((t: any) => ({
+                                position: t.position,
+                                title: t.title,
+                                duration: t.duration
+                            })),
+                            description: release.notes,
+                            createdBy: userId
+                        });
+
+                        console.log(`✅ Created album from Discogs: ${album.title} by ${album.artist}`);
+                    }
+                } else {
+                    // Discogs not found, create minimal entry
+                    existing = await MusicAlbum.create({
+                        artist: album.artist,
+                        title: album.title,
+                        year: album.year,
+                        description: `Auto-created from AI detection (Discogs search failed)`,
+                        createdBy: userId
+                    });
+
+                    console.log(`⚠️ Created minimal album (Discogs not found): ${album.title}`);
+                }
+            } catch (error) {
+                console.error(`❌ Error fetching album from Discogs:`, error);
+
+                // Fallback: create minimal entry
+                existing = await MusicAlbum.create({
+                    artist: album.artist,
+                    title: album.title,
+                    year: album.year,
+                    description: `Auto-created from AI detection (Discogs error)`,
+                    createdBy: userId
+                });
+            }
+        }
+
+        if (existing) {
+            albumMap.set(searchKey, existing._id.toString());
+        }
+    }
+
+    return albumMap;
+}
+
+/**
+ * Create instrument-artist relationships
+ */
+export async function createInstrumentArtistRelations(
+    instrumentId: string,
+    artists: AIArtist[],
+    artistMap: Map<string, string>,
+    userId?: string
+): Promise<void> {
+    await dbConnect();
+
+    for (const artist of artists) {
+        const sanitizedKey = sanitizeArtistKey(artist.key);
+        const artistMetadataId = artistMap.get(sanitizedKey);
+
+        if (!artistMetadataId) continue;
+
+        // Check if relation already exists
+        const existing = await InstrumentArtist.findOne({
+            instrumentId,
+            artistId: artistMetadataId
+        });
+
+        if (!existing) {
+            await InstrumentArtist.create({
+                instrumentId,
+                artistId: artistMetadataId,
+                notes: artist.notes,
+                yearsUsed: artist.yearsUsed,
+                isVerified: false, // AI-generated, not verified
+                createdBy: userId
+            });
+
+            console.log(`✅ Linked instrument to artist: ${artist.name}`);
+        }
+    }
+}
+
+/**
+ * Create instrument-album relationships
+ */
+export async function createInstrumentAlbumRelations(
+    instrumentId: string,
+    albums: AIAlbum[],
+    albumMap: Map<string, string>,
+    userId?: string
+): Promise<void> {
+    await dbConnect();
+
+    for (const album of albums) {
+        const searchKey = `${album.artist}-${album.title}`.toLowerCase();
+        const albumId = albumMap.get(searchKey);
+
+        if (!albumId) continue;
+
+        // Check if relation already exists
+        const existing = await InstrumentAlbum.findOne({
+            instrumentId,
+            albumId
+        });
+
+        if (!existing) {
+            await InstrumentAlbum.create({
+                instrumentId,
+                albumId,
+                notes: album.notes,
+                isVerified: false, // AI-generated, not verified
+                createdBy: userId
+            });
+
+            console.log(`✅ Linked instrument to album: ${album.title}`);
+        }
+    }
+}
+
+/**
+ * Main enrichment function
+ * Call this after AI analysis to enrich instrument with musical data
+ */
+export async function enrichInstrumentWithMusic(
+    instrumentId: string,
+    aiData: { artists?: AIArtist[], albums?: AIAlbum[] },
+    userId?: string
+): Promise<{ success: boolean, stats: { artistsCreated: number, albumsCreated: number, relationsCreated: number } }> {
+    const stats = { artistsCreated: 0, albumsCreated: 0, relationsCreated: 0 };
+
+    try {
+        // 1. Ensure artists exist
+        if (aiData.artists && aiData.artists.length > 0) {
+            const artistMap = await ensureArtistsExist(aiData.artists, userId);
+            stats.artistsCreated = artistMap.size;
+
+            // 2. Create instrument-artist relations
+            await createInstrumentArtistRelations(instrumentId, aiData.artists, artistMap, userId);
+            stats.relationsCreated += aiData.artists.length;
+        }
+
+        // 3. Ensure albums exist (search Discogs if needed)
+        if (aiData.albums && aiData.albums.length > 0) {
+            const albumMap = await ensureAlbumsExist(aiData.albums, userId);
+            stats.albumsCreated = albumMap.size;
+
+            // 4. Create instrument-album relations
+            await createInstrumentAlbumRelations(instrumentId, aiData.albums, albumMap, userId);
+            stats.relationsCreated += aiData.albums.length;
+        }
+
+        return { success: true, stats };
+    } catch (error) {
+        console.error('❌ Error enriching instrument with music:', error);
+        return { success: false, stats };
+    }
+}
