@@ -37,8 +37,11 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
         name: showroom.name,
         description: showroom.description || '',
         theme: showroom.theme || 'minimal',
-        isPublic: showroom.isPublic,
+        isPublic: showroom.isPublic, // Keep for backward compat
+        status: showroom.status || 'published',
+        visibility: showroom.visibility || 'public',
         coverImage: showroom.coverImage || '',
+        kioskEnabled: showroom.kioskEnabled !== undefined ? showroom.kioskEnabled : true,
         privacy: {
             showPrices: showroom.privacy?.showPrices || false,
             showSerialNumbers: showroom.privacy?.showSerialNumbers || false,
@@ -216,145 +219,198 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
                         </div>
                     </div>
 
-                    <div className="apple-card p-6 bg-white dark:bg-white/5 space-y-4">
-                        <h3 className="font-bold border-b pb-2 dark:border-white/5">Privacidad</h3>
-                        <SimpleSwitch
-                            label="Público (Visible para todos)"
-                            checked={formData.isPublic}
-                            onCheckedChange={c => setFormData({ ...formData, isPublic: c })}
-                        />
-                        <SimpleSwitch
-                            label="Mostrar Precios"
-                            checked={formData.privacy.showPrices}
-                            onCheckedChange={c => setFormData({ ...formData, privacy: { ...formData.privacy, showPrices: c } })}
-                        />
-                        <SimpleSwitch
-                            label="Mostrar Números de Serie"
-                            checked={formData.privacy.showSerialNumbers}
-                            onCheckedChange={c => setFormData({ ...formData, privacy: { ...formData.privacy, showSerialNumbers: c } })}
-                        />
-                        <SimpleSwitch
-                            label="Mostrar Estado (Mint, Good...)"
-                            checked={formData.privacy.showStatus}
-                            onCheckedChange={c => setFormData({ ...formData, privacy: { ...formData.privacy, showStatus: c } })}
-                        />
-                        <SimpleSwitch
-                            label="Mostrar Fecha de Adquisición"
-                            checked={formData.privacy.showAcquisitionDate}
-                            onCheckedChange={c => setFormData({ ...formData, privacy: { ...formData.privacy, showAcquisitionDate: c } })}
-                        />
-                    </div>
+                    <div className="apple-card p-6 bg-white dark:bg-white/5 space-y-6">
+                        <h3 className="font-bold border-b pb-2 dark:border-white/5">Estado y Visibilidad</h3>
 
-                    <Button variant="destructive" className="w-full" onClick={handleDelete} icon={Trash2}>
-                        Eliminar Showroom
-                    </Button>
-                </div>
-
-                {/* Right: Items Manager */}
-                <div className="lg:col-span-2 space-y-6">
-                    {/* Selected Items */}
-                    <div className="apple-card p-6 bg-white dark:bg-white/5 min-h-[300px]">
-                        <h3 className="font-bold mb-4 flex justify-between items-center">
-                            Ítems en Exhibición ({items.length})
-                            <span className="text-xs font-normal text-gray-500">Arrastra para reordenar (Pronto)</span>
-                        </h3>
-
-                        <div className="space-y-3">
-                            {items.length === 0 && (
-                                <p className="text-center text-gray-400 py-10">
-                                    No hay instrumentos en este showroom. Añádelos desde abajo.
-                                </p>
-                            )}
-                            {items.map((item, idx) => {
-                                const details = getItemDetails(item.collectionId);
-                                if (!details) return null;
-                                return (
-                                    <div key={item.collectionId} className="p-4 bg-gray-50 dark:bg-black/20 rounded-xl space-y-4 group border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-colors">
-                                        <div className="flex gap-4 items-start">
-                                            <div className="w-16 h-16 bg-white rounded-lg overflow-hidden shrink-0 relative shadow-sm">
-                                                {details.images?.[0]?.url || details.instrumentId?.genericImages?.[0] ? (
-                                                    <Image
-                                                        src={details.images?.[0]?.url || details.instrumentId?.genericImages?.[0]}
-                                                        alt="thumb"
-                                                        fill
-                                                        className="object-cover"
-                                                    />
-                                                ) : <div className="w-full h-full bg-gray-200" />}
-                                            </div>
-                                            <div className="flex-grow min-w-0">
-                                                <div className="flex justify-between items-start">
-                                                    <div>
-                                                        <p className="font-bold text-lg leading-tight">{details.instrumentId?.brand} {details.instrumentId?.model}</p>
-                                                        <p className="text-xs text-gray-500 font-mono uppercase mt-1">{details.year || 'N/A'} • {details.instrumentId?.type}</p>
-                                                    </div>
-                                                    <button onClick={() => removeItem(item.collectionId)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors">
-                                                        <X size={18} />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Curator Fields */}
-                                        <div className="space-y-3 pt-2 border-t border-black/5 dark:border-white/5">
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Cartel de Museo (Placard)</label>
-                                                    <textarea
-                                                        className="w-full text-sm bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 min-h-[80px] focus:ring-2 ring-ios-blue/20 outline-none"
-                                                        placeholder="Texto breve y poético para el cartel..."
-                                                        value={item.placardText || ''}
-                                                        onChange={(e) => {
-                                                            const newItems = [...items];
-                                                            newItems[idx].placardText = e.target.value;
-                                                            setItems(newItems);
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div className="space-y-1">
-                                                    <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Ficha Técnica / Nota</label>
-                                                    <textarea
-                                                        className="w-full text-sm bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 min-h-[80px] focus:ring-2 ring-ios-blue/20 outline-none"
-                                                        placeholder="Datos técnicos, historia de la adquisición..."
-                                                        value={item.publicNote || ''}
-                                                        onChange={(e) => {
-                                                            const newItems = [...items];
-                                                            newItems[idx].publicNote = e.target.value;
-                                                            setItems(newItems);
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                );
-                            })}
+                        {/* Status Select */}
+                        <div className="space-y-2">
+                            <label className="text-sm font-medium">Estado del Showroom</label>
+                            <select
+                                className="w-full bg-gray-50 dark:bg-black/20 border border-gray-200 dark:border-white/10 rounded-lg p-2"
+                                value={formData.status}
+                                onChange={e => setFormData({ ...formData, status: e.target.value })}
+                            >
+                                <option value="draft">Borrador (Privado)</option>
+                                <option value="published">Publicado</option>
+                                <option value="archived">Archivado (Solo lectura)</option>
+                            </select>
+                            <p className="text-xs text-gray-500">
+                                {formData.status === 'draft' && "Solo tú puedes ver este showroom."}
+                                {formData.status === 'published' && "Visible según configuración de privacidad."}
+                                {formData.status === 'archived' && "No visible en listas públicas."}
+                            </p>
                         </div>
+
+                        {/* Visibility (Only if Published) */}
+                        {formData.status === 'published' && (
+                            <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                <label className="text-sm font-medium">Visibilidad</label>
+                                <div className="flex gap-2">
+                                    {['public', 'unlisted', 'private'].map((mode) => (
+                                        <button
+                                            key={mode}
+                                            type="button"
+                                            onClick={() => setFormData({ ...formData, visibility: mode })}
+                                            className={`flex-1 py-2 px-3 rounded-lg text-xs font-bold uppercase tracking-wider border transition-colors ${formData.visibility === mode
+                                                ? 'bg-ios-blue text-white border-transparent'
+                                                : 'bg-transparent border-gray-200 dark:border-white/10 text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'
+                                                }`}
+                                        >
+                                            {mode === 'public' && 'Público'}
+                                            {mode === 'unlisted' && 'Oculto (Link)'}
+                                            {mode === 'private' && 'Privado'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        <div className="border-t border-gray-100 dark:border-white/5 pt-4">
+                            <SimpleSwitch
+                                label="Habilitar Modo Kiosko"
+                                checked={formData.kioskEnabled}
+                                onCheckedChange={c => setFormData({ ...formData, kioskEnabled: c })}
+                            />
+                            <p className="text-xs text-gray-500 -mt-2 mb-4">
+                                Permite visualización a pantalla completa para museos o exposiciones físicas.
+                            </p>
+                        </div>
+
+                        <div className="space-y-2 pt-4 border-t border-gray-100 dark:border-white/5">
+                            <h4 className="text-xs font-bold uppercase tracking-widest text-gray-400">Detalles de Privacidad</h4>
+                            <SimpleSwitch
+                                label="Mostrar Precios"
+                                checked={formData.privacy.showPrices}
+                                onCheckedChange={c => setFormData({ ...formData, privacy: { ...formData.privacy, showPrices: c } })}
+                            />
+                            <SimpleSwitch
+                                label="Mostrar Números de Serie"
+                                checked={formData.privacy.showSerialNumbers}
+                                onCheckedChange={c => setFormData({ ...formData, privacy: { ...formData.privacy, showSerialNumbers: c } })}
+                            />
+                            <SimpleSwitch
+                                label="Mostrar Estado"
+                                checked={formData.privacy.showStatus}
+                                onCheckedChange={c => setFormData({ ...formData, privacy: { ...formData.privacy, showStatus: c } })}
+                            />
+                            <SimpleSwitch
+                                label="Mostrar Fecha de Adquisición"
+                                checked={formData.privacy.showAcquisitionDate}
+                                onCheckedChange={c => setFormData({ ...formData, privacy: { ...formData.privacy, showAcquisitionDate: c } })}
+                            />
+                        </div>
+
+                        <Button variant="destructive" className="w-full mt-4" onClick={handleDelete} icon={Trash2}>
+                            Eliminar Showroom
+                        </Button>
                     </div>
 
-                    {/* Available Items */}
-                    <div className="apple-card p-6 bg-white dark:bg-white/5">
-                        <h3 className="font-bold mb-4">Añadir de tu Colección</h3>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
-                            {availableItems.map(inst => (
-                                <div key={inst._id} className="flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg border border-transparent hover:border-black/5 cursor-pointer" onClick={() => addItem(inst._id)}>
-                                    <div className="w-10 h-10 bg-white rounded-md overflow-hidden shrink-0 relative">
-                                        {inst.images?.[0]?.url || inst.instrumentId?.genericImages?.[0] ? (
-                                            <Image
-                                                src={inst.images?.[0]?.url || inst.instrumentId?.genericImages?.[0]}
-                                                alt="thumb"
-                                                fill
-                                                className="object-cover"
-                                            />
-                                        ) : <div className="w-full h-full bg-gray-200" />}
+                    {/* Right: Items Manager */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Selected Items */}
+                        <div className="apple-card p-6 bg-white dark:bg-white/5 min-h-[300px]">
+                            <h3 className="font-bold mb-4 flex justify-between items-center">
+                                Ítems en Exhibición ({items.length})
+                                <span className="text-xs font-normal text-gray-500">Arrastra para reordenar (Pronto)</span>
+                            </h3>
+
+                            <div className="space-y-3">
+                                {items.length === 0 && (
+                                    <p className="text-center text-gray-400 py-10">
+                                        No hay instrumentos en este showroom. Añádelos desde abajo.
+                                    </p>
+                                )}
+                                {items.map((item, idx) => {
+                                    const details = getItemDetails(item.collectionId);
+                                    if (!details) return null;
+                                    return (
+                                        <div key={item.collectionId} className="p-4 bg-gray-50 dark:bg-black/20 rounded-xl space-y-4 group border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-colors">
+                                            <div className="flex gap-4 items-start">
+                                                <div className="w-16 h-16 bg-white rounded-lg overflow-hidden shrink-0 relative shadow-sm">
+                                                    {details.images?.[0]?.url || details.instrumentId?.genericImages?.[0] ? (
+                                                        <Image
+                                                            src={details.images?.[0]?.url || details.instrumentId?.genericImages?.[0]}
+                                                            alt="thumb"
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                    ) : <div className="w-full h-full bg-gray-200" />}
+                                                </div>
+                                                <div className="flex-grow min-w-0">
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <p className="font-bold text-lg leading-tight">{details.instrumentId?.brand} {details.instrumentId?.model}</p>
+                                                            <p className="text-xs text-gray-500 font-mono uppercase mt-1">{details.year || 'N/A'} • {details.instrumentId?.type}</p>
+                                                        </div>
+                                                        <button onClick={() => removeItem(item.collectionId)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors">
+                                                            <X size={18} />
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Curator Fields */}
+                                            <div className="space-y-3 pt-2 border-t border-black/5 dark:border-white/5">
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Cartel de Museo (Placard)</label>
+                                                        <textarea
+                                                            className="w-full text-sm bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 min-h-[80px] focus:ring-2 ring-ios-blue/20 outline-none"
+                                                            placeholder="Texto breve y poético para el cartel..."
+                                                            value={item.placardText || ''}
+                                                            onChange={(e) => {
+                                                                const newItems = [...items];
+                                                                newItems[idx].placardText = e.target.value;
+                                                                setItems(newItems);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                    <div className="space-y-1">
+                                                        <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Ficha Técnica / Nota</label>
+                                                        <textarea
+                                                            className="w-full text-sm bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 min-h-[80px] focus:ring-2 ring-ios-blue/20 outline-none"
+                                                            placeholder="Datos técnicos, historia de la adquisición..."
+                                                            value={item.publicNote || ''}
+                                                            onChange={(e) => {
+                                                                const newItems = [...items];
+                                                                newItems[idx].publicNote = e.target.value;
+                                                                setItems(newItems);
+                                                            }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Available Items */}
+                        <div className="apple-card p-6 bg-white dark:bg-white/5">
+                            <h3 className="font-bold mb-4">Añadir de tu Colección</h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
+                                {availableItems.map(inst => (
+                                    <div key={inst._id} className="flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg border border-transparent hover:border-black/5 cursor-pointer" onClick={() => addItem(inst._id)}>
+                                        <div className="w-10 h-10 bg-white rounded-md overflow-hidden shrink-0 relative">
+                                            {inst.images?.[0]?.url || inst.instrumentId?.genericImages?.[0] ? (
+                                                <Image
+                                                    src={inst.images?.[0]?.url || inst.instrumentId?.genericImages?.[0]}
+                                                    alt="thumb"
+                                                    fill
+                                                    className="object-cover"
+                                                />
+                                            ) : <div className="w-full h-full bg-gray-200" />}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <p className="text-sm font-bold truncate">{inst.instrumentId?.brand} {inst.instrumentId?.model}</p>
+                                            <p className="text-xs text-gray-500">{inst.status}</p>
+                                        </div>
+                                        <Plus size={16} className="ml-auto text-ios-blue" />
                                     </div>
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-bold truncate">{inst.instrumentId?.brand} {inst.instrumentId?.model}</p>
-                                        <p className="text-xs text-gray-500">{inst.status}</p>
-                                    </div>
-                                    <Plus size={16} className="ml-auto text-ios-blue" />
-                                </div>
-                            ))}
-                            {availableItems.length === 0 && <p className="text-sm text-gray-400 col-span-2 text-center">No quedan instrumentos disponibles.</p>}
+                                ))}
+                                {availableItems.length === 0 && <p className="text-sm text-gray-400 col-span-2 text-center">No quedan instrumentos disponibles.</p>}
+                            </div>
                         </div>
                     </div>
                 </div>

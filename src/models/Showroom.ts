@@ -15,7 +15,10 @@ export interface IShowroom extends Document {
     description?: string;
     items: IShowroomItem[];
     theme: 'minimal' | 'dark' | 'glass' | 'boutique';
-    isPublic: boolean;
+    isPublic: boolean; // Deprecated
+    status: 'draft' | 'published' | 'archived';
+    visibility: 'public' | 'private' | 'unlisted';
+    kioskEnabled: boolean;
     privacy: {
         showPrices: boolean;
         showSerialNumbers: boolean;
@@ -43,7 +46,22 @@ const ShowroomSchema = new Schema<IShowroom>({
         displayOrder: { type: Number, default: 0 }
     }],
     theme: { type: String, enum: ['minimal', 'dark', 'glass', 'boutique'], default: 'minimal' },
+    // Deprecated: isPublic (kept for migration, mapped to visibility)
     isPublic: { type: Boolean, default: true },
+
+    // New V2 Fields
+    status: {
+        type: String,
+        enum: ['draft', 'published', 'archived'],
+        default: 'published'
+    },
+    visibility: {
+        type: String,
+        enum: ['public', 'private', 'unlisted'],
+        default: 'public'
+    },
+    kioskEnabled: { type: Boolean, default: true },
+
     privacy: {
         showPrices: { type: Boolean, default: false },
         showSerialNumbers: { type: Boolean, default: false },

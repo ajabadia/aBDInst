@@ -136,7 +136,10 @@ export async function createShowroom(payload: { name: string; description: strin
             slug,
             items: [], // Start empty
             theme: 'minimal',
-            isPublic: true
+            isPublic: true,
+            status: 'draft', // Default to draft for V2
+            visibility: 'public',
+            kioskEnabled: true
         });
 
         const { revalidatePath } = await import('next/cache');
@@ -163,7 +166,7 @@ export async function deleteShowroom(id: string) {
 export async function getPublicShowroom(slug: string) {
     await dbConnect();
 
-    const showroom = await Showroom.findOne({ slug, isPublic: true })
+    const showroom = await Showroom.findOne({ slug }) // Fetch strictly by slug first
         .populate({
             path: 'items.collectionId',
             populate: { path: 'instrumentId' }
@@ -173,10 +176,34 @@ export async function getPublicShowroom(slug: string) {
 
     if (!showroom) return null;
 
-    return JSON.parse(JSON.stringify(showroom));
+    const s = showroom as any; // Cast for TS access to new fields if model not fully recompiled
+
+    // V2 Visibility Logic
+    const isPublic = s.status === 'published' && s.visibility === 'public';
+    const isUnlisted = s.status === 'published' && s.visibility === 'unlisted';
+
+    // If strictly public, return fast
+    if (isPublic || isUnlisted) {
+        // Legacy compat: check isPublic boolean too if purely relying on that? 
+        // But V2 fields dictate truth now. 
+        return JSON.parse(JSON.stringify(showroom));
+    }
+
+    // If Draft, Private, or Archived: Check Ownership
+    const session = await (await import('@/auth')).auth();
+    if (!session) return null;
+
+    const ownerId = s.userId._id?.toString() || s.userId?.toString();
+    const currentUserId = session.user.id;
+
+    if (ownerId === currentUserId) {
+        return JSON.parse(JSON.stringify(showroom));
+    }
+
+    return null;
 }
 
-export async function updateShowroom(id: string, payload: { name?: string; description?: string; theme?: string; isPublic?: boolean; items?: any[]; privacy?: any; coverImage?: string }) {
+export async function updateShowroom(id: string, payload: { name?: string; description?: string; theme?: string; isPublic?: boolean; items?: any[]; privacy?: any; coverImage?: string; kioskEnabled?: boolean; status?: string; visibility?: string }) {
     const session = await (await import('@/auth')).auth();
     if (!session) return { success: false, error: 'Unauthorized' };
 

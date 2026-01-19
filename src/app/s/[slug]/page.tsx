@@ -11,7 +11,26 @@ export default async function PublicShowroomPage(props: { params: Promise<{ slug
     const { slug } = params;
     const showroom = await getPublicShowroom(slug);
 
+    // 1. Check if showroom exists
     if (!showroom) {
+        notFound();
+    }
+
+    // 2. Auth & Visibility Check
+    const session = await (await import('@/auth')).auth();
+    const isOwner = session?.user?.id === showroom.userId?._id?.toString() || session?.user?.id === showroom.userId?.toString();
+
+    // Draft/Archived Logic
+    if (showroom.status !== 'published') {
+        if (!isOwner) {
+            // Private/Draft -> 404 for non-owners
+            notFound();
+        }
+        // If owner, show a banner
+    }
+
+    // Private Visibility Logic
+    if (showroom.visibility === 'private' && !isOwner) {
         notFound();
     }
 
@@ -21,7 +40,7 @@ export default async function PublicShowroomPage(props: { params: Promise<{ slug
     const themeClasses: Record<string, string> = {
         minimal: 'bg-white text-gray-900',
         dark: 'bg-black text-white',
-        boutique: 'bg-[#f8f5f2] text-[#2c2c2c] font-serif', // Example serif theme
+        boutique: 'bg-[#f8f5f2] text-[#2c2c2c] font-serif',
     };
 
     // Fallback if theme not found
@@ -30,6 +49,13 @@ export default async function PublicShowroomPage(props: { params: Promise<{ slug
 
     return (
         <div className={`min-h-screen ${containerClass} transition-colors duration-500`}>
+            {/* Owner Preview Banner */}
+            {showroom.status !== 'published' && (
+                <div className="bg-orange-500 text-white text-center py-2 text-sm font-bold uppercase tracking-wider sticky top-0 z-50">
+                    Modo Vista Previa ({showroom.status}) — Solo visible para ti
+                </div>
+            )}
+
             {/* Header / Hero */}
             <div className={`relative px-6 py-20 md:py-32 text-center md:text-left overflow-hidden border-b ${isDark ? 'border-white/10' : 'border-black/5'}`}>
                 {/* Background Decor or Cover Image */}
@@ -68,7 +94,11 @@ export default async function PublicShowroomPage(props: { params: Promise<{ slug
                         )}
                     </div>
 
-                    <ShowroomHeaderActions slug={slug} isDark={isDark} />
+                    <ShowroomHeaderActions
+                        slug={slug}
+                        isDark={isDark}
+                        kioskEnabled={showroom.kioskEnabled ?? true}
+                    />
                 </div>
             </div>
 
