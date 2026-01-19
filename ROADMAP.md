@@ -63,3 +63,79 @@
 - [ ] **UX Patterns**: Study "Digital Museum" kiosks (bitesize content, high contrast, storytelling).
 - [ ] **Audio/Video**: Explore adding audio clips (instrument samples) or video (performances) to slides.
 - [ ] **Performance**: Evaluate lazy-loading strategies for heavy media showrooms.
+
+---
+
+## 💡 Strategic Backlog & Feature Sandbox (To Review)
+*Concepts for future evaluation and design.*
+
+### 1. The "Curator" Experience (Showroom Evolution)
+*   **Concept**: Shift from "Inventory/Warehouse" to "Gallery/Art".
+*   **Micro-Stories (The Slide Engine V2)**:
+    *   Treat each item as a "Container of Scenes":
+        *   *Scene 1*: General Photo + Intro Voiceover.
+        *   *Scene 2*: Technical Detail (Pickups/Labels) + Text.
+        *   *Scene 3*: Context (Photo of the album where it was used).
+*   **Audio Guides & Voiceovers**:
+    *   Integrated recorder (browser-based) or file upload to user's storage (Cloudinary/Drive).
+    *   **Timeline Sync**: User defines duration per slide (e.g., "Intro lasts 10s").
+*   **Dynamic Layouts**: Templates for "Grid", "Timeline", or "Museum Wall" styles.
+*   **Connected Items**: "See Related" button inside a slide (e.g., jump from Instrument to Album).
+
+### 2. Social & Collaboration (Exposiciones Compartidas & Préstamos)
+*   **Virtual Loans**:
+    *   **Request Flow**: Define "Missing Pieces" (e.g., "Need a '62 Precision Bass") -> Search available items -> Request Loan.
+    *   **Attribution**: "Lent by [User]" label and dynamic watermarking for borrowed items.
+    *   **Catalog Placeholders**: Use "Master Catalog Records" as educational references if the item is missing.
+*   **Shared Showrooms**: "Curator in Chief" invites collaborators.
+*   **Duplicate/Fork Showroom**: Allow users to duplicate their own showrooms or "Fork" public showrooms (if allowed) to remix them.
+*   **Internal Tools**: "Assembly Chat" for curation discussions.
+
+### 3. Gamification (Contests & Hall of Fame)
+*   **Thematic Contests**: Monthly themes (e.g., "60s Guitars", "Prog Rock Vinyls").
+*   **Submit Entry**: Allow users to submit an existing showroom (or specific items) to an active contest.
+*   **Voting System**: Anti-spam voting, categories ("Rarest", "Best Condition").
+*   **Hall of Fame**: Permanent archive of winning showrooms.
+*   **Profile Trophies**: user-selectable "Main Badge" next to avatar (e.g., "Curator of the Month").
+
+### 4. Technical & UX Refinements
+*   **Autoplay Mode (TV Style)**: "Play All" button that cycles through slides and audio automatically.
+*   **Performance**: Aggressive pre-fetching of next slides/audio.
+*   **Accessibility**: Auto-transcripts for audio guides.
+*   **Image Protection**: Watermarking for High-Res assets.
+
+### 5. Proposed Data Architecture (V3 Advanced)
+*   `Showroom_Items`: Add `RelationshipType` (Owned / Loaned / Reference).
+*   `Loans` Collection: `RequesterID`, `OwnerID`, `ItemID`, `Status` (Pending/Accepted).
+*   `Slides`: `AudioURL`, `DurationSeconds`, `CrossLinkID`.
+
+---
+
+## 🌩 Phase X: Enrichment & Blue Sky (Long Term)
+*Advanced concepts to explore if the project scales.*
+
+### 1. Technical Immersion
+*   **Signal Chain Builder**: Draw virtual "cables" connecting instruments to amps/pedals to explain the sound.
+*   **Spectrograms**: Visual "Audio Fingerprints" for rare vinyls to demonstrate condition/quality.
+
+### 2. Social Micro-Economy
+*   **Curator Reputation**: XP system based on content quality (likes/shares), not just quantity.
+*   **Exchange Market**: "Wanted for Exhibition" board (e.g., "Need a Moog '70 for my Prog-Rock gallery").
+*   **Exhibition Passport**: Digital stamp book for users who complete full audio-guide tours.
+
+### 3. Data Insights
+*   **Rarity Charts**: "You own 5% of all 1960s Spanish Jazz records".
+*   **Provenance Tree**: Digital genealogy tracking previous owners of specific instruments within the platform.
+
+### 4. Advanced Tech (AI & AR)
+*   **AI Curator**: Auto-generate historical descriptions for catalog items (GPT-4o).
+*   **AI Audio Polish**: Noise reduction for user-recorded voiceovers.
+*   **Multimedia**: Audio samples (instrument sounds, album tracks) and Video reviews/clips.
+*   **Publication Scheduling**: Set Start/End dates for exhibition visibility (Immediate/Indefinite by default).
+*   **Catalog Integration**: Direct deep-links from an exhibit to the official technical catalog entry.
+*   **WebAR**: "Place this instrument in your room" using mobile camera.
+*   **"Near Me" Map**: Geolocation for local collector meetups/exhibitions.
+
+### 5. Events & Live
+*   **Digital Vernissages**: Scheduled "Premieres" for new showrooms with live chat/twitch-style interaction.
+*   **Verified Badges**: Manual verification service for high-value collections.
