@@ -80,6 +80,20 @@ const InstrumentSchema = new Schema({
     variantLabel: { type: String }, // e.g., "Indigo Edition"
     excludedImages: [{ type: String }], // URLs of parent images to hide
     isBaseModel: { type: Boolean, default: false },
+
+    // Musical Context (for enrichment)
+    artists: [{
+        name: { type: String, required: true },
+        key: { type: String }, // slug (e.g., "kraftwerk")
+        yearsUsed: { type: String }, // e.g., "1974-1982" or "early 80s"
+        notes: { type: String }
+    }],
+    albums: [{
+        title: { type: String, required: true },
+        artist: { type: String, required: true },
+        year: { type: Number },
+        notes: { type: String } // e.g., "used on track X"
+    }],
 }, {
     timestamps: true,
     // ensure unique combination of brand + model + version? 

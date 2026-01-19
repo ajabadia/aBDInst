@@ -58,6 +58,20 @@ export const InstrumentSchema = z.object({
             notes: z.string().optional(),
         })).optional()
     }).optional(),
+
+    // Musical Context
+    artists: z.array(z.object({
+        name: z.string().min(1, "El nombre del artista es obligatorio"),
+        key: z.string().optional(),
+        yearsUsed: z.string().optional(),
+        notes: z.string().optional(),
+    })).optional(),
+    albums: z.array(z.object({
+        title: z.string().min(1, "El título del álbum es obligatorio"),
+        artist: z.string().min(1, "El artista del álbum es obligatorio"),
+        year: z.number().optional(),
+        notes: z.string().optional(),
+    })).optional(),
 });
 
 export const RegisterSchema = z.object({

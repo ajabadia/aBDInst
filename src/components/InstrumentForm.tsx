@@ -58,6 +58,10 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
     const [excludedImages, setExcludedImages] = useState<string[]>(initialData?.excludedImages || []);
     const [parentImages, setParentImages] = useState<string[]>([]);
 
+    // Musical Context (for enrichment)
+    const [artists, setArtists] = useState<any[]>(initialData?.artists || []);
+    const [albums, setAlbums] = useState<any[]>(initialData?.albums || []);
+
     useEffect(() => {
         getInstruments().then(setAllInstruments);
     }, []);
@@ -315,6 +319,14 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                                 const newSpecs = data.specs.filter((s: any) => !existingLabels.has(`${s.category}:${s.label}`));
                                 return [...prev, ...newSpecs];
                             });
+                        }
+
+                        // Capture musical context for enrichment
+                        if (data.artists && Array.isArray(data.artists)) {
+                            setArtists(data.artists);
+                        }
+                        if (data.albums && Array.isArray(data.albums)) {
+                            setAlbums(data.albums);
                         }
                     }} />
             </div>
@@ -847,6 +859,10 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
             <input type="hidden" name="documents" value={JSON.stringify(documents)} />
             <input type="hidden" name="excludedImages" value={JSON.stringify(excludedImages)} />
             <input type="hidden" name="relatedTo" value={JSON.stringify(relatedGearIds)} />
+
+            {/* Musical Context for Enrichment */}
+            <input type="hidden" name="artists" value={JSON.stringify(artists)} />
+            <input type="hidden" name="albums" value={JSON.stringify(albums)} />
 
             {/* Unified Market Value Object from STATE */}
             <input type="hidden" name="marketValue" value={JSON.stringify(marketValue)} />

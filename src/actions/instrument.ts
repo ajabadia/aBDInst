@@ -93,6 +93,10 @@ export async function createInstrument(data: FormData) {
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
             relatedTo: data.get('relatedTo') ? JSON.parse(data.get('relatedTo') as string) : [],
 
+            // Musical Context
+            artists: data.get('artists') ? JSON.parse(data.get('artists') as string) : [],
+            albums: data.get('albums') ? JSON.parse(data.get('albums') as string) : [],
+
             // Variants
             parentId: data.get('parentId')?.toString() || undefined,
             variantLabel: data.get('variantLabel')?.toString() || undefined,
@@ -139,6 +143,29 @@ export async function createInstrument(data: FormData) {
             },
             notes: 'Instrumento creado por mí'
         });
+
+        // Enrich with music relationships if data present
+        if ((instrumentData.artists && instrumentData.artists.length > 0) ||
+            (instrumentData.albums && instrumentData.albums.length > 0)) {
+            try {
+                const { enrichInstrumentWithMusic } = await import('@/lib/music/enrichment');
+                const enrichmentResult = await enrichInstrumentWithMusic(
+                    instrument._id.toString(),
+                    {
+                        artists: instrumentData.artists,
+                        albums: instrumentData.albums
+                    },
+                    session.user.id
+                );
+
+                if (enrichmentResult.success) {
+                    console.log(`✅ Music Enrichment: ${enrichmentResult.stats.artistsCreated} artists, ${enrichmentResult.stats.albumsCreated} albums, ${enrichmentResult.stats.relationsCreated} relationships`);
+                }
+            } catch (enrichmentError) {
+                // Don't fail instrument creation if enrichment fails
+                console.error('⚠️ Music enrichment failed (non-critical):', enrichmentError);
+            }
+        }
 
         revalidatePath('/instruments');
         return { success: true, id: instrument._id.toString() };
