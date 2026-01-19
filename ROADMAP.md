@@ -49,13 +49,44 @@
 ## 🔮 Long-Term: Domain Expansion (Music Collection)
 *Goal: Link Instruments to the Music they created.*
 
-### 1. New Core Models
-- [ ] **`Album`**: Title, Artist, Year, Cover Art, Format (Vinyl, CD...).
-- [ ] **`Track`**: Song list.
+### 1. New Core Models ✅ COMPLETED
+- [x] **`MusicAlbum`**: Title, Artist, Year, Cover Art, Format (Vinyl, CD...).
+- [x] **`UserMusicCollection`**: User-specific music collection with condition, notes, etc.
+- [x] **API Integration**: Discogs and Spotify for album import.
+- [x] **Smart Caching**: Reuse albums across users to reduce API calls.
 
-### 2. The "Killer Feature" (Cross-Linking)
-- [ ] **Relationship**: `Instrument <-> Track`. "This Gibson Les Paul was used on 'Whole Lotta Love'".
-- [ ] **Polymorphic Showrooms**: A showroom can contain Instruments AND Albums mixed together.
+### 2. Musical Relationships System 🚧 IN PROGRESS
+*Cross-linking instruments, artists, and albums.*
+
+#### Phase 1: Artist/Band Management
+- [ ] **`Artist` Model**: Name, bio, image, type (band/solo/group), founded year, genres.
+- [ ] **Admin Panel**: CRUD for Artists (similar to metadata management).
+- [ ] **Fix**: Restore access card to `/dashboard/admin/metadata` in admin dashboard.
+
+#### Phase 2: N-M Relationships (Pivot Tables)
+- [ ] **`InstrumentArtist`**: Link instruments to artists (e.g., "Kraftwerk used this Minimoog").
+  - Fields: `instrumentId`, `artistId`, `notes`, `yearsUsed`, `isVerified`.
+- [ ] **`InstrumentAlbum`**: Link instruments to albums (e.g., "This bass on 'Dark Side of the Moon'").
+  - Fields: `instrumentId`, `albumId`, `notes`, `tracks[]`, `isVerified`.
+- [ ] **`ArtistAlbum`**: Link artists to albums (many-to-many).
+  - Fields: `artistId`, `albumId`, `role` (main/featured/producer).
+
+#### Phase 3: UI for Associations
+- [ ] **Instrument Detail Page**: Section "Used by Artists/Albums" with add/remove UI.
+- [ ] **Album Detail Page**: Section "Instruments Used" with add/remove UI.
+- [ ] **Artist Detail Page**: Show instruments and albums associated.
+- [ ] **Catalog Filters**: "Show instruments used by Kraftwerk", "Albums with Minimoog".
+
+#### Phase 4: Showroom Integration
+- [ ] **Polymorphic Showrooms**: Mix instruments AND albums in same showroom ✅ DONE.
+- [ ] **Relationship Display**: Show artist/album info in instrument slides.
+- [ ] **Smart Slides**: Auto-generate "Used in [Album] by [Artist]" slides.
+
+### 3. Advanced Features
+- [ ] **Verification System**: Mark relationships as "verified" (admin) vs "user-submitted".
+- [ ] **Ownership Indicator**: Show if you own the album/instrument in your collection.
+- [ ] **Timeline View**: Chronological view of artist's instruments over the years.
+- [ ] **Discovery**: "Similar Artists", "Albums with similar instruments".
 
 ---
 
