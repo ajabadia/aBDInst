@@ -24,10 +24,17 @@ export default function MusicImportModal({ open, onOpenChange }: MusicImportModa
 
         setLoading(true);
         try {
-            const data = await searchMusic(query);
-            setResults(data);
+            const response = await searchMusic(query);
+            if (response.success) {
+                setResults({ discogs: response.discogs, spotify: response.spotify });
+            } else {
+                toast.error(response.error || 'Error en la búsqueda');
+                setResults({ discogs: [], spotify: [] });
+            }
         } catch (error) {
+            console.error('Search error:', error);
             toast.error('Error en la búsqueda');
+            setResults({ discogs: [], spotify: [] });
         } finally {
             setLoading(false);
         }

@@ -1,8 +1,3 @@
-'use client'; // Actually let's keeps it server side for API calls with secrets
-
-// Wait, I should use server-side for API secrets.
-// So no 'use client' here.
-
 const DISCOGS_BASE_URL = 'https://api.discogs.com';
 
 export interface DiscogsSearchResult {

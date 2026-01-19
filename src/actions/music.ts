@@ -8,17 +8,36 @@ import { searchSpotifyAlbums, getSpotifyAlbum } from '@/lib/music/spotify';
 import { revalidatePath } from 'next/cache';
 
 export async function searchMusic(query: string) {
-    if (!query) return { discogs: [], spotify: [] };
+    'use server';
 
-    const [discogsResults, spotifyResults] = await Promise.all([
-        searchDiscogs(query),
-        searchSpotifyAlbums(query)
-    ]);
+    if (!query) return { success: true, discogs: [], spotify: [] };
 
-    return {
-        discogs: discogsResults,
-        spotify: spotifyResults
-    };
+    try {
+        const [discogsResults, spotifyResults] = await Promise.all([
+            searchDiscogs(query).catch(err => {
+                console.error('Discogs search error:', err);
+                return [];
+            }),
+            searchSpotifyAlbums(query).catch(err => {
+                console.error('Spotify search error:', err);
+                return [];
+            })
+        ]);
+
+        return {
+            success: true,
+            discogs: discogsResults,
+            spotify: spotifyResults
+        };
+    } catch (error: any) {
+        console.error('Search music error:', error);
+        return {
+            success: false,
+            error: error.message || 'Error en la búsqueda',
+            discogs: [],
+            spotify: []
+        };
+    }
 }
 
 export async function importAlbum(source: 'discogs' | 'spotify', externalId: string) {
