@@ -18,6 +18,7 @@ import MusicAlbum from '@/models/MusicAlbum';
 import InstrumentArtist from '@/models/InstrumentArtist';
 import InstrumentAlbum from '@/models/InstrumentAlbum';
 import { searchDiscogs, getDiscogsRelease, getDiscogsMaster } from './discogs';
+import { searchSpotifyAlbums, getSpotifyAlbum } from './spotify';
 import { notifyAdmins } from '@/actions/notifications';
 
 interface AIArtist {
@@ -399,4 +400,3 @@ export async function getOrCreateAlbum(
 
 // Re-export for convenience
 export { searchDiscogs, getDiscogsRelease } from './discogs';
-export { searchSpotifyAlbums, getSpotifyAlbum } from './spotify';
