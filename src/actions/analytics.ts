@@ -1,92 +1,99 @@
 'use server';
 
-import { auth } from '@/auth';
 import dbConnect from '@/lib/db';
-import ScrapedListing from '@/models/ScrapedListing';
 import Instrument from '@/models/Instrument';
-import UserCollection from '@/models/UserCollection';
+import { auth } from '@/auth';
 
-export async function getMarketTrends(query: string) {
+/**
+ * Get distribution of instruments by a specific criteria
+ */
+export async function getInstrumentDistribution(criteria: 'brand' | 'type' | 'artist' | 'decade') {
     try {
         const session = await auth();
-        if (!session?.user) return { success: false, error: 'Unauthorized' };
+        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
+            throw new Error('Unauthorized');
+        }
 
         await dbConnect();
 
-        // Fetch scraped listings for this query
-        // Sort by date ascending for charts
-        const listings = await ScrapedListing.find({
-            query: { $regex: query, $options: 'i' },
-            price: { $gt: 0 }
-        })
-            .select('price date source title url')
-            .sort({ date: 1 } as Record<string, 1 | -1>)
-            .limit(200); // Limit data points for performance
+        let pipeline: any[] = [];
 
-        // Calculate Trend Line (Simple Moving Average or Linear Regression)
-        // For now, let's just return raw points, UI can calculate trend
+        switch (criteria) {
+            case 'brand':
+                pipeline = [
+                    { $group: { _id: "$brand", count: { $sum: 1 } } },
+                    { $sort: { count: -1 } }
+                ];
+                break;
+            case 'type':
+                pipeline = [
+                    { $group: { _id: "$type", count: { $sum: 1 } } },
+                    { $sort: { count: -1 } }
+                ];
+                break;
+            case 'artist':
+                pipeline = [
+                    { $unwind: "$artists" },
+                    { $group: { _id: "$artists.name", count: { $sum: 1 } } },
+                    { $sort: { count: -1 } }
+                ];
+                break;
+            case 'decade':
+                pipeline = [
+                    { $unwind: "$years" },
+                    {
+                        $project: {
+                            decade: {
+                                $concat: [
+                                    { $substr: ["$years", 0, 3] },
+                                    "0s"
+                                ]
+                            }
+                        }
+                    },
+                    { $group: { _id: "$decade", count: { $sum: 1 } } },
+                    { $sort: { _id: 1 } }
+                ];
+                break;
+        }
 
-        return {
-            success: true,
-            data: JSON.parse(JSON.stringify(listings))
-        };
-
-    } catch (error: any) {
-        return { success: false, error: error.message };
+        const results = await Instrument.aggregate(pipeline);
+        return results.map(r => ({ label: r._id, count: r.count }));
+    } catch (error) {
+        console.error(`Error fetching distribution for ${criteria}:`, error);
+        return [];
     }
 }
 
-export async function getPortfolioMovers() {
+/**
+ * Get overview stats for the entire catalog
+ */
+export async function getCatalogOverview() {
     try {
         const session = await auth();
-        if (!session?.user?.id) return { success: false, error: 'Unauthorized' };
+        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
+            throw new Error('Unauthorized');
+        }
 
         await dbConnect();
 
-        // Get user's active instruments with populated instrument data
-        const collection = await UserCollection.find({
-            userId: session.user.id,
-            deletedAt: null,
-            'acquisition.price': { $gt: 0 } // Only items with price can be 'movers' in ROI terms
-        })
-            .populate({
-                path: 'instrumentId',
-                select: 'brand model marketValue images'
-            })
-            .lean();
-
-        if (!collection || collection.length === 0) return { success: true, data: [] };
-
-        const movers = collection.map((item: any) => {
-            const bought = item.acquisition?.price || 0;
-            // Use specific item market value history if available, else master instrument
-            const current = item.marketValue?.current || item.instrumentId?.marketValue?.current?.value || bought;
-
-            const diff = current - bought;
-            const percent = (diff / bought) * 100;
-
-            return {
-                id: item._id.toString(),
-                name: `${item.instrumentId?.brand} ${item.instrumentId?.model}`,
-                image: item.images?.find((img: any) => img.isPrimary)?.url || item.instrumentId?.images?.[0] || '/placeholder.png',
-                bought,
-                current,
-                diff,
-                percent,
-                isProfitable: diff >= 0
-            };
-        });
-
-        // Sort by Absolute Profit Magnitude
-        movers.sort((a: any, b: any) => Math.abs(b.percent) - Math.abs(a.percent));
+        const totalInstruments = await Instrument.countDocuments();
+        const brandsCount = (await Instrument.distinct('brand')).length;
+        const typesCount = (await Instrument.distinct('type')).length;
+        const artistsCountResult = await Instrument.aggregate([
+            { $unwind: "$artists" },
+            { $group: { _id: "$artists.name" } },
+            { $count: "total" }
+        ]);
 
         return {
-            success: true,
-            data: JSON.parse(JSON.stringify(movers.slice(0, 5)))
+            totalInstruments,
+            totalBrands: brandsCount,
+            totalTypes: typesCount,
+            totalArtists: artistsCountResult[0]?.total || 0,
         };
-
-    } catch (error: any) {
-        console.error('Portfolio Movers Error:', error);
-        return { success: false, error: error.message };
+    } catch (error) {
+        console.error('Error fetching catalog overview:', error);
+        return null;
     }
 }

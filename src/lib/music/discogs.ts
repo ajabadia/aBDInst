@@ -104,3 +104,44 @@ export async function getDiscogsMasterVersions(masterId: string) {
         return [];
     }
 }
+
+export async function searchDiscogsArtists(query: string): Promise<any[]> {
+    const token = process.env.DISCOGS_TOKEN;
+    if (!token) return [];
+
+    const url = `${DISCOGS_BASE_URL}/database/search?q=${encodeURIComponent(query)}&type=artist&token=${token}`;
+
+    try {
+        const response = await fetch(url, {
+            headers: { 'User-Agent': 'InstrumentCollectorApp/0.1' }
+        });
+
+        if (!response.ok) return [];
+
+        const data = await response.json();
+        return data.results || [];
+    } catch (error) {
+        console.error('Error searching Discogs artists:', error);
+        return [];
+    }
+}
+
+export async function getDiscogsArtist(id: string) {
+    const token = process.env.DISCOGS_TOKEN;
+    if (!token) return null;
+
+    const url = `${DISCOGS_BASE_URL}/artists/${id}?token=${token}`;
+
+    try {
+        const response = await fetch(url, {
+            headers: { 'User-Agent': 'InstrumentCollectorApp/0.1' }
+        });
+
+        if (!response.ok) return null;
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching Discogs artist:', error);
+        return null;
+    }
+}

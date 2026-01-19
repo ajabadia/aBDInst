@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { getUsers } from '@/actions/admin';
-import { Users, Bot, Tag, MessageSquare, Mail, ShieldAlert, Server, Trophy, Globe } from 'lucide-react';
+import { Users, Bot, Tag, MessageSquare, Mail, ShieldAlert, Server, Trophy, Globe, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 
 export default function AdminPage() {
@@ -166,6 +166,19 @@ export default function AdminPage() {
                         <div className="flex-1">
                             <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Exhibiciones</h3>
                             <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-1 group-hover:text-purple-500 transition-colors">Concursos y Eventos</p>
+                        </div>
+                    </div>
+                </Link>
+
+                {/* Analytics Management */}
+                <Link href="/dashboard/admin/analytics" className="glass-panel p-8 rounded-[2rem] shadow-apple-sm group border-black/5 dark:border-white/5 hover:border-ios-green/20 transition-all">
+                    <div className="flex items-center gap-5 h-full">
+                        <div className="p-4 bg-ios-green/10 text-ios-green rounded-[1.25rem] group-hover:bg-ios-green group-hover:text-white transition-all duration-500">
+                            <BarChart3 size={28} />
+                        </div>
+                        <div className="flex-1">
+                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Analíticas</h3>
+                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-1 group-hover:text-ios-green transition-colors">Estadísticas del Catálogo</p>
                         </div>
                     </div>
                 </Link>

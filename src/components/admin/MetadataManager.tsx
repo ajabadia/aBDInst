@@ -18,6 +18,12 @@ interface MetadataItem {
     label: string;
     assetUrl?: string;
     description?: string;
+    images?: Array<{
+        url: string;
+        isPrimary: boolean;
+        source?: string;
+        externalId?: string;
+    }>;
 }
 
 const TABS = [
@@ -70,6 +76,7 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
             key: editingItem.key,
             label: editingItem.label || editingItem.key,
             assetUrl: editingItem.assetUrl,
+            images: editingItem.images,
             description: editingItem.description
         });
 
@@ -239,20 +246,94 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
                                     </div>
                                 </div>
 
-                                <div className="space-y-3">
+                                <div className="space-y-4">
                                     <label className="apple-label ml-1 flex items-center gap-2">
                                         <Globe size={14} className="text-ios-blue" />
-                                        Activo Visual (Logo/Icono)
+                                        Galería de Imágenes
                                     </label>
+
+                                    {/* Existing Images Gallery */}
+                                    {editingItem.images && editingItem.images.length > 0 && (
+                                        <div className="grid grid-cols-4 gap-3 mb-4">
+                                            {editingItem.images.map((img, idx) => (
+                                                <div key={idx} className={cn(
+                                                    "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
+                                                    img.isPrimary ? "border-ios-blue shadow-md" : "border-transparent opacity-70 hover:opacity-100"
+                                                )}>
+                                                    <Image
+                                                        src={img.url}
+                                                        alt={`Image ${idx}`}
+                                                        fill
+                                                        className="object-cover"
+                                                    />
+                                                    <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 hover:opacity-100 bg-black/40 transition-opacity">
+                                                        {!img.isPrimary && (
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="w-8 h-8 rounded-full text-white hover:text-ios-blue"
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    const newImages = editingItem.images?.map((i, k) => ({
+                                                                        ...i,
+                                                                        isPrimary: k === idx
+                                                                    }));
+                                                                    setEditingItem({
+                                                                        ...editingItem,
+                                                                        images: newImages,
+                                                                        assetUrl: img.url
+                                                                    });
+                                                                }}
+                                                            >
+                                                                <Edit3 size={12} />
+                                                            </Button>
+                                                        )}
+                                                        <Button
+                                                            size="icon"
+                                                            variant="ghost"
+                                                            className="w-8 h-8 rounded-full text-white hover:text-red-500"
+                                                            onClick={(e) => {
+                                                                e.stopPropagation();
+                                                                const newImages = editingItem.images?.filter((_, k) => k !== idx);
+                                                                let newAssetUrl = editingItem.assetUrl;
+                                                                if (img.isPrimary) {
+                                                                    newAssetUrl = newImages && newImages.length > 0 ? newImages[0].url : undefined;
+                                                                    if (newImages && newImages.length > 0) newImages[0].isPrimary = true;
+                                                                }
+                                                                setEditingItem({
+                                                                    ...editingItem,
+                                                                    images: newImages,
+                                                                    assetUrl: newAssetUrl
+                                                                });
+                                                            }}
+                                                        >
+                                                            <Trash2 size={12} />
+                                                        </Button>
+                                                    </div>
+                                                    {img.isPrimary && (
+                                                        <div className="absolute top-1 right-1 bg-ios-blue text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase">
+                                                            Ppal
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
                                     <DragDropUploader
-                                        value={editingItem.assetUrl}
-                                        onUpload={(url) => setEditingItem({ ...editingItem, assetUrl: url })}
+                                        value={undefined} // Always empty for "Add to Gallery"
+                                        onUpload={(url) => {
+                                            const newImage = { url, isPrimary: !editingItem.images?.length, source: 'manual' };
+                                            const newImages = [...(editingItem.images || []), newImage];
+                                            setEditingItem({
+                                                ...editingItem,
+                                                images: newImages,
+                                                assetUrl: newImage.isPrimary ? url : editingItem.assetUrl
+                                            });
+                                        }}
                                     />
                                     <p className="text-[11px] text-gray-400 font-medium px-1 text-center">
-                                        Se recomienda usar archivos SVG para soporte de modo oscuro/claro.
-                                        <span onClick={() => window.open('https://worldvectorlogo.com', '_blank')} className="text-blue-500 cursor-pointer hover:underline ml-1">
-                                            Buscar logos ↗
-                                        </span>
+                                        Arrastra para añadir a la galería. La primera será la principal por defecto.
                                     </p>
                                 </div>
 
