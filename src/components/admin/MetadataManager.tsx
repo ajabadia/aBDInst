@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils';
 
 interface MetadataItem {
     id?: string;
-    type: 'brand' | 'decade' | 'type';
+    type: 'brand' | 'decade' | 'type' | 'artist';
     key: string;
     label: string;
     assetUrl?: string;
@@ -23,6 +23,7 @@ const TABS = [
     { id: 'brand', label: 'Marcas', icon: Tag, color: 'text-ios-blue', bg: 'bg-ios-blue/10' },
     { id: 'type', label: 'Tipos', icon: Music, color: 'text-ios-indigo', bg: 'bg-ios-indigo/10' },
     { id: 'decade', label: 'Décadas', icon: Calendar, color: 'text-ios-orange', bg: 'bg-ios-orange/10' },
+    { id: 'artist', label: 'Artistas', icon: Globe, color: 'text-ios-green', bg: 'bg-ios-green/10' },
 ];
 
 export default function MetadataManager({ initialData }: { initialData: any[] }) {
@@ -275,6 +276,7 @@ function IconForType({ type, size = 20 }: { type: string, size?: number }) {
         case 'brand': return <Tag size={size} />;
         case 'decade': return <Calendar size={size} />;
         case 'type': return <Music size={size} />;
+        case 'artist': return <Globe size={size} />;
         default: return <Tag size={size} />;
     }
 }

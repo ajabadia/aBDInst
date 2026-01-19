@@ -1,8 +1,8 @@
 import { Schema, model, models } from 'mongoose';
 
 export interface ICatalogMetadata {
-    type: 'brand' | 'decade' | 'type';
-    key: string; // The specific brand name (e.g., "Roland"), decade ("1980"), or type ("Synthesizer")
+    type: 'brand' | 'decade' | 'type' | 'artist';
+    key: string; // The specific brand name (e.g., "Roland"), decade ("1980"), type ("Synthesizer"), or artist ("kraftwerk")
     label: string; // Display name
     assetUrl?: string; // URL to logo or icon
     description?: string;
@@ -13,7 +13,7 @@ const CatalogMetadataSchema = new Schema<ICatalogMetadata>({
     type: {
         type: String,
         required: true,
-        enum: ['brand', 'decade', 'type'],
+        enum: ['brand', 'decade', 'type', 'artist'],
         index: true
     },
     key: { type: String, required: true },
