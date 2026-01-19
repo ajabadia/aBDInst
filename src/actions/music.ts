@@ -47,15 +47,26 @@ export async function importAlbum(source: 'discogs' | 'spotify', externalId: str
     await dbConnect();
 
     try {
-        let albumData: any = null;
         let globalAlbum: any = null;
 
-        // 1. Fetch from Source & Check Catalog
+        // 1. Check if album already exists in our catalog (CACHE)
         if (source === 'discogs') {
             globalAlbum = await MusicAlbum.findOne({ discogsId: externalId });
-            if (!globalAlbum) {
+        } else if (source === 'spotify') {
+            globalAlbum = await MusicAlbum.findOne({ spotifyId: externalId });
+        }
+
+        // 2. If not in cache, fetch from API and save
+        if (!globalAlbum) {
+            let albumData: any = null;
+
+            if (source === 'discogs') {
                 const release = await getDiscogsRelease(externalId);
                 if (!release) return { success: false, error: 'Release not found on Discogs' };
+
+                // Filter out spacer.gif
+                const coverImage = release.images?.[0]?.resource_url || release.thumb;
+                const validCoverImage = coverImage && !coverImage.includes('spacer.gif') ? coverImage : null;
 
                 albumData = {
                     artist: release.artists?.map((a: any) => a.name).join(', ') || 'Unknown Artist',
@@ -66,18 +77,16 @@ export async function importAlbum(source: 'discogs' | 'spotify', externalId: str
                     styles: release.styles,
                     format: release.formats?.[0]?.name,
                     discogsId: externalId,
-                    coverImage: release.images?.[0]?.resource_url || release.thumb,
+                    coverImage: validCoverImage,
                     tracklist: release.tracklist?.map((t: any) => ({
                         position: t.position,
                         title: t.title,
                         duration: t.duration
                     })),
-                    description: release.notes
+                    description: release.notes,
+                    createdBy: session.user.id
                 };
-            }
-        } else if (source === 'spotify') {
-            globalAlbum = await MusicAlbum.findOne({ spotifyId: externalId });
-            if (!globalAlbum) {
+            } else if (source === 'spotify') {
                 const album = await getSpotifyAlbum(externalId);
                 if (!album) return { success: false, error: 'Album not found on Spotify' };
 
@@ -92,21 +101,21 @@ export async function importAlbum(source: 'discogs' | 'spotify', externalId: str
                     tracklist: album.tracks?.items?.map((t: any) => ({
                         position: t.track_number.toString(),
                         title: t.name,
-                        duration: Math.floor(t.duration_ms / 1000).toString() // simplified
+                        duration: Math.floor(t.duration_ms / 1000).toString()
                     })),
-                    description: album.copyrights?.[0]?.text
+                    description: album.copyrights?.[0]?.text,
+                    createdBy: session.user.id
                 };
             }
-        }
 
-        // 2. Create Global Album if it doesn't exist
-        if (!globalAlbum && albumData) {
-            globalAlbum = await MusicAlbum.create(albumData);
+            if (albumData) {
+                globalAlbum = await MusicAlbum.create(albumData);
+            }
         }
 
         if (!globalAlbum) return { success: false, error: 'Failed to find or create album' };
 
-        // 3. Add to User Collection
+        // 3. Check if user already has this album
         const existingInUserCollection = await UserMusicCollection.findOne({
             userId: session.user.id,
             albumId: globalAlbum._id
@@ -116,6 +125,7 @@ export async function importAlbum(source: 'discogs' | 'spotify', externalId: str
             return { success: false, error: 'Album already in your collection' };
         }
 
+        // 4. Add to user's collection
         const userItem = await UserMusicCollection.create({
             userId: session.user.id,
             albumId: globalAlbum._id,

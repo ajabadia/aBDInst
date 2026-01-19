@@ -37,6 +37,11 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: 'https',
+        hostname: 'st.discogs.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
         hostname: 'i.scdn.co',
         pathname: '/**',
       },

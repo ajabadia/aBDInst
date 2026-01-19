@@ -107,7 +107,7 @@ export default function MusicImportModal({ open, onOpenChange }: MusicImportModa
                             {results.discogs.map((item: any) => (
                                 <div key={item.id} className="flex gap-4 p-3 rounded-2xl bg-gray-50 dark:bg-white/5 border border-transparent hover:border-ios-blue/20 transition-all group">
                                     <div className="w-16 h-16 bg-gray-200 rounded-xl overflow-hidden shrink-0 relative shadow-sm">
-                                        {item.cover_image && <Image src={item.cover_image} alt="cover" fill className="object-cover" />}
+                                        {item.cover_image && !item.cover_image.includes('spacer.gif') && <Image src={item.cover_image} alt="cover" fill className="object-cover" />}
                                     </div>
                                     <div className="flex-1 min-w-0 flex flex-col justify-center">
                                         <p className="font-bold text-sm truncate">{item.title}</p>
