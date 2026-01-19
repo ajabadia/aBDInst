@@ -32,7 +32,7 @@ function SimpleSwitch({ checked, onCheckedChange, label }: { checked: boolean; o
     );
 }
 
-export default function ShowroomEditor({ showroom, collection }: { showroom: any; collection: any[] }) {
+export default function ShowroomEditor({ showroom, instrumentCollection, musicCollection }: { showroom: any; instrumentCollection: any[]; musicCollection: any[] }) {
     const router = useRouter();
     const [formData, setFormData] = useState({
         name: showroom.name,
@@ -55,8 +55,14 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
     const [isSaving, setIsSaving] = useState(false);
     const [slideModal, setSlideModal] = useState<{ open: boolean; itemIndex: number }>({ open: false, itemIndex: -1 });
 
+    // Merge collections with type metadata
+    const allItems = [
+        ...instrumentCollection.map(item => ({ ...item, _itemType: 'instrument' })),
+        ...musicCollection.map(item => ({ ...item, _itemType: 'music' }))
+    ];
+
     // Available items (not in showroom)
-    const availableItems = collection.filter(c => !items.find((i: any) => i.collectionId === c._id));
+    const availableItems = allItems.filter(c => !items.find((i: any) => i.collectionId === c._id));
 
     const handleSave = async () => {
         setIsSaving(true);
@@ -92,67 +98,78 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
         }
     };
 
-    const addItem = (collectionId: string) => {
-        // V3: Magic Import V2 - Generate default sequence
-        const details = collection.find(c => c._id === collectionId);
+    const addItem = (collectionId: string, itemType: 'instrument' | 'music') => {
+        const details = allItems.find(c => c._id === collectionId);
         const defaultSlides = [];
 
-        // Slide 1: Main Image (Cover)
-        const mainImage = details?.images?.[0]?.url || details?.instrumentId?.genericImages?.[0];
-        if (mainImage) {
-            defaultSlides.push({
-                type: 'image',
-                url: mainImage,
-                layout: 'cover',
-                caption: 'Vista Principal'
-            });
-        }
+        if (itemType === 'instrument') {
+            // Instrument slides
+            const mainImage = details?.images?.[0]?.url || details?.instrumentId?.genericImages?.[0];
+            if (mainImage) {
+                defaultSlides.push({
+                    type: 'image',
+                    url: mainImage,
+                    layout: 'cover',
+                    caption: 'Vista Principal'
+                });
+            }
 
-        // Slide 2: Specs (Text)
-        const brand = details?.instrumentId?.brand || 'Marca Desc';
-        const model = details?.instrumentId?.model || 'Modelo Desc';
-        const year = details?.year ? `Año: ${details.year}` : '';
-        const serial = (details?.serialNumber && showroom.privacy?.showSerialNumbers) ? `S/N: ${details.serialNumber}` : '';
+            const brand = details?.instrumentId?.brand || 'Marca Desc';
+            const model = details?.instrumentId?.model || 'Modelo Desc';
+            const year = details?.year ? `Año: ${details.year}` : '';
+            const serial = (details?.serialNumber && showroom.privacy?.showSerialNumbers) ? `S/N: ${details.serialNumber}` : '';
+            const specsText = `${brand} ${model}\n${details?.instrumentId?.type || ''}\n${year}\n${serial}`;
 
-        const specsText = `${brand} ${model}\n${details.instrumentId?.type || ''}\n${year}\n${serial}`;
-
-        defaultSlides.push({
-            type: 'text',
-            text: specsText.trim(),
-            layout: 'center', // or 'specs' if supported
-            caption: 'Ficha Técnica'
-        });
-
-        // Slide 3: History (From Public Note if exists)
-        // We use the initial public note from the item, usually explicitly added by user, 
-        // but here we check if the collection item itself has some notes we want to promote?
-        // Actually, the user requirement says "from publicNote if exists". 
-        // Newly added items usually have empty publicNote in the showroom context, 
-        // so maybe it refers to `details.publicNote` (if that existed in collection schema) 
-        // OR we just leave it ready. 
-        // BUT, if the user fills the publicNote in the editor, we might want to sync it?
-        // For now, let's create it ONLY if the Collection Item has some "story" or we just create a placeholder?
-        // "Auto-generate 'History' slide (Text slide from `publicNote` if exists)."
-        // Since `publicNote` is a property of the ShowroomItem (which we are just creating), it is empty.
-        // Unless it refers to `details?.notes` (private notes?). 
-        // Let's assume for now we generate a placeholder slide IF the instrument has a description in the catalog/instrumentId?
-        // Or maybe we just Create the slide structure and let the user fill it. 
-        // Let's rely on `details.notes` (User's private notes) if we want to be helpful, 
-        // BUT better safe than sorry: Let's create the slide only if there is explicit content.
-
-        // checking `instrumentId.description` (Catalog description)
-        if (details?.instrumentId?.description) {
             defaultSlides.push({
                 type: 'text',
-                text: details.instrumentId.description,
-                layout: 'quote',
-                caption: 'Historia del Modelo'
+                text: specsText.trim(),
+                layout: 'center',
+                caption: 'Ficha Técnica'
             });
+
+            if (details?.instrumentId?.description) {
+                defaultSlides.push({
+                    type: 'text',
+                    text: details.instrumentId.description,
+                    layout: 'quote',
+                    caption: 'Historia del Modelo'
+                });
+            }
+        } else if (itemType === 'music') {
+            // Music album slides
+            const album = details?.albumId;
+            if (album?.coverImage) {
+                defaultSlides.push({
+                    type: 'image',
+                    url: album.coverImage,
+                    layout: 'cover',
+                    caption: 'Portada del Álbum'
+                });
+            }
+
+            const albumInfo = `${album?.artist || 'Artista Desconocido'}\n${album?.title || 'Álbum'}\n${album?.year || ''}\n${album?.label || ''}`;
+            defaultSlides.push({
+                type: 'text',
+                text: albumInfo.trim(),
+                layout: 'center',
+                caption: 'Información del Álbum'
+            });
+
+            if (album?.tracklist && album.tracklist.length > 0) {
+                const tracklistText = album.tracklist.map((t: any) => `${t.position}. ${t.title}`).join('\n');
+                defaultSlides.push({
+                    type: 'text',
+                    text: tracklistText,
+                    layout: 'quote',
+                    caption: 'Lista de Canciones'
+                });
+            }
         }
 
         setItems([...items, {
             collectionId,
-            publicNote: '', // User can edit this for the "Cartel"
+            itemType,
+            publicNote: '',
             placardText: '',
             displayOrder: items.length,
             slides: defaultSlides
@@ -164,7 +181,7 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
     };
 
     // Helper to get collection item details
-    const getItemDetails = (id: string) => collection.find(c => c._id === id);
+    const getItemDetails = (id: string) => allItems.find(c => c._id === id);
 
     const generatePDF = () => {
         try {
@@ -258,7 +275,7 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
                     open={slideModal.open}
                     onOpenChange={(open) => setSlideModal(prev => ({ ...prev, open }))}
                     initialSlides={items[slideModal.itemIndex].slides || []}
-                    itemName={collection.find(c => c._id === items[slideModal.itemIndex].collectionId)?.instrumentId?.name || 'Instrumento'}
+                    itemName={allItems.find((c: any) => c._id === items[slideModal.itemIndex].collectionId)?.instrumentId?.name || allItems.find((c: any) => c._id === items[slideModal.itemIndex].collectionId)?.albumId?.title || 'Item'}
                     onSave={(newSlides) => {
                         const newItems = [...items];
                         newItems[slideModal.itemIndex].slides = newSlides;
@@ -527,26 +544,41 @@ export default function ShowroomEditor({ showroom, collection }: { showroom: any
                     <div className="apple-card p-6 bg-white dark:bg-white/5">
                         <h3 className="font-bold mb-4">Añadir de tu Colección</h3>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-h-[300px] overflow-y-auto pr-2">
-                            {availableItems.map(inst => (
-                                <div key={inst._id} className="flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg border border-transparent hover:border-black/5 cursor-pointer" onClick={() => addItem(inst._id)}>
-                                    <div className="w-10 h-10 bg-white rounded-md overflow-hidden shrink-0 relative">
-                                        {inst.images?.[0]?.url || inst.instrumentId?.genericImages?.[0] ? (
-                                            <Image
-                                                src={inst.images?.[0]?.url || inst.instrumentId?.genericImages?.[0]}
-                                                alt="thumb"
-                                                fill
-                                                className="object-cover"
-                                            />
-                                        ) : <div className="w-full h-full bg-gray-200" />}
+                            {availableItems.map(inst => {
+                                const isMusic = inst._itemType === 'music';
+                                const displayData = isMusic ? inst.albumId : inst.instrumentId;
+                                const displayName = isMusic
+                                    ? `${displayData?.artist} - ${displayData?.title}`
+                                    : `${displayData?.brand} ${displayData?.model}`;
+                                const displayImage = isMusic
+                                    ? displayData?.coverImage
+                                    : (inst.images?.[0]?.url || displayData?.genericImages?.[0]);
+
+                                return (
+                                    <div
+                                        key={inst._id}
+                                        className="flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg border border-transparent hover:border-black/5 cursor-pointer"
+                                        onClick={() => addItem(inst._id, inst._itemType)}
+                                    >
+                                        <div className="w-10 h-10 bg-white rounded-md overflow-hidden shrink-0 relative">
+                                            {displayImage ? (
+                                                <Image
+                                                    src={displayImage}
+                                                    alt="thumb"
+                                                    fill
+                                                    className="object-cover"
+                                                />
+                                            ) : <div className="w-full h-full bg-gray-200" />}
+                                        </div>
+                                        <div className="min-w-0 flex-1">
+                                            <p className="text-sm font-bold truncate">{displayName}</p>
+                                            <p className="text-xs text-gray-500">{isMusic ? 'Música' : inst.status}</p>
+                                        </div>
+                                        <Plus size={16} className="ml-auto text-ios-blue" />
                                     </div>
-                                    <div className="min-w-0">
-                                        <p className="text-sm font-bold truncate">{inst.instrumentId?.brand} {inst.instrumentId?.model}</p>
-                                        <p className="text-xs text-gray-500">{inst.status}</p>
-                                    </div>
-                                    <Plus size={16} className="ml-auto text-ios-blue" />
-                                </div>
-                            ))}
-                            {availableItems.length === 0 && <p className="text-sm text-gray-400 col-span-2 text-center">No quedan instrumentos disponibles.</p>}
+                                );
+                            })}
+                            {availableItems.length === 0 && <p className="text-sm text-gray-400 col-span-2 text-center">No quedan items disponibles.</p>}
                         </div>
                     </div>
                 </div>

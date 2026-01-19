@@ -12,6 +12,7 @@ export interface ISlide {
 
 export interface IShowroomItem {
     collectionId: mongoose.Types.ObjectId;
+    itemType: 'instrument' | 'music'; // Domain type
     publicNote?: string; // Legacy/Fallback
     placardText?: string; // Legacy/Fallback
     displayOrder: number;
@@ -59,7 +60,8 @@ const ShowroomSchema = new Schema<IShowroom>({
     coverImage: { type: String },
     description: { type: String },
     items: [{
-        collectionId: { type: Schema.Types.ObjectId, ref: 'UserCollection', required: true },
+        collectionId: { type: Schema.Types.ObjectId, required: true },
+        itemType: { type: String, enum: ['instrument', 'music'], default: 'instrument' },
         publicNote: String,
         placardText: String,
         displayOrder: { type: Number, default: 0 },
