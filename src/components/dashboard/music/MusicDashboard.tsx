@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Disc, Music, Grid, List, Search, SlidersHorizontal } from 'lucide-react';
+import { Plus, Disc, Music, Grid, List, Search, SlidersHorizontal, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import Image from 'next/image';
 import MusicImportModal from './MusicImportModal';
+import { removeFromMusicCollection } from '@/actions/music-collection';
+import { toast } from 'sonner';
 
 interface MusicDashboardProps {
     collection: any[];
@@ -15,12 +17,32 @@ export default function MusicDashboard({ collection, user }: MusicDashboardProps
     const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
     const [isImportModalOpen, setIsImportModalOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
+    const [deletingId, setDeletingId] = useState<string | null>(null);
 
     const filteredCollection = collection.filter(item => {
         const album = item.albumId;
         const searchStr = `${album.artist} ${album.title} ${album.genres?.join(' ')}`.toLowerCase();
         return searchStr.includes(searchQuery.toLowerCase());
     });
+
+    const handleDelete = async (itemId: string, albumTitle: string) => {
+        if (!confirm(`¿Eliminar "${albumTitle}" de tu colección?\n\nEl álbum quedará en caché para otros usuarios.`)) return;
+
+        setDeletingId(itemId);
+        try {
+            const res = await removeFromMusicCollection(itemId);
+            if (res.success) {
+                toast.success('Álbum eliminado de tu colección');
+                // The page will auto-refresh due to revalidatePath
+            } else {
+                toast.error(res.error || 'Error al eliminar');
+            }
+        } catch (error) {
+            toast.error('Error al eliminar');
+        } finally {
+            setDeletingId(null);
+        }
+    };
 
     return (
         <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -81,11 +103,22 @@ export default function MusicDashboard({ collection, user }: MusicDashboardProps
                     {filteredCollection.map((item) => (
                         <div
                             key={item._id}
-                            className={`group cursor-pointer transition-all ${viewMode === 'grid'
+                            className={`group transition-all relative ${viewMode === 'grid'
                                     ? 'space-y-3'
                                     : 'flex items-center gap-6 p-4 bg-white dark:bg-white/5 rounded-3xl border border-black/5 dark:border-white/5'
                                 }`}
                         >
+                            {/* Delete button */}
+                            <button
+                                onClick={() => handleDelete(item._id, item.albumId.title)}
+                                disabled={deletingId === item._id}
+                                className={`absolute z-10 p-2 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all hover:scale-110 disabled:opacity-50 ${viewMode === 'grid' ? 'top-2 right-2' : 'right-4'
+                                    }`}
+                                title="Eliminar de mi colección"
+                            >
+                                <Trash2 size={16} />
+                            </button>
+
                             <div className={`relative bg-gray-200 dark:bg-black/40 rounded-[1.5rem] overflow-hidden shadow-apple-sm transition-all group-hover:shadow-apple-lg group-hover:-translate-y-1 ${viewMode === 'grid' ? 'aspect-square' : 'w-24 h-24 shrink-0'
                                 }`}>
                                 {item.albumId.coverImage ? (
