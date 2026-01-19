@@ -90,6 +90,53 @@
 
 ---
 
+## 🔧 Code Quality & DRY Refactoring (Technical Debt)
+*Goal: Eliminate code duplication and centralize common patterns.*
+
+### Completed DRY Initiatives ✅
+- [x] **Music Enrichment Module** (`@/lib/music/enrichment.ts`)
+  - Centralized album creation/caching logic
+  - Eliminated 60+ lines of duplicated code
+  - Single source of truth for Discogs/Spotify integration
+
+### Pending DRY Refactoring 🚧
+- [ ] **Image Upload Module** (`@/lib/media/upload.ts`)
+  - Centralize image upload logic (Cloudinary/local storage)
+  - Currently duplicated in:
+    - Instrument image upload
+    - User avatar upload
+    - Showroom cover image upload
+    - Metadata logo upload
+    - Music album cover upload
+  - Create unified `uploadImage(file, options)` function
+  - Handle resizing, optimization, and format conversion in one place
+
+- [ ] **Form Validation Module** (`@/lib/validation/`)
+  - Extract common validation patterns
+  - Reusable schemas for instruments, collections, showrooms
+  - Centralize error message formatting
+
+- [ ] **API Response Helpers** (`@/lib/api/response.ts`)
+  - Standardize success/error response format
+  - Currently inconsistent across server actions
+  - Create `apiSuccess(data)`, `apiError(message)` helpers
+
+- [ ] **Database Query Helpers** (`@/lib/db/queries.ts`)
+  - Common patterns like pagination, sorting, filtering
+  - Reusable across instruments, music, showrooms
+
+- [ ] **Authentication Guards** (`@/lib/auth/guards.ts`)
+  - Centralize role-based access control
+  - Currently duplicated in multiple server actions
+
+### Benefits of DRY Refactoring:
+- 🎯 Easier maintenance (fix once, apply everywhere)
+- 🐛 Fewer bugs (less code = less surface area)
+- 📚 Better documentation (one place to understand each pattern)
+- ⚡ Faster development (reuse instead of rewrite)
+
+---
+
 ## 🧠 Research & Best Practices (Ongoing)
 - [ ] **UX Patterns**: Study "Digital Museum" kiosks (bitesize content, high contrast, storytelling).
 - [ ] **Audio/Video**: Explore adding audio clips (instrument samples) or video (performances) to slides.
