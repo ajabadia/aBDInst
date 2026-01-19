@@ -14,13 +14,15 @@ DISCOGS_TOKEN=tu_token_aqui
 
 ## Spotify API
 
-1. Ve a https://developer.spotify.com/dashboard
-2. Crea una nueva aplicación
-3. Copia el "Client ID" y "Client Secret"
-4. Añade a `.env.local`:
+⚠️ **NOTA (Enero 2026)**: Spotify tiene temporalmente bloqueada la creación de nuevas aplicaciones mientras mejoran su seguridad. Esta integración quedará pendiente hasta que se reactive.
+
+~~1. Ve a https://developer.spotify.com/dashboard~~
+~~2. Crea una nueva aplicación~~
+~~3. Copia el "Client ID" y "Client Secret"~~
+~~4. Añade a `.env.local`:~~
 ```
-SPOTIFY_CLIENT_ID=tu_client_id_aqui
-SPOTIFY_CLIENT_SECRET=tu_client_secret_aqui
+# SPOTIFY_CLIENT_ID=tu_client_id_aqui (Pendiente)
+# SPOTIFY_CLIENT_SECRET=tu_client_secret_aqui (Pendiente)
 ```
 
 ## Notas
