@@ -21,10 +21,16 @@ import { getRelatedGear } from '@/actions/instrument';
 import { getComments } from '@/actions/comments';
 import { getResources } from '@/actions/resource';
 import { getEntityStatus } from '@/actions/scheduler';
+import { getCatalogMetadata } from '@/actions/metadata';
 import { ArrowLeft, FileText, Box, ChevronRight, Layers, Globe, ExternalLink, Star, Trophy, Building2 } from 'lucide-react';
 import dbConnect from '@/lib/db';
 import User from '@/models/User';
+import InstrumentArtist from '@/models/InstrumentArtist';
+import InstrumentAlbum from '@/models/InstrumentAlbum';
+import CatalogMetadata from '@/models/CatalogMetadata';
+import MusicAlbum from '@/models/MusicAlbum';
 import { cn } from '@/lib/utils';
+import MusicalContextSection from '@/components/instrument/MusicalContextSection';
 
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
     const { id } = await params;
@@ -78,6 +84,32 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
             ownedItems = JSON.parse(JSON.stringify(ownedItems));
         }
     }
+
+    // Fetch Musical Context
+    await dbConnect();
+    const [artistRelations, albumRelations, availableArtists] = await Promise.all([
+        InstrumentArtist.find({ instrumentId: id }).populate('artistId').lean(),
+        InstrumentAlbum.find({ instrumentId: id }).populate('albumId').lean(),
+        getCatalogMetadata('artist')
+    ]);
+
+    const artists = artistRelations.map((rel: any) => ({
+        _id: rel._id.toString(),
+        name: rel.artistId?.label || 'Artista Desconocido',
+        key: rel.artistId?.key || '',
+        assetUrl: rel.artistId?.assetUrl,
+        yearsUsed: rel.yearsUsed,
+        notes: rel.notes
+    }));
+
+    const albums = albumRelations.map((rel: any) => ({
+        _id: rel._id.toString(),
+        title: rel.albumId?.title || 'Álbum Desconocido',
+        artist: rel.albumId?.artist || 'Varios',
+        year: rel.albumId?.year,
+        coverImage: rel.albumId?.coverImage,
+        notes: rel.notes
+    }));
 
     const groupedSpecs: Record<string, any[]> = {};
     if (instrument.specs && Array.isArray(instrument.specs)) {
@@ -340,6 +372,17 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* Musical Context Section */}
+            <div className="mt-16">
+                <MusicalContextSection
+                    artists={artists}
+                    albums={albums}
+                    availableArtists={availableArtists}
+                    canEdit={canEdit}
+                    instrumentId={id}
+                />
             </div>
 
             {/* Bottom Sections: Technical Content */}

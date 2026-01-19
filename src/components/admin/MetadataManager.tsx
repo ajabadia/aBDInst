@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Trash2, Save, X, Search, Filter, Tag, Upload, Music, Calendar, Edit3, Globe, Layers } from 'lucide-react';
 import DragDropUploader from './DragDropUploader';
@@ -27,13 +28,25 @@ const TABS = [
 ];
 
 export default function MetadataManager({ initialData }: { initialData: any[] }) {
-    const [activeTab, setActiveTab] = useState('brand');
+    const searchParams = useSearchParams();
+    const router = useRouter();
+    const tabParam = searchParams.get('tab');
+
+    // Validate tabParam against TABS, fallback to 'brand'
+    const validTabs = TABS.map(t => t.id);
+    const initialTab = (tabParam && validTabs.includes(tabParam)) ? tabParam : 'brand';
+
+    const [activeTab, setActiveTab] = useState(initialTab);
     const [items, setItems] = useState<MetadataItem[]>(initialData as MetadataItem[]);
     const [loading, setLoading] = useState(false);
     const [editingItem, setEditingItem] = useState<Partial<MetadataItem> | null>(null);
 
     useEffect(() => {
         loadMetadata();
+        // Update URL to match active tab for deep linking
+        const params = new URLSearchParams(window.location.search);
+        params.set('tab', activeTab);
+        router.replace(`${window.location.pathname}?${params.toString()}`, { scroll: false });
     }, [activeTab]);
 
     const loadMetadata = async () => {

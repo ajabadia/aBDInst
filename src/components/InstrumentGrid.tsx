@@ -6,13 +6,13 @@ import EmptyState from '@/components/EmptyState';
 import VirtualizedInstrumentGrid from './VirtualizedInstrumentGrid';
 
 import { useState, useMemo } from 'react';
-import { LayoutGrid, List, Tag, Calendar, Music } from 'lucide-react';
+import { LayoutGrid, List, Tag, Calendar, Music, Users } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import Image from 'next/image';
 
 interface InstrumentGridProps {
     instruments: any[];
-    sortBy?: 'brand' | 'model' | 'year' | 'type';
+    sortBy?: 'brand' | 'model' | 'year' | 'type' | 'artist';
     metadata?: Record<string, any>;
 }
 
@@ -46,6 +46,9 @@ export default function InstrumentGrid({ instruments, sortBy = 'brand', metadata
                 const year = inst.years?.[0];
                 key = year ? `${year.substring(0, 3)}0s` : 'Unknown';
             }
+            else if (sortBy === 'artist') {
+                key = inst.artists?.[0] || 'Unknown';
+            }
             if (!groups[key]) groups[key] = [];
             groups[key].push(inst);
         });
@@ -74,7 +77,7 @@ export default function InstrumentGrid({ instruments, sortBy = 'brand', metadata
                     // NORMALIZACIÓN PARA EL MATCH
                     const normalizedKey = groupKey.toLowerCase().trim();
                     const typeKey = sortBy === 'year' ? 'decade' : sortBy;
-                    
+
                     const meta = metadata[typeKey]?.[normalizedKey];
 
                     return (
@@ -82,11 +85,11 @@ export default function InstrumentGrid({ instruments, sortBy = 'brand', metadata
                             <div className="flex items-center gap-4 pb-4 border-b border-black/5 dark:border-white/5">
                                 {meta?.assetUrl ? (
                                     <div className="relative w-10 h-10 md:w-14 md:h-14 bg-white dark:bg-white/5 rounded-2xl p-2 shadow-apple-sm border border-black/5 flex items-center justify-center overflow-hidden">
-                                        <Image 
-                                            src={meta.assetUrl} 
-                                            alt={groupKey} 
-                                            fill 
-                                            className="object-contain p-2 transition-transform hover:scale-110 duration-500" 
+                                        <Image
+                                            src={meta.assetUrl}
+                                            alt={groupKey}
+                                            fill
+                                            className="object-contain p-2 transition-transform hover:scale-110 duration-500"
                                         />
                                     </div>
                                 ) : (
@@ -94,6 +97,7 @@ export default function InstrumentGrid({ instruments, sortBy = 'brand', metadata
                                         {sortBy === 'type' && <Music size={24} />}
                                         {sortBy === 'brand' && <Tag size={24} />}
                                         {sortBy === 'year' && <Calendar size={24} />}
+                                        {sortBy === 'artist' && <Users size={24} />}
                                     </div>
                                 )}
                                 <div className="space-y-0.5">

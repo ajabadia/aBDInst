@@ -1,5 +1,5 @@
 import { auth } from '@/auth';
-import { getInstruments, getMetadataMap, getBrands } from '@/actions/catalog';
+import { getInstruments, getMetadataMap, getBrands, getCatalogMetadata } from '@/actions/catalog';
 import Link from 'next/link';
 import Search from '@/components/Search';
 import InstrumentFilter from '@/components/InstrumentFilter';
@@ -18,8 +18,9 @@ export default async function InstrumentsPage(props: {
         maxYear?: string;
         condition?: string;
         location?: string;
-        sortBy?: 'brand' | 'model' | 'year' | 'type';
+        sortBy?: 'brand' | 'model' | 'year' | 'type' | 'artist';
         sortOrder?: 'asc' | 'desc';
+        artists?: string;
     }>;
 }) {
     const searchParams = await props.searchParams;
@@ -30,12 +31,14 @@ export default async function InstrumentsPage(props: {
     const maxYear = searchParams?.maxYear ? parseInt(searchParams.maxYear) : null;
     const sortBy = searchParams?.sortBy || 'brand';
     const sortOrder = searchParams?.sortOrder || 'asc';
+    const activeArtists = searchParams?.artists ? searchParams.artists.split(',') : [];
 
     const session = await auth();
-    const [rawInstruments, metadata, brands] = await Promise.all([
-        getInstruments(query, category, sortBy, sortOrder, undefined, false, brand, minYear, maxYear),
+    const [rawInstruments, metadata, brands, allArtists] = await Promise.all([
+        getInstruments(query, category, sortBy, sortOrder, undefined, false, brand, minYear, maxYear, activeArtists),
         getMetadataMap(),
-        getBrands()
+        getBrands(),
+        getCatalogMetadata('artist')
     ]);
 
     const instruments = cleanData(rawInstruments);
@@ -81,7 +84,10 @@ export default async function InstrumentsPage(props: {
                 <div className="max-w-3xl">
                     <Search placeholder="Buscar por marca, modelo o tipo..." />
                 </div>
-                <InstrumentFilter availableBrands={availableBrands} />
+                <InstrumentFilter
+                    availableBrands={availableBrands}
+                    allArtists={allArtists}
+                />
             </div>
 
             <div className="animate-in fade-in duration-700">

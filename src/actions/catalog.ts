@@ -14,13 +14,14 @@ import { auth } from '@/auth';
 export async function getInstruments(
     query?: string,
     category?: string | null,
-    sortBy = 'brand',
+    sortBy: 'brand' | 'model' | 'year' | 'type' | 'artist' = 'brand',
     sortOrder: 'asc' | 'desc' = 'asc',
     limit?: number,
     full = false,
     brand?: string | null,
     minYear?: number | null,
-    maxYear?: number | null
+    maxYear?: number | null,
+    artists?: string[] | null
 ) {
     try {
         await dbConnect();
@@ -46,13 +47,18 @@ export async function getInstruments(
             if (maxYear) filter.years.$lte = String(maxYear);
         }
 
+        // Artist Filter (Multi-select OR logic)
+        if (artists && artists.length > 0) {
+            filter.artists = { $in: artists };
+        }
+
 
         let queryBuilder = Instrument.find(filter);
         if (!full) queryBuilder = queryBuilder.select('brand model type subtype genericImages years variantLabel websites');
         if (limit) queryBuilder = queryBuilder.limit(limit);
 
         const instruments = await queryBuilder
-            .sort({ [sortBy]: sortOrder === 'asc' ? 1 : -1 })
+            .sort(sortBy === 'artist' ? { 'artists.0': sortOrder === 'asc' ? 1 : -1 } : { [sortBy]: sortOrder === 'asc' ? 1 : -1 })
             .lean();
 
         const safeInstruments = JSON.parse(JSON.stringify(instruments));

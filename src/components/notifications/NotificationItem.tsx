@@ -3,7 +3,7 @@
 import { formatDistanceToNow } from 'date-fns';
 import { es } from 'date-fns/locale';
 import Link from 'next/link';
-import { UserPlus, MessageSquare, Reply, AlertCircle, Heart, Mail, Bell, ShieldCheck } from 'lucide-react';
+import { UserPlus, MessageSquare, Reply, AlertCircle, Heart, Mail, Bell, ShieldCheck, Tag } from 'lucide-react';
 import { markAsRead } from '@/actions/notifications';
 import { useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
@@ -68,6 +68,12 @@ export default function NotificationItem({ notification, onClose }: Notification
             color: 'text-ios-orange',
             bg: 'bg-ios-orange/10',
             href: `/dashboard/collection/${data.instrumentId}`
+        },
+        metadata_alert: {
+            icon: Tag,
+            color: 'text-ios-green',
+            bg: 'bg-ios-green/10',
+            href: `/dashboard/admin/metadata?tab=${data.category || 'brand'}`
         }
     };
 
@@ -108,6 +114,7 @@ export default function NotificationItem({ notification, onClose }: Notification
                     {type === 'contact_request' && (<span>Consulta de <span className="font-bold">{data.senderName}</span>: {data.subject}</span>)}
                     {type === 'contact_reply' && (<span>Nueva respuesta a tu consulta: <span className="font-bold">{data.subject}</span></span>)}
                     {type === 'maintenance' && (<span>Revisión técnica pendiente para <span className="font-bold">{data.title}</span>.</span>)}
+                    {type === 'metadata_alert' && (<span>{data.message || `Nueva entrada en ${data.category}: ${data.label}`}</span>)}
                     {!configs[type] && "Tienes una nueva actualización en tu sistema."}
                 </p>
                 <div className="flex items-center gap-3">

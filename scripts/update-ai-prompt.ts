@@ -5,42 +5,32 @@
  * Run with: npx tsx scripts/update-ai-prompt.ts
  */
 
-const mongoose = require('mongoose');
+import mongoose from 'mongoose';
+import * as dotenv from 'dotenv';
+import path from 'path';
 
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb+srv://triaje_app:n5xPD0qsuhYDSTdj@triaje-traumatologia.wqogpoz.mongodb.net/instrument-collector?retryWrites=true&w=majority';
+dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
+
+const MONGODB_URI = process.env.MONGODB_URI;
+
+if (!MONGODB_URI) {
+  console.error('❌ MONGODB_URI not found in environment');
+  process.exit(1);
+}
 
 // Define SystemConfig schema
 const SystemConfigSchema = new mongoose.Schema({
-    key: { type: String, required: true, unique: true },
+  key: { type: String, required: true, unique: true },
+  value: mongoose.Schema.Types.Mixed,
+  version: { type: Number, default: 1 },
+  history: [{
     value: mongoose.Schema.Types.Mixed,
-    version: { type: Number, default: 1 },
-    history: [{
-        value: mongoose.Schema.Types.Mixed,
-        version: Number,
-        timestamp: Date
-    }]
+    version: Number,
+    timestamp: Date
+  }]
 }, { timestamps: true });
 
 const SystemConfig = mongoose.models.SystemConfig || mongoose.model('SystemConfig', SystemConfigSchema);
-
-async function connectDB() {
-    if (mongoose.connection.readyState >= 1) return;
-    await mongoose.connect(MONGODB_URI);
-    console.log('✅ Connected to MongoDB');
-}
-
-
-if (!currentConfig) {
-    console.log('❌ No existing ai_system_prompt found in database');
-    console.log('Creating new one with artist/album detection...');
-} else {
-    console.log('✅ Current prompt found');
-    console.log('📝 Current version:', currentConfig.version || 1);
-    console.log('📅 Last updated:', currentConfig.updatedAt);
-    console.log('\n--- Current Prompt ---');
-    console.log(currentConfig.value);
-    console.log('--- End Current Prompt ---\n');
-}
 
 const newPrompt = `You are an expert instrument appraiser and music historian. Analyze the provided image/text and return a JSON object with the following structure:
 
@@ -98,49 +88,73 @@ Examples:
 - Fender Precision Bass → artists: [{"name": "James Jamerson", "key": "james-jamerson"}]
 - Roland TB-303 → albums: [{"title": "Acid Tracks", "artist": "Phuture", "year": 1987}]`;
 
-// Create new version
-const newVersion = (currentConfig?.version || 0) + 1;
+async function updateAIPrompt() {
+  try {
+    // Connect to MongoDB
+    await mongoose.connect(MONGODB_URI as string);
+    console.log('✅ Connected to MongoDB\n');
 
-const updated = await SystemConfig.findOneAndUpdate(
-    { key: 'ai_system_prompt' },
-    {
+    // Get current prompt from DB
+    const currentConfig = await SystemConfig.findOne({ key: 'ai_system_prompt' });
+
+    if (!currentConfig) {
+      console.log('❌ No existing ai_system_prompt found in database');
+      console.log('Creating new one with artist/album detection...\n');
+    } else {
+      console.log('✅ Current prompt found');
+      console.log('📝 Current version:', currentConfig.version || 1);
+      console.log('📅 Last updated:', currentConfig.updatedAt);
+      console.log('\n--- Current Prompt (first 200 chars) ---');
+      console.log(currentConfig.value.substring(0, 200) + '...');
+      console.log('--- End Current Prompt ---\n');
+    }
+
+    // Create new version
+    const newVersion = (currentConfig?.version || 0) + 1;
+
+    const updated = await SystemConfig.findOneAndUpdate(
+      { key: 'ai_system_prompt' },
+      {
         $set: {
-            value: newPrompt,
-            version: newVersion,
-            updatedAt: new Date()
+          value: newPrompt,
+          version: newVersion,
+          updatedAt: new Date()
         },
         $push: {
-            history: {
-                value: currentConfig?.value || 'Initial version',
-                version: currentConfig?.version || 1,
-                timestamp: currentConfig?.updatedAt || new Date()
-            }
+          history: {
+            value: currentConfig?.value || 'Initial version',
+            version: currentConfig?.version || 1,
+            timestamp: currentConfig?.updatedAt || new Date()
+          }
         }
-    },
-    { upsert: true, new: true }
-);
+      },
+      { upsert: true, new: true }
+    );
 
-console.log('\n✅ Prompt updated successfully!');
-console.log('📝 New version:', updated.version);
-console.log('📅 Updated at:', updated.updatedAt);
-console.log('\n--- New Prompt ---');
-console.log(updated.value);
-console.log('--- End New Prompt ---\n');
+    console.log('✅ Prompt updated successfully!');
+    console.log('📝 New version:', updated.version);
+    console.log('📅 Updated at:', updated.updatedAt);
+    console.log('\n🎯 The AI will now detect:');
+    console.log('   - Artists/bands that used this instrument');
+    console.log('   - Albums where this instrument was featured');
+    console.log('\n📋 JSON fields added:');
+    console.log('   - artists: [{ name, key, yearsUsed, notes }]');
+    console.log('   - albums: [{ title, artist, year, notes }]');
+    console.log('\n✅ Done!');
 
-console.log('🎯 The AI will now detect:');
-console.log('   - Artists/bands that used this instrument');
-console.log('   - Albums where this instrument was featured');
-console.log('\n📋 JSON fields added:');
-console.log('   - artists: [{ name, key, yearsUsed, notes }]');
-console.log('   - albums: [{ title, artist, year, notes }]');
+    await mongoose.disconnect();
+  } catch (error) {
+    console.error('❌ Error:', error);
+    await mongoose.disconnect();
+    process.exit(1);
+  }
 }
 
 updateAIPrompt()
-    .then(() => {
-        console.log('\n✅ Done!');
-        process.exit(0);
-    })
-    .catch((error) => {
-        console.error('❌ Error:', error);
-        process.exit(1);
-    });
+  .then(() => process.exit(0))
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+
+export { };

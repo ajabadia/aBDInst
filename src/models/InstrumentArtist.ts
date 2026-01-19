@@ -14,7 +14,7 @@ export interface IInstrumentArtist extends Document {
 
 const InstrumentArtistSchema = new Schema<IInstrumentArtist>({
     instrumentId: { type: Schema.Types.ObjectId, ref: 'Instrument', required: true },
-    artistId: { type: Schema.Types.ObjectId, ref: 'Artist', required: true },
+    artistId: { type: Schema.Types.ObjectId, ref: 'CatalogMetadata', required: true },
     notes: { type: String },
     yearsUsed: { type: String },
     isVerified: { type: Boolean, default: false },

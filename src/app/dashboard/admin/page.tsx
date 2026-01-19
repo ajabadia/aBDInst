@@ -87,17 +87,34 @@ export default function AdminPage() {
                 </Link>
 
                 {/* Metadata */}
-                <Link href="/dashboard/admin/metadata" className="glass-panel p-8 rounded-[2rem] shadow-apple-sm group border-black/5 dark:border-white/5 hover:border-ios-green/20 transition-all">
-                    <div className="flex items-center gap-5 h-full">
-                        <div className="p-4 bg-ios-green/10 text-ios-green rounded-[1.25rem] group-hover:bg-ios-green group-hover:text-white transition-all duration-500">
-                            <Tag size={28} />
+                <div className="glass-panel p-8 rounded-[2rem] shadow-apple-sm relative overflow-hidden border-black/5 dark:border-white/5 group">
+                    <div className="flex flex-col h-full justify-between gap-6">
+                        <div className="flex items-center gap-5">
+                            <div className="p-4 bg-ios-green/10 text-ios-green rounded-[1.25rem] group-hover:bg-ios-green group-hover:text-white transition-all duration-500">
+                                <Tag size={28} />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Arquitectura</h3>
+                                <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-1 group-hover:text-ios-green transition-colors">Catálogo Maestro</p>
+                            </div>
                         </div>
-                        <div className="flex-1">
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Arquitectura</h3>
-                            <p className="text-xs text-gray-400 font-bold uppercase tracking-wider mt-1 group-hover:text-ios-green transition-colors">Marcas y Categorías</p>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <Link
+                                href="/dashboard/admin/metadata?tab=brand"
+                                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-ios-blue hover:text-white text-xs font-bold transition-all"
+                            >
+                                <Tag size={12} /> Marcas
+                            </Link>
+                            <Link
+                                href="/dashboard/admin/metadata?tab=artist"
+                                className="flex items-center justify-center gap-2 py-3 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-ios-green hover:text-white text-xs font-bold transition-all"
+                            >
+                                <Globe size={12} /> Artistas
+                            </Link>
                         </div>
                     </div>
-                </Link>
+                </div>
 
                 {/* Contact Box */}
                 <Link href="/dashboard/admin/contacts" className="glass-panel p-8 rounded-[2rem] shadow-apple-sm group border-black/5 dark:border-white/5 hover:border-ios-orange/20 transition-all">

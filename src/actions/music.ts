@@ -3,7 +3,7 @@
 import dbConnect from '@/lib/db';
 import MusicAlbum from '@/models/MusicAlbum';
 import UserMusicCollection from '@/models/UserMusicCollection';
-import { searchDiscogs, getDiscogsRelease } from '@/lib/music/discogs';
+import { searchDiscogs, getDiscogsRelease, getDiscogsMasterVersions } from '@/lib/music/discogs';
 import { searchSpotifyAlbums, getSpotifyAlbum } from '@/lib/music/spotify';
 import { revalidatePath } from 'next/cache';
 
@@ -80,6 +80,45 @@ export async function importAlbum(source: 'discogs' | 'spotify', externalId: str
 
     } catch (error: any) {
         console.error('Import error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function getOrCreateAlbumBatch(source: 'discogs' | 'spotify', externalIds: string[]) {
+    const session = await (await import('@/auth')).auth();
+    if (!session) return { success: false, error: 'Unauthorized' };
+
+    await dbConnect();
+    const { getOrCreateAlbum } = await import('@/lib/music/enrichment');
+
+    const results = [];
+    for (const id of externalIds) {
+        try {
+            const res = await getOrCreateAlbum(source, id, session.user.id);
+            if (res.success) results.push(res.album);
+        } catch (e) {
+            console.error(`Batch import failed for ${id}:`, e);
+        }
+    }
+
+    revalidatePath('/dashboard/music');
+    return { success: true, count: results.length };
+}
+
+export async function importMasterVersions(masterId: string) {
+    try {
+        const session = await (await import('@/auth')).auth();
+        if (!session) return { success: false, error: 'Unauthorized' };
+
+        const versions = await getDiscogsMasterVersions(masterId);
+        if (!versions || versions.length === 0) return { success: false, error: 'No versions found' };
+
+        // Limit to top 20 versions to avoid timeout/rate limits
+        const targetIds = versions.slice(0, 20).map((v: any) => v.id.toString());
+
+        return await getOrCreateAlbumBatch('discogs', targetIds);
+    } catch (error: any) {
+        console.error('Import master versions error:', error);
         return { success: false, error: error.message };
     }
 }

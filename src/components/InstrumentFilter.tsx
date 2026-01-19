@@ -4,7 +4,7 @@
 
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { Filter, X, ArrowDownAZ, ArrowUpAZ, Calendar, Tag, Music } from 'lucide-react';
+import { Filter, X, ArrowDownAZ, ArrowUpAZ, Calendar, Tag, Music, Users, Search as SearchIcon, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 
@@ -13,15 +13,17 @@ const CATEGORIES = ['Synthesizer', 'Drum Machine', 'Groovebox', 'Eurorack Module
 const SORT_OPTIONS = [
     { id: 'brand', label: 'Marca', icon: Tag },
     { id: 'model', label: 'Nombre', icon: ArrowDownAZ },
+    { id: 'artist', label: 'Artista', icon: Users },
     { id: 'year', label: 'Año', icon: Calendar },
     { id: 'type', label: 'Tipo', icon: Music },
 ];
 
-export default function InstrumentFilter({ availableBrands = [] }: { availableBrands?: string[] }) {
+export default function InstrumentFilter({ availableBrands = [], allArtists = [] }: { availableBrands?: string[], allArtists?: any[] }) {
     const searchParams = useSearchParams();
     const pathname = usePathname();
     const { replace } = useRouter();
     const [isOpen, setIsOpen] = useState(false);
+    const [artistSearch, setArtistSearch] = useState('');
 
     const handleFilter = (key: string, value: string | null) => {
         const params = new URLSearchParams(searchParams?.toString());
@@ -30,6 +32,26 @@ export default function InstrumentFilter({ availableBrands = [] }: { availableBr
         } else {
             params.delete(key);
         }
+        replace(`${pathname}?${params.toString()}`, { scroll: false });
+    };
+
+    const handleArtistToggle = (artistKey: string) => {
+        const params = new URLSearchParams(searchParams?.toString());
+        const currentArtists = params.get('artists') ? params.get('artists')!.split(',') : [];
+
+        let newArtists;
+        if (currentArtists.includes(artistKey)) {
+            newArtists = currentArtists.filter(k => k !== artistKey);
+        } else {
+            newArtists = [...currentArtists, artistKey];
+        }
+
+        if (newArtists.length > 0) {
+            params.set('artists', newArtists.join(','));
+        } else {
+            params.delete('artists');
+        }
+
         replace(`${pathname}?${params.toString()}`, { scroll: false });
     };
 
@@ -59,7 +81,13 @@ export default function InstrumentFilter({ availableBrands = [] }: { availableBr
     const currentBrand = searchParams?.get('brand');
     const sortBy = searchParams?.get('sortBy') || 'brand';
     const sortOrder = searchParams?.get('sortOrder') || 'asc';
-    const hasFilters = !!currentCategory || !!currentBrand || !!searchParams?.get('query');
+    const activeArtistsKeys = searchParams?.get('artists') ? searchParams.get('artists')!.split(',') : [];
+    const hasFilters = !!currentCategory || !!currentBrand || !!searchParams?.get('query') || activeArtistsKeys.length > 0;
+
+    const filteredArtists = allArtists.filter(a =>
+        a.label.toLowerCase().includes(artistSearch.toLowerCase()) ||
+        a.key.toLowerCase().includes(artistSearch.toLowerCase())
+    ).slice(0, 8); // Limits results to keep UI clean
 
     return (
         <div className="mb-6 space-y-4">
@@ -194,6 +222,82 @@ export default function InstrumentFilter({ availableBrands = [] }: { availableBr
                                 />
                             </div>
                         </div>
+                    </div>
+
+                    <div className="h-[1px] bg-black/5 dark:bg-white/5 w-full" />
+
+                    {/* Artists Multi-select Section */}
+                    <div className="space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Artistas Relacionados</h4>
+                            {activeArtistsKeys.length > 0 && (
+                                <button onClick={() => handleFilter('artists', null)} className="text-[10px] font-bold text-ios-blue hover:underline uppercase">
+                                    Limpiar Todo
+                                </button>
+                            )}
+                        </div>
+
+                        {/* Search Input for Artists */}
+                        <div className="relative">
+                            <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                            <input
+                                type="text"
+                                placeholder="Buscar artista (Kraftwerk, Depeche Mode...)"
+                                value={artistSearch}
+                                onChange={(e) => setArtistSearch(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/10 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-ios-blue/50"
+                            />
+                        </div>
+
+                        {/* Search Results */}
+                        {artistSearch && filteredArtists.length > 0 && (
+                            <div className="flex flex-wrap gap-2 animate-in fade-in slide-in-from-top-1">
+                                {filteredArtists.map((artist) => {
+                                    const isActive = activeArtistsKeys.includes(artist.key);
+                                    return (
+                                        <button
+                                            key={artist.key}
+                                            onClick={() => {
+                                                handleArtistToggle(artist.key);
+                                                setArtistSearch('');
+                                            }}
+                                            className={cn(
+                                                "px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-2",
+                                                isActive
+                                                    ? "bg-ios-green text-white"
+                                                    : "bg-black/5 dark:bg-white/10 text-gray-700 dark:text-gray-300 hover:bg-black/10"
+                                            )}
+                                        >
+                                            {artist.label}
+                                            {isActive ? <X size={12} /> : <Plus size={12} />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        {/* Tag/Pill display of active artists */}
+                        {activeArtistsKeys.length > 0 && (
+                            <div className="flex flex-wrap gap-2 pt-2">
+                                {activeArtistsKeys.map(key => {
+                                    const artist = allArtists.find(a => a.key === key);
+                                    return (
+                                        <div
+                                            key={key}
+                                            className="inline-flex items-center gap-1.5 pl-3 pr-2 py-1.5 bg-ios-blue/10 text-ios-blue rounded-full text-[11px] font-black uppercase tracking-wider shadow-sm border border-ios-blue/10"
+                                        >
+                                            {artist?.label || key}
+                                            <button
+                                                onClick={() => handleArtistToggle(key)}
+                                                className="p-0.5 hover:bg-ios-blue/20 rounded-full transition-colors"
+                                            >
+                                                <X size={12} strokeWidth={3} />
+                                            </button>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
                     </div>
 
                     <div className="h-[1px] bg-black/5 dark:bg-white/5 w-full" />

@@ -4,6 +4,7 @@ import { auth } from "@/auth";
 import dbConnect from "@/lib/db";
 import Notification from "@/models/Notification";
 import Reminder from "@/models/Reminder";
+import User from "@/models/User";
 import { revalidatePath } from "next/cache";
 
 /**
@@ -71,6 +72,27 @@ export async function createNotification(userId: string, type: string, data: any
     }
 }
 
+export async function notifyAdmins(type: string, data: any) {
+    try {
+        await dbConnect();
+        const admins = await User.find({ role: 'admin' }).select('_id').lean();
+
+        if (admins.length === 0) return;
+
+        const notifications = admins.map(admin => ({
+            userId: admin._id,
+            type,
+            data,
+            read: false
+        }));
+
+        await Notification.insertMany(notifications);
+        revalidatePath('/dashboard');
+    } catch (error) {
+        console.error("Error notifying admins:", error);
+    }
+}
+
 // --- PUBLIC ACTIONS ---
 
 export async function getUnreadNotificationsCount() {
@@ -80,7 +102,7 @@ export async function getUnreadNotificationsCount() {
         if (!userId) return 0;
 
         await dbConnect();
-        
+
         // Lazy processing of maintenance reminders
         await checkDueReminders(userId);
 
@@ -121,7 +143,7 @@ export async function markAsRead(notificationId: string) {
 
         await dbConnect();
         await Notification.findOneAndUpdate(
-            { _id: notificationId, userId }, 
+            { _id: notificationId, userId },
             { read: true }
         );
 

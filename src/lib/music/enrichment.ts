@@ -17,7 +17,8 @@ import CatalogMetadata from '@/models/CatalogMetadata';
 import MusicAlbum from '@/models/MusicAlbum';
 import InstrumentArtist from '@/models/InstrumentArtist';
 import InstrumentAlbum from '@/models/InstrumentAlbum';
-import { searchDiscogs, getDiscogsRelease } from './discogs';
+import { searchDiscogs, getDiscogsRelease, getDiscogsMaster } from './discogs';
+import { notifyAdmins } from '@/actions/notifications';
 
 interface AIArtist {
     name: string;
@@ -74,6 +75,14 @@ export async function ensureArtistsExist(artists: AIArtist[], userId?: string): 
             });
 
             console.log(`✅ Created artist: ${artist.name} (${sanitizedKey})`);
+
+            // Notify admins about new metadata entry
+            await notifyAdmins('metadata_alert', {
+                category: 'artist',
+                key: sanitizedKey,
+                label: artist.name,
+                message: `Nuevo artista detectado por AI: ${artist.name}. Requiere revisión y logo.`
+            });
         }
 
         artistMap.set(sanitizedKey, existing._id.toString());
@@ -113,35 +122,12 @@ export async function ensureAlbumsExist(albums: AIAlbum[], userId?: string): Pro
                 const discogsResults = await searchDiscogs(searchQuery);
 
                 if (discogsResults && discogsResults.length > 0) {
-                    // Take first result (most relevant)
+                    // Use getOrCreateAlbum to handle hierarchy (DRY)
                     const firstResult = discogsResults[0];
-                    const release = await getDiscogsRelease(firstResult.id.toString());
+                    const importResult = await getOrCreateAlbum('discogs', firstResult.id.toString(), userId);
 
-                    if (release) {
-                        // Filter spacer.gif
-                        const coverImage = release.images?.[0]?.resource_url || release.thumb;
-                        const validCoverImage = coverImage && !coverImage.includes('spacer.gif') ? coverImage : null;
-
-                        existing = await MusicAlbum.create({
-                            artist: release.artists?.map((a: any) => a.name).join(', ') || album.artist,
-                            title: release.title || album.title,
-                            year: release.year || album.year,
-                            label: release.labels?.[0]?.name,
-                            genres: release.genres,
-                            styles: release.styles,
-                            format: release.formats?.[0]?.name,
-                            discogsId: firstResult.id.toString(),
-                            coverImage: validCoverImage,
-                            tracklist: release.tracklist?.map((t: any) => ({
-                                position: t.position,
-                                title: t.title,
-                                duration: t.duration
-                            })),
-                            description: release.notes,
-                            createdBy: userId
-                        });
-
-                        console.log(`✅ Created album from Discogs: ${album.title} by ${album.artist}`);
+                    if (importResult.success && importResult.album) {
+                        existing = importResult.album;
                     }
                 } else {
                     // Discogs not found, create minimal entry
@@ -305,76 +291,106 @@ export async function getOrCreateAlbum(
     try {
         let globalAlbum: any = null;
 
-        // 1. Check if album already exists in cache
+        // 1. Check if specific release already exists in cache
         if (source === 'discogs') {
             globalAlbum = await MusicAlbum.findOne({ discogsId: externalId });
         } else if (source === 'spotify') {
             globalAlbum = await MusicAlbum.findOne({ spotifyId: externalId });
         }
 
-        // 2. If not in cache, fetch from API and save
-        if (!globalAlbum) {
-            let albumData: any = null;
-
-            if (source === 'discogs') {
-                const release = await getDiscogsRelease(externalId);
-                if (!release) return { success: false, error: 'Release not found on Discogs' };
-
-                // Filter out spacer.gif
-                const coverImage = release.images?.[0]?.resource_url || release.thumb;
-                const validCoverImage = coverImage && !coverImage.includes('spacer.gif') ? coverImage : null;
-
-                albumData = {
-                    artist: release.artists?.map((a: any) => a.name).join(', ') || 'Unknown Artist',
-                    title: release.title,
-                    year: release.year,
-                    label: release.labels?.[0]?.name,
-                    genres: release.genres,
-                    styles: release.styles,
-                    format: release.formats?.[0]?.name,
-                    discogsId: externalId,
-                    coverImage: validCoverImage,
-                    tracklist: release.tracklist?.map((t: any) => ({
-                        position: t.position,
-                        title: t.title,
-                        duration: t.duration
-                    })),
-                    description: release.notes,
-                    createdBy: userId
-                };
-            } else if (source === 'spotify') {
-                const album = await getSpotifyAlbum(externalId);
-                if (!album) return { success: false, error: 'Album not found on Spotify' };
-
-                albumData = {
-                    artist: album.artists?.map((a: any) => a.name).join(', '),
-                    title: album.name,
-                    year: album.release_date ? new Date(album.release_date).getFullYear() : null,
-                    label: album.label,
-                    genres: album.genres,
-                    spotifyId: externalId,
-                    coverImage: album.images?.[0]?.url,
-                    tracklist: album.tracks?.items?.map((t: any) => ({
-                        position: t.track_number.toString(),
-                        title: t.name,
-                        duration: Math.floor(t.duration_ms / 1000).toString()
-                    })),
-                    description: album.copyrights?.[0]?.text,
-                    createdBy: userId
-                };
-            }
-
-            if (albumData) {
-                globalAlbum = await MusicAlbum.create(albumData);
-                console.log(`✅ Created album in cache: ${albumData.title} by ${albumData.artist}`);
-            }
-        } else {
+        if (globalAlbum) {
             console.log(`✅ Album found in cache: ${globalAlbum.title}`);
+            return { success: true, album: globalAlbum };
         }
 
-        if (!globalAlbum) return { success: false, error: 'Failed to find or create album' };
+        // 2. Fetch and Create
+        let albumData: any = null;
+        let parentId: string | undefined = undefined;
 
-        return { success: true, album: globalAlbum };
+        if (source === 'discogs') {
+            const release = await getDiscogsRelease(externalId);
+            if (!release) return { success: false, error: 'Release not found on Discogs' };
+
+            // Handle Master Release hierarchy
+            if (release.master_id) {
+                const masterDiscogsId = release.master_id.toString();
+                let masterRecord = await MusicAlbum.findOne({ masterId: masterDiscogsId, isMaster: true });
+
+                if (!masterRecord) {
+                    const masterData = await getDiscogsMaster(masterDiscogsId);
+                    if (masterData) {
+                        masterRecord = await MusicAlbum.create({
+                            artist: masterData.artists?.map((a: any) => a.name).join(', ') || release.artists?.[0]?.name,
+                            title: masterData.title,
+                            year: masterData.year,
+                            genres: masterData.genres,
+                            styles: masterData.styles,
+                            masterId: masterDiscogsId,
+                            isMaster: true,
+                            coverImage: masterData.images?.[0]?.resource_url || release.thumb,
+                            description: masterData.notes,
+                            createdBy: userId
+                        });
+                        console.log(`✅ Created Master Release: ${masterData.title}`);
+                    }
+                }
+                if (masterRecord) {
+                    parentId = masterRecord._id.toString();
+                }
+            }
+
+            const coverImage = release.images?.[0]?.resource_url || release.thumb;
+            const validCoverImage = coverImage && !coverImage.includes('spacer.gif') ? coverImage : null;
+
+            albumData = {
+                artist: release.artists?.map((a: any) => a.name).join(', ') || 'Unknown Artist',
+                title: release.title,
+                year: release.year,
+                label: release.labels?.[0]?.name,
+                genres: release.genres,
+                styles: release.styles,
+                format: release.formats?.[0]?.name,
+                discogsId: externalId,
+                masterId: release.master_id?.toString(),
+                parentId,
+                coverImage: validCoverImage,
+                tracklist: release.tracklist?.map((t: any) => ({
+                    position: t.position,
+                    title: t.title,
+                    duration: t.duration
+                })),
+                description: release.notes,
+                createdBy: userId
+            };
+        } else if (source === 'spotify') {
+            const album = await getSpotifyAlbum(externalId);
+            if (!album) return { success: false, error: 'Album not found on Spotify' };
+
+            albumData = {
+                artist: album.artists?.map((a: any) => a.name).join(', '),
+                title: album.name,
+                year: album.release_date ? new Date(album.release_date).getFullYear() : null,
+                label: album.label,
+                genres: album.genres,
+                spotifyId: externalId,
+                coverImage: album.images?.[0]?.url,
+                tracklist: album.tracks?.items?.map((t: any) => ({
+                    position: t.track_number.toString(),
+                    title: t.name,
+                    duration: Math.floor(t.duration_ms / 1000).toString()
+                })),
+                description: album.copyrights?.[0]?.text,
+                createdBy: userId
+            };
+        }
+
+        if (albumData) {
+            globalAlbum = await MusicAlbum.create(albumData);
+            console.log(`✅ Created album Edition: ${albumData.title} by ${albumData.artist}`);
+            return { success: true, album: globalAlbum };
+        }
+
+        return { success: false, error: 'Failed to find or create album' };
     } catch (error: any) {
         console.error('❌ Error in getOrCreateAlbum:', error);
         return { success: false, error: error.message };

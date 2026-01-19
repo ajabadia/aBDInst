@@ -59,3 +59,48 @@ export async function getDiscogsRelease(id: string) {
         return null;
     }
 }
+
+export async function getDiscogsMaster(id: string) {
+    const token = process.env.DISCOGS_TOKEN;
+    if (!token) return null;
+
+    const url = `${DISCOGS_BASE_URL}/masters/${id}?token=${token}`;
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'InstrumentCollectorApp/0.1'
+            }
+        });
+
+        if (!response.ok) return null;
+
+        return await response.json();
+    } catch (error) {
+        console.error('Error fetching Discogs master:', error);
+        return null;
+    }
+}
+
+export async function getDiscogsMasterVersions(masterId: string) {
+    const token = process.env.DISCOGS_TOKEN;
+    if (!token) return [];
+
+    const url = `${DISCOGS_BASE_URL}/masters/${masterId}/versions?token=${token}`;
+
+    try {
+        const response = await fetch(url, {
+            headers: {
+                'User-Agent': 'InstrumentCollectorApp/0.1'
+            }
+        });
+
+        if (!response.ok) return [];
+
+        const data = await response.json();
+        return data.versions || [];
+    } catch (error) {
+        console.error('Error fetching Discogs master versions:', error);
+        return [];
+    }
+}

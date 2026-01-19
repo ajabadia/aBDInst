@@ -54,6 +54,9 @@
 - [x] **`UserMusicCollection`**: User-specific music collection with condition, notes, etc.
 - [x] **API Integration**: Discogs and Spotify for album import.
 - [x] **Smart Caching**: Reuse albums across users to reduce API calls.
+- [ ] **Master Release Architecture**: Implement "Supra-Albums" (similar to Discogs Master Release) to group multiple editions/versions.
+  - [ ] **Data Inheritance**: Musical context (instruments) added to a Master Release automatically propagates to all its versions.
+  - [ ] **UI Unification**: Display global instrument associations even when viewing a specific local edition (Vinyl vs CD).
 
 ### 2. Musical Relationships System 🚧 IN PROGRESS
 *Cross-linking instruments, artists, and albums.*
@@ -63,8 +66,16 @@
 - [ ] **Admin Panel**: CRUD for Artists (similar to metadata management).
 - [ ] **Fix**: Restore access card to `/dashboard/admin/metadata` in admin dashboard.
 
+- [ ] **Metadata Multi-Image Support**: Support multiple images/logos for ALL metadata types (Brands, Artists, Types, Decades).
+  - [ ] **Primary Selector**: Admin/Editor UI to select the "Active" or "Primary" image/logo.
+  - [ ] **Batch Import**: Pull all available images from Discogs/External APIs.
+- [ ] **Catalog Analytics (Admin)**: Count instruments by ALL metadata categories (Brand, Type, Artist, and Decade).
+  - [ ] **Stats Dashboard**: Visualize distribution and density of the collection.
+  - [ ] **Dynamic Counts**: Show counts in filters and administrative lists.
+
 #### Phase 2: N-M Relationships (Pivot Tables)
 - [ ] **`InstrumentArtist`**: Link instruments to artists (e.g., "Kraftwerk used this Minimoog").
+  - [ ] **Artist Metadata Enrichment**: Automatically fetch artist logos/images from Discogs API when creating relationships.
   - Fields: `instrumentId`, `artistId`, `notes`, `yearsUsed`, `isVerified`.
 - [ ] **`InstrumentAlbum`**: Link instruments to albums (e.g., "This bass on 'Dark Side of the Moon'").
   - Fields: `instrumentId`, `albumId`, `notes`, `tracks[]`, `isVerified`.
@@ -74,6 +85,8 @@
 #### Phase 3: UI for Associations
 - [ ] **Instrument Detail Page**: Section "Used by Artists/Albums" with add/remove UI.
 - [ ] **Album Detail Page**: Section "Instruments Used" with add/remove UI.
+  - [ ] **AI Detection**: Use AI to detect instruments used in an album (structured JSON response).
+  - [ ] **Relationship Propagation**: Automatically link identified instruments to the album's artists.
 - [ ] **Artist Detail Page**: Show instruments and albums associated.
 - [ ] **Catalog Filters**: "Show instruments used by Kraftwerk", "Albums with Minimoog".
 

@@ -3,7 +3,8 @@ import { redirect } from 'next/navigation';
 import { getCatalogMetadata } from '@/actions/metadata';
 import MetadataManager from '@/components/admin/MetadataManager';
 
-export default async function MetadataPage() {
+export default async function MetadataPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
+    const { tab } = await searchParams;
     const session = await auth();
     const role = session?.user?.role;
 
@@ -11,8 +12,10 @@ export default async function MetadataPage() {
         redirect('/dashboard');
     }
 
-    // Fetch initial data (default to 'brand' tab)
-    const initialData = await getCatalogMetadata('brand');
+    // Fetch initial data based on tab (default to 'brand')
+    const validTabs = ['brand', 'type', 'decade', 'artist'];
+    const activeTab = (tab && validTabs.includes(tab)) ? tab : 'brand';
+    const initialData = await getCatalogMetadata(activeTab);
 
     return <MetadataManager initialData={initialData} />;
 }

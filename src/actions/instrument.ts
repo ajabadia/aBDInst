@@ -296,7 +296,7 @@ export async function addToCollection(instrumentId: string) {
 export async function getInstruments(
     query?: string,
     category?: string | null,
-    sortBy: 'brand' | 'model' | 'year' | 'type' = 'brand',
+    sortBy: 'brand' | 'model' | 'year' | 'type' | 'artist' = 'brand',
     sortOrder: 'asc' | 'desc' = 'asc',
     brand?: string | null
 ) {
@@ -356,6 +356,10 @@ export async function getInstruments(
             case 'year':
                 // Sort by the first year in the array
                 sort = { 'years.0': dir, brand: 1 };
+                break;
+            case 'artist':
+                // Sort by the first artist in the array
+                sort = { 'artists.0': dir, brand: 1 };
                 break;
             default:
                 sort = { brand: 1, model: 1 };
@@ -479,6 +483,8 @@ export async function updateInstrument(id: string, data: FormData) {
             excludedImages: data.get('excludedImages') ? JSON.parse(data.get('excludedImages') as string) : [],
             isBaseModel: data.get('isBaseModel') === 'true',
             status: data.get('status'),
+            artists: data.get('artists') ? JSON.parse(data.get('artists') as string) : undefined,
+            albums: data.get('albums') ? JSON.parse(data.get('albums') as string) : undefined,
         };
 
         // Remove undefined fields
@@ -496,6 +502,27 @@ export async function updateInstrument(id: string, data: FormData) {
             { $set: validatedData.data },
             { runValidators: true, new: true }
         );
+
+        // Music Enrichment (Secondary flow)
+        if (rawUpdateData.artists || rawUpdateData.albums) {
+            try {
+                const { enrichInstrumentWithMusic } = await import('@/lib/music/enrichment');
+                const enrichmentResult = await enrichInstrumentWithMusic(
+                    id,
+                    {
+                        artists: rawUpdateData.artists,
+                        albums: rawUpdateData.albums
+                    },
+                    session.user.id
+                );
+
+                if (enrichmentResult.success) {
+                    console.log(`✅ Music Enrichment (Update): ${enrichmentResult.stats.artistsCreated} artists, ${enrichmentResult.stats.albumsCreated} albums, ${enrichmentResult.stats.relationsCreated} relationships`);
+                }
+            } catch (enrichmentError) {
+                console.error('⚠️ Music enrichment during update failed (non-critical):', enrichmentError);
+            }
+        }
 
         revalidatePath('/instruments');
         revalidatePath(`/instruments/${id}`);
