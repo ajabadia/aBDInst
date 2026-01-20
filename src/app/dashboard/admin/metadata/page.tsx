@@ -16,6 +16,7 @@ export default async function MetadataPage({ searchParams }: { searchParams: Pro
     const validTabs = ['brand', 'type', 'decade', 'artist'];
     const activeTab = (tab && validTabs.includes(tab)) ? tab : 'brand';
     const initialData = await getCatalogMetadata(activeTab);
+    const serializedData = JSON.parse(JSON.stringify(initialData));
 
-    return <MetadataManager initialData={initialData} />;
+    return <MetadataManager initialData={serializedData} />;
 }

@@ -7,8 +7,21 @@ import { revalidatePath } from 'next/cache';
 
 // Helper to sanitize Mongoose documents
 function sanitize(doc: any) {
-    const { _id, ...rest } = doc.toObject ? doc.toObject() : doc;
-    return { id: _id.toString(), ...rest };
+    if (!doc) return null;
+
+    // First, convert to plain object if it's a Mongoose document
+    let obj = doc.toObject ? doc.toObject({
+        getters: true,
+        virtuals: false,
+        versionKey: false,
+        transform: (doc: any, ret: any) => {
+            if (ret._id) ret.id = ret._id.toString();
+            return ret;
+        }
+    }) : doc;
+
+    // Force stringify and parse to destroy any hidden non-plain state (buffers, Dates, toJSON methods)
+    return JSON.parse(JSON.stringify(obj));
 }
 
 export async function getCatalogMetadata(type?: string) {

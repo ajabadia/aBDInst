@@ -101,7 +101,8 @@ export async function getSystemConfig(key: string) {
         const config = await SystemConfig.findOne({ key });
         return config ? config.value : null;
     } catch (error) {
-        console.error(`Error getting config ${key}:`, error);
+        // Suppress DB errors during build/static generation to allow default values
+        console.warn(`[Warning] Error getting config ${key} (likely DB connection issue):`, error instanceof Error ? error.message : error);
         return null;
     }
 }

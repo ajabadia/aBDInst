@@ -21,7 +21,7 @@ interface MetadataItem {
     images?: Array<{
         url: string;
         isPrimary: boolean;
-        source?: string;
+        source?: 'manual' | 'discogs' | 'spotify';
         externalId?: string;
     }>;
 }
@@ -323,7 +323,7 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
                                     <DragDropUploader
                                         value={undefined} // Always empty for "Add to Gallery"
                                         onUpload={(url) => {
-                                            const newImage = { url, isPrimary: !editingItem.images?.length, source: 'manual' };
+                                            const newImage: NonNullable<MetadataItem['images']>[number] = { url, isPrimary: !editingItem.images?.length, source: 'manual' };
                                             const newImages = [...(editingItem.images || []), newImage];
                                             setEditingItem({
                                                 ...editingItem,

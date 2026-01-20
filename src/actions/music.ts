@@ -135,3 +135,28 @@ export async function getUserMusicCollection() {
 
     return JSON.parse(JSON.stringify(collection));
 }
+
+// Artist Search & Import Helpers
+export async function searchArtistExternal(query: string) {
+    'use server';
+    try {
+        const { searchDiscogsArtists } = await import('@/lib/music/discogs');
+        const results = await searchDiscogsArtists(query);
+        return { success: true, data: results };
+    } catch (error: any) {
+        console.error('searchArtistExternal error:', error);
+        return { success: false, error: error.message };
+    }
+}
+
+export async function fetchArtistExternal(id: string) {
+    'use server';
+    try {
+        const { getDiscogsArtist } = await import('@/lib/music/discogs');
+        const data = await getDiscogsArtist(id);
+        return { success: true, data };
+    } catch (error: any) {
+        console.error('fetchArtistExternal error:', error);
+        return { success: false, error: error.message };
+    }
+}

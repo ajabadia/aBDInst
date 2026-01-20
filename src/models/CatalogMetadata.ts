@@ -1,6 +1,7 @@
 import { Schema, model, models } from 'mongoose';
 
 export interface ICatalogMetadata {
+    _id: any;
     type: 'brand' | 'decade' | 'type' | 'artist';
     key: string;
     label: string;

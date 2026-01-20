@@ -12,6 +12,7 @@ import { Button } from './ui/Button';
 import { Save, X, Star, StarOff, Globe, Link as LinkIcon, FileText, Plus } from 'lucide-react';
 import ResourceSection from './resources/ResourceSection';
 import MagicImporter from './MagicImporter';
+import MusicalContextSection from './instrument/MusicalContextSection';
 
 
 
@@ -765,6 +766,28 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                                 </div>
                             )}
                         </div>
+                    </div>
+                </Tab>
+
+                <Tab label="Contexto Musical">
+                    <div className="pt-4">
+                        {instrumentId ? (
+                            <MusicalContextSection
+                                artists={artists}
+                                albums={albums}
+                                availableArtists={[]} // Not used by unified manager but required by types
+                                canEdit={true}
+                                forceEditMode={true}
+                                instrumentId={instrumentId}
+                            />
+                        ) : (
+                            <div className="p-6 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+                                <p className="text-gray-500">
+                                    Para asociar Artistas y Álbumes, primero debes
+                                    <span className="font-bold"> guardar el instrumento</span>.
+                                </p>
+                            </div>
+                        )}
                     </div>
                 </Tab>
 

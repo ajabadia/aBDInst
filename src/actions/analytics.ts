@@ -122,7 +122,7 @@ export async function getMarketTrends(query: string) {
                 price: l.price,
                 currency: l.currency,
                 title: l.title,
-                date: l.date,
+                date: l.date.toISOString(),
                 source: l.source,
                 url: l.url,
                 condition: l.condition,

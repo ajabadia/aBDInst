@@ -1,11 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
+import { useRouter } from 'next/navigation';
 import { Music2, Users, Disc3, Edit, Save, X, Plus, Search, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '@/components/ui/Button';
 import { toast } from 'sonner';
 import { removeArtistRelation, removeAlbumRelation } from '@/actions/instrument-relationships';
+import AlbumCard from '@/components/instrument/AlbumCard';
+import ArtistPill from '@/components/instrument/ArtistPill';
+
+// Lazy load the new manager to avoid circular deps if any
+const UnifiedAssociationManager = dynamic(() => import('@/components/shared/UnifiedAssociationManager'), {
+    loading: () => <div className="bg-white p-6 rounded-2xl text-center"><Loader2 className="animate-spin mx-auto text-ios-blue" /></div>
+});
 
 interface Artist {
     _id: string;
@@ -31,9 +40,10 @@ interface Album {
 interface MusicalContextSectionProps {
     artists: Artist[];
     albums: Album[];
-    availableArtists: any[]; // New prop
+    availableArtists: any[];
     canEdit: boolean;
     instrumentId: string;
+    forceEditMode?: boolean; // New prop for Editor integration
 }
 
 export default function MusicalContextSection({
@@ -41,13 +51,18 @@ export default function MusicalContextSection({
     albums: initialAlbums,
     availableArtists,
     canEdit,
-    instrumentId
+    instrumentId,
+    forceEditMode = false
 }: MusicalContextSectionProps) {
-    const [isEditing, setIsEditing] = useState(false);
+    const [isEditing, setIsEditing] = useState(forceEditMode);
     const [artists, setArtists] = useState(initialArtists);
     const [albums, setAlbums] = useState(initialAlbums);
     const [isSaving, setIsSaving] = useState(false);
-    const [showArtistSelector, setShowArtistSelector] = useState(false);
+    const router = useRouter();
+
+    // Manager State
+    const [showManager, setShowManager] = useState(false);
+    const [managerType, setManagerType] = useState<'artist' | 'album'>('artist');
 
     const hasContent = artists.length > 0 || albums.length > 0;
 
@@ -76,7 +91,7 @@ export default function MusicalContextSection({
     };
 
     if (!hasContent && !canEdit) {
-        return null; // Don't show section if no content and user can't edit
+        return null;
     }
 
     return (
@@ -101,7 +116,7 @@ export default function MusicalContextSection({
                     </div>
                 </div>
 
-                {canEdit && (
+                {canEdit && !forceEditMode && (
                     <div className="flex gap-2">
                         {isEditing && (
                             <Button
@@ -138,7 +153,10 @@ export default function MusicalContextSection({
                         <Button
                             variant="primary"
                             size="sm"
-                            onClick={() => setIsEditing(true)}
+                            onClick={() => {
+                                setManagerType('artist');
+                                setShowManager(true);
+                            }}
                         >
                             Añadir Artistas o Álbumes
                         </Button>
@@ -149,70 +167,37 @@ export default function MusicalContextSection({
                     {/* Artists Section */}
                     <div>
                         <div className="flex items-center justify-between mb-4">
-                            <div className="flex items-center gap-2">
-                                <Users className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                                <h4 className="font-semibold text-sm text-gray-700 dark:text-gray-300 text-uppercase tracking-wider">
-                                    ARTISTAS {artists.length > 0 && `(${artists.length})`}
-                                </h4>
-                            </div>
-                            {isEditing && (
-                                <button
-                                    onClick={() => setShowArtistSelector(!showArtistSelector)}
-                                    className="text-xs font-bold text-ios-blue hover:underline flex items-center gap-1"
-                                >
-                                    {showArtistSelector ? <X size={12} /> : <Plus size={12} />}
-                                    {showArtistSelector ? 'Cerrar' : 'Añadir Artista'}
-                                </button>
-                            )}
                         </div>
-
-                        {showArtistSelector && (
-                            <div className="mb-4 p-4 bg-white/50 dark:bg-black/20 rounded-2xl border border-ios-blue/10">
-                                <p className="text-xs font-bold text-gray-400 mb-3 uppercase tracking-widest">Seleccionar Artista del Catálogo</p>
-                                <div className="flex flex-wrap gap-2">
-                                    {availableArtists
-                                        .filter(aa => !artists.some(a => a.key === aa.key))
-                                        .map(aa => (
-                                            <button
-                                                key={aa.id}
-                                                onClick={async () => {
-                                                    setIsSaving(true);
-                                                    const { addArtistRelation } = await import('@/actions/instrument-relationships');
-                                                    const res = await addArtistRelation(instrumentId, aa.key);
-                                                    if (res.success) {
-                                                        // Refreshing would be better, but let's optimistic update
-                                                        window.location.reload();
-                                                    } else {
-                                                        toast.error('Error al vincular');
-                                                    }
-                                                    setIsSaving(false);
-                                                }}
-                                                className="px-3 py-1.5 rounded-full bg-ios-blue/5 border border-ios-blue/20 hover:bg-ios-blue/10 text-xs font-semibold text-ios-blue transition-all"
-                                            >
-                                                {aa.label}
-                                            </button>
-                                        ))}
-                                </div>
-                            </div>
-                        )}
-
-                        {artists.length > 0 ? (
-                            <div className="flex flex-wrap gap-3">
-                                <AnimatePresence mode="popLayout">
-                                    {artists.map((artist) => (
-                                        <ArtistPill
-                                            key={artist._id}
-                                            artist={artist}
-                                            isEditing={isEditing}
-                                            onRemove={() => handleRemoveArtist(artist._id)}
-                                        />
-                                    ))}
-                                </AnimatePresence>
-                            </div>
-                        ) : isEditing && (
-                            <p className="text-xs text-gray-400 italic">No hay artistas vinculados</p>
+                        {isEditing && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setManagerType('artist');
+                                    setShowManager(true);
+                                }}
+                                className="text-xs font-bold text-ios-blue hover:underline flex items-center gap-1"
+                            >
+                                <Plus size={12} /> Añadir Artista
+                            </button>
                         )}
                     </div>
+
+                    {artists.length > 0 ? (
+                        <div className="flex flex-wrap gap-3">
+                            <AnimatePresence mode="popLayout">
+                                {artists.map((artist) => (
+                                    <ArtistPill
+                                        key={artist._id}
+                                        artist={artist}
+                                        isEditing={isEditing}
+                                        onRemove={() => handleRemoveArtist(artist._id)}
+                                    />
+                                ))}
+                            </AnimatePresence>
+                        </div>
+                    ) : isEditing && (
+                        <p className="text-xs text-gray-400 italic">No hay artistas vinculados</p>
+                    )}
 
                     {/* Albums Section */}
                     <div>
@@ -224,7 +209,14 @@ export default function MusicalContextSection({
                                 </h4>
                             </div>
                             {isEditing && (
-                                <button className="text-xs font-bold text-ios-blue hover:underline flex items-center gap-1">
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setManagerType('album');
+                                        setShowManager(true);
+                                    }}
+                                    className="text-xs font-bold text-ios-blue hover:underline flex items-center gap-1"
+                                >
                                     <Plus size={12} /> Añadir Álbum
                                 </button>
                             )}
@@ -249,137 +241,49 @@ export default function MusicalContextSection({
                     </div>
                 </div>
             )}
-        </motion.div>
-    );
-}
 
-// Artist Pill Component
-function ArtistPill({
-    artist,
-    isEditing,
-    onRemove
-}: {
-    artist: Artist;
-    isEditing: boolean;
-    onRemove: () => void;
-}) {
-    return (
-        <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="group relative"
-        >
-            <div className="flex items-center gap-3 px-4 py-2.5 bg-white dark:bg-gray-800 rounded-full border border-purple-100 dark:border-purple-900/30 hover:border-purple-300 dark:hover:border-purple-700 transition-all cursor-pointer shadow-sm hover:shadow-md">
-                <div className="w-6 h-6 rounded-full bg-purple-100 dark:bg-purple-900/40 flex items-center justify-center overflow-hidden">
-                    {artist.assetUrl ? (
-                        <img
-                            src={artist.assetUrl}
-                            alt={artist.name}
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <Users className="w-3.5 h-3.5 text-purple-600 dark:text-purple-400" />
-                    )}
-                </div>
-                <div className="flex flex-col">
-                    <span className="font-bold text-sm text-gray-900 dark:text-white leading-tight">
-                        {artist.name}
-                    </span>
-                    {artist.yearsUsed && (
-                        <span className="text-[10px] text-gray-500 dark:text-gray-400 font-medium">
-                            {artist.yearsUsed}
-                        </span>
-                    )}
-                </div>
-
-                {isEditing && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onRemove();
-                        }}
-                        className="ml-1 -mr-1 p-1 rounded-full text-gray-400 hover:text-red-500 hover:bg-red-50 transition-all"
-                    >
-                        <X className="w-3.5 h-3.5" />
-                    </button>
-                )}
-            </div>
-        </motion.div>
-    );
-}
-
-// Album Card Component
-function AlbumCard({
-    album,
-    isEditing,
-    onRemove
-}: {
-    album: Album;
-    isEditing: boolean;
-    onRemove: () => void;
-}) {
-    return (
-        <motion.div
-            layout
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.8 }}
-            className="group relative"
-        >
-            <div className="apple-card p-3 bg-white dark:bg-gray-800 hover:shadow-xl transition-all h-full flex flex-col items-center text-center border-purple-50 dark:border-purple-900/10">
-                {isEditing && (
-                    <button
-                        onClick={(e) => {
-                            e.stopPropagation();
-                            onRemove();
-                        }}
-                        className="absolute -top-1 -right-1 z-20 w-6 h-6 rounded-full bg-red-500 text-white flex items-center justify-center hover:bg-red-600 transition-colors shadow-lg border-2 border-white dark:border-gray-800"
-                    >
-                        <X className="w-3.5 h-3.5" />
-                    </button>
-                )}
-
-                <div className="w-full aspect-square bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-xl mb-3 overflow-hidden shadow-inner group-hover:scale-[1.02] transition-transform duration-300">
-                    {album.coverImage ? (
-                        <img
-                            src={album.coverImage}
-                            alt={album.title}
-                            className="w-full h-full object-cover"
-                        />
-                    ) : (
-                        <div className="w-full h-full flex items-center justify-center grayscale opacity-30">
-                            <Disc3 className="w-10 h-10 text-gray-400" />
-                        </div>
-                    )}
-                </div>
-
-                <div className="w-full">
-                    <h5 className="font-bold text-sm text-gray-900 dark:text-white truncate mb-0.5" title={album.title}>
-                        {album.title}
-                    </h5>
-                    <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate font-semibold">
-                        {album.artist}
-                    </p>
-                    <div className="flex items-center gap-1.5 justify-center mt-1.5">
-                        {album.isMaster ? (
-                            <span className="text-[9px] font-black bg-ios-blue/10 text-ios-blue px-1.5 py-0.5 rounded uppercase tracking-wider border border-ios-blue/10">
-                                Master
-                            </span>
-                        ) : album.format && (
-                            <span className="text-[9px] font-bold bg-black/5 dark:bg-white/5 text-gray-400 px-1.5 py-0.5 rounded uppercase tracking-tight">
-                                {album.format}
-                            </span>
-                        )}
-                        {album.year && (
-                            <span className="text-[9px] text-gray-400 dark:text-gray-500 font-medium">
-                                {album.year}
-                            </span>
-                        )}
+            {/* Unified Association Manager Modal */}
+            <AnimatePresence>
+                {showManager && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="w-full max-w-lg"
+                        >
+                            <UnifiedAssociationManager
+                                entityType={managerType}
+                                onCancel={() => setShowManager(false)}
+                                excludeIds={
+                                    managerType === 'artist'
+                                        ? artists.map(a => a.key)
+                                        : albums.map(a => a._id) // Use _id for albums as they are documents
+                                }
+                                onSelect={async (item: any) => {
+                                    setShowManager(false);
+                                    setIsSaving(true);
+                                    if (managerType === 'artist') {
+                                        const { addArtistRelation } = await import('@/actions/instrument-relationships');
+                                        const res = await addArtistRelation(instrumentId, item.key);
+                                        if (res.success) router.refresh();
+                                        else toast.error('Error al vincular artista');
+                                    } else {
+                                        const { addAlbumRelation } = await import('@/actions/instrument-relationships');
+                                        const res = await addAlbumRelation(
+                                            instrumentId,
+                                            item.albumId?._id || item._id // Handle both populated and direct objects
+                                        );
+                                        if (res.success) router.refresh();
+                                        else toast.error('Error al vincular álbum');
+                                    }
+                                    setIsSaving(false);
+                                }}
+                            />
+                        </motion.div>
                     </div>
-                </div>
-            </div>
+                )}
+            </AnimatePresence>
         </motion.div>
     );
 }

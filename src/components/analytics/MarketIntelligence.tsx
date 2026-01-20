@@ -28,9 +28,9 @@ export default function MarketIntelligence() {
         const res = await getMarketTrends(query);
 
         if (res.success) {
-            setData(res.data);
+            setData(res.data || []);
             setSearchedTerm(query);
-            if (res.data.length === 0) {
+            if (res.data?.length === 0) {
                 setError('No se encontraron datos de mercado recientes para esta búsqueda.');
             }
         } else {
@@ -166,8 +166,8 @@ export default function MarketIntelligence() {
                                     </div>
                                     <div className="flex gap-3 shrink-0">
                                         <div className={`px-4 py-2 rounded-xl border flex flex-col items-center justify-center min-w-[100px] ${insight.sentiment === 'bullish' ? 'bg-green-500/10 border-green-500/20 text-green-600' :
-                                                insight.sentiment === 'bearish' ? 'bg-red-500/10 border-red-500/20 text-red-600' :
-                                                    'bg-gray-500/10 border-gray-500/20 text-gray-600'
+                                            insight.sentiment === 'bearish' ? 'bg-red-500/10 border-red-500/20 text-red-600' :
+                                                'bg-gray-500/10 border-gray-500/20 text-gray-600'
                                             }`}>
                                             {insight.sentiment === 'bullish' ? <TrendingUp size={20} className="mb-1" /> :
                                                 insight.sentiment === 'bearish' ? <TrendingDown size={20} className="mb-1" /> :
@@ -176,8 +176,8 @@ export default function MarketIntelligence() {
                                         </div>
 
                                         <div className={`px-4 py-2 rounded-xl border flex flex-col items-center justify-center min-w-[100px] ${insight.recommendation === 'buy' ? 'bg-blue-500/10 border-blue-500/20 text-blue-600' :
-                                                insight.recommendation === 'sell' ? 'bg-orange-500/10 border-orange-500/20 text-orange-600' :
-                                                    'bg-purple-500/10 border-purple-500/20 text-purple-600'
+                                            insight.recommendation === 'sell' ? 'bg-orange-500/10 border-orange-500/20 text-orange-600' :
+                                                'bg-purple-500/10 border-purple-500/20 text-purple-600'
                                             }`}>
                                             <span className="text-xl font-black mb-1 leading-none">
                                                 {insight.recommendation === 'buy' ? 'COMPRAR' :

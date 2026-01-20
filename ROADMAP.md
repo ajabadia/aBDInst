@@ -56,8 +56,8 @@
 - [x] **API Integration**: Discogs and Spotify for album import.
 - [x] **Smart Caching**: Reuse albums across users to reduce API calls.
 - [ ] **Master Release Architecture**: Implement "Supra-Albums" (similar to Discogs Master Release) to group multiple editions/versions.
-  - [ ] **Data Inheritance**: Musical context (instruments) added to a Master Release automatically propagates to all its versions.
-  - [ ] **UI Unification**: Display global instrument associations even when viewing a specific local edition (Vinyl vs CD).
+  - [x] **Data Inheritance**: Musical context (instruments) added to a Master Release automatically propagates to all its versions.
+  - [x] **UI Unification**: Display global instrument associations even when viewing a specific local edition (Vinyl vs CD).
 
 ### 2. Musical Relationships System 🚧 IN PROGRESS
 *Cross-linking instruments, artists, and albums.*
@@ -67,9 +67,9 @@
 - [ ] **Admin Panel**: CRUD for Artists (similar to metadata management).
 - [ ] **Fix**: Restore access card to `/dashboard/admin/metadata` in admin dashboard.
 
-- [ ] **Metadata Multi-Image Support**: Support multiple images/logos for ALL metadata types (Brands, Artists, Types, Decades).
-  - [ ] **Primary Selector**: Admin/Editor UI to select the "Active" or "Primary" image/logo.
-  - [ ] **Batch Import**: Pull all available images from Discogs/External APIs.
+- [x] **Metadata Multi-Image Support**: Support multiple images/logos for ALL metadata types (Brands, Artists, Types, Decades).
+  - [x] **Primary Selector**: Admin/Editor UI to select the "Active" or "Primary" image/logo.
+  - [x] **Batch Import**: Pull all available images from Discogs/External APIs.
 - [ ] **Catalog Analytics (Admin)**: Count instruments by ALL metadata categories (Brand, Type, Artist, and Decade).
   - [ ] **Stats Dashboard**: Visualize distribution and density of the collection.
   - [ ] **Dynamic Counts**: Show counts in filters and administrative lists.
@@ -87,14 +87,31 @@
 - [ ] **Instrument Detail Page**: Section "Used by Artists/Albums" with add/remove UI.
 - [ ] **Album Detail Page**: Section "Instruments Used" with add/remove UI.
   - [ ] **AI Detection**: Use AI to detect instruments used in an album (structured JSON response).
+  - [ ] **Ghost Instrument Creation**: If an detected instrument doesn't exist, auto-create a "Ghost" record with basic AI-extracted data (Brand, Model, Type). 
+    - **Status**: Must be set to `pending` so admins/editors can review and complete it later.
   - [ ] **Relationship Propagation**: Automatically link identified instruments to the album's artists.
-- [ ] **Artist Detail Page**: Show instruments and albums associated.
+
+#### Phase 3: Editor Integration (DRY Module)
+- [x] **Unified Association Manager**: Reusable component to search/add/create Artists and Albums.
+  - **Usage**: Integrate into `InstrumentEditor` (`/instruments/[id]/edit`).
+  - **Features**:
+    - Live Search (Spotify/Discogs/Local) ✅.
+    - Quick "Add New" modal (with Discogs auto-enrichment) ✅.
+    - "Ghost Mode" support for creation on the fly ✅.
+    - **Note**: Ensure artists/albums created here are properly registered in the main catalog (DRY philosophy) ✅.
+- [x] **Artist Detail Page**: Show instruments and albums associated ✅.
 - [ ] **Catalog Filters**: "Show instruments used by Kraftwerk", "Albums with Minimoog".
+- [x] **Bug Investigation**: Review "Musical Context" selector.
+  - **Issue**: Some existing artists in the catalog are not appearing in the search results.
+  - **Resolution**: Code logic is correct. Missing artists were due to missing database entries or incorrect `type`.
 
 #### Phase 4: Showroom Integration
 - [ ] **Polymorphic Showrooms**: Mix instruments AND albums in same showroom ✅ DONE.
 - [ ] **Relationship Display**: Show artist/album info in instrument slides.
 - [ ] **Smart Slides**: Auto-generate "Used in [Album] by [Artist]" slides.
+- [ ] **PDF Export**: Include Musical Context info in the generated Instrument Spec Sheet (PDF).
+- [ ] **Fix**: Musical Context modal closing unexpectedly in form.
+- [ ] **Fix**: Serialization error on Metadata Page (Buffer objects).
 
 ### 3. Advanced Features
 - [ ] **Verification System**: Mark relationships as "verified" (admin) vs "user-submitted".
@@ -123,6 +140,14 @@
     - `MediaLibrary`: A "Gallery" component to reuse previously uploaded images across the app.
     - `PrimarySelector`: Reusable logic/UI for selecting the primary image in any collection.
     - `ExternalEnricher`: Standardized logic to pull images from Discogs, Spotify, or Web Scrapers.
+
+- [ ] **Unified PDF Generation Module** (`@/lib/pdf/`)
+  - **Concept**: Centralize PDF creation using `jsPDF` or `React-PDF`.
+  - **Coverage**: Instrument Spec Sheets, Collection Reports, and QR Labels.
+  - **Features**:
+    - Reusable templates and components for printable documents.
+    - Unified styling (Fonts, Colors, Branding).
+    - Handle both client-side and server-side PDF generation.
 
 - [ ] **Form Validation Module** (`@/lib/validation/`)
   - Extract common validation patterns

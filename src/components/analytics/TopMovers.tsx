@@ -13,7 +13,7 @@ export default function TopMovers() {
             try {
                 const res = await getPortfolioMovers();
                 if (res.success) {
-                    setMovers(res.data);
+                    setMovers(res.data || []);
                 }
             } catch (e) {
                 console.error("Failed to load movers", e);

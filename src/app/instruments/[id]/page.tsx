@@ -87,28 +87,37 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
 
     // Fetch Musical Context
     await dbConnect();
-    const [artistRelations, albumRelations, availableArtists] = await Promise.all([
+    const [artistRelations, albumRelations, rawAvailableArtists] = await Promise.all([
         InstrumentArtist.find({ instrumentId: id }).populate('artistId').lean(),
         InstrumentAlbum.find({ instrumentId: id }).populate('albumId').lean(),
         getCatalogMetadata('artist')
     ]);
 
-    const artists = artistRelations.map((rel: any) => ({
+    const artists = JSON.parse(JSON.stringify(artistRelations.map((rel: any) => ({
         _id: rel._id.toString(),
-        name: rel.artistId?.label || 'Artista Desconocido',
-        key: rel.artistId?.key || '',
-        assetUrl: rel.artistId?.assetUrl,
+        name: (rel.artistId as any)?.label || 'Artista Desconocido',
+        key: (rel.artistId as any)?.key || '',
+        assetUrl: (rel.artistId as any)?.assetUrl,
         yearsUsed: rel.yearsUsed,
         notes: rel.notes
-    }));
+    }))));
 
-    const albums = albumRelations.map((rel: any) => ({
+    const albums = JSON.parse(JSON.stringify(albumRelations.map((rel: any) => ({
         _id: rel._id.toString(),
-        title: rel.albumId?.title || 'Álbum Desconocido',
-        artist: rel.albumId?.artist || 'Varios',
-        year: rel.albumId?.year,
-        coverImage: rel.albumId?.coverImage,
+        title: (rel.albumId as any)?.title || 'Álbum Desconocido',
+        artist: (rel.albumId as any)?.artist || 'Varios',
+        year: (rel.albumId as any)?.year,
+        coverImage: (rel.albumId as any)?.coverImage,
         notes: rel.notes
+    }))));
+
+    // Nuclear serialization for metadata from getCatalogMetadata
+    // Explicitly stripping nested image objects to avoid buffer leaks
+    const availableArtists = (rawAvailableArtists || []).map((a: any) => ({
+        id: a.id || a._id?.toString(),
+        label: a.label,
+        key: a.key,
+        assetUrl: a.assetUrl
     }));
 
     const groupedSpecs: Record<string, any[]> = {};
@@ -192,7 +201,11 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                 </div>
             </div>
 
-            <PrintSpecSheet instrument={instrument} />
+            <PrintSpecSheet
+                instrument={instrument}
+                artists={artists}
+                albums={albums}
+            />
 
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-16 lg:gap-24">
 
@@ -380,7 +393,7 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                     artists={artists}
                     albums={albums}
                     availableArtists={availableArtists}
-                    canEdit={canEdit}
+                    canEdit={false} // Editing moved to Instrument Editor
                     instrumentId={id}
                 />
             </div>
