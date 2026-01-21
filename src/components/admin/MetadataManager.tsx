@@ -90,6 +90,8 @@ const TABS = [
     { id: 'artist', label: 'Artistas', icon: Globe, color: 'text-ios-green', bg: 'bg-ios-green/10' },
 ];
 
+import BatchArtistImporter from './BatchArtistImporter';
+
 export default function MetadataManager({ initialData }: { initialData: any[] }) {
     const searchParams = useSearchParams();
     const router = useRouter();
@@ -103,6 +105,7 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
     const [items, setItems] = useState<MetadataItem[]>(initialData as MetadataItem[]);
     const [loading, setLoading] = useState(false);
     const [editingItem, setEditingItem] = useState<Partial<MetadataItem> | null>(null);
+    const [showBatchImport, setShowBatchImport] = useState(false);
 
     useEffect(() => {
         loadMetadata();
@@ -183,9 +186,21 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
                     <h1 className="text-4xl font-bold tracking-tight">Arquitectura del Catálogo</h1>
                     <p className="text-gray-500 dark:text-gray-400 font-medium text-lg">Define logos, categorías y periodos maestros.</p>
                 </div>
-                <Button onClick={() => setEditingItem({ type: activeTab as any, key: '', label: '' })} icon={Plus} className="shadow-apple-glow">
-                    Crear Entrada
-                </Button>
+                <div className="flex gap-3">
+                    {activeTab === 'artist' && (
+                        <Button
+                            variant="secondary"
+                            onClick={() => setShowBatchImport(true)}
+                            icon={Upload}
+                            className="rounded-[1.25rem]"
+                        >
+                            Importación Masiva
+                        </Button>
+                    )}
+                    <Button onClick={() => setEditingItem({ type: activeTab as any, key: '', label: '' })} icon={Plus} className="shadow-apple-glow">
+                        Crear Entrada
+                    </Button>
+                </div>
             </header>
 
             {/* Apple Segmented Control */}
@@ -427,10 +442,30 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
                                 <Button type="button" variant="secondary" onClick={() => setEditingItem(null)} className="flex-1 rounded-2xl h-12 text-base font-bold">
                                     Descartar
                                 </Button>
-                                <Button type="button" onClick={handleSave} className="flex-1 shadow-apple-glow rounded-2xl h-12 text-base font-bold">
+                                <Button type="button" onClick={handleSave} className="shadow-apple-glow flex-1 rounded-2xl h-12 text-base font-bold">
                                     Guardar Cambios
                                 </Button>
                             </div>
+                        </motion.div>
+                    </div>
+                )}
+
+                {showBatchImport && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-6">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setShowBatchImport(false)}
+                            className="absolute inset-0 bg-black/20 dark:bg-black/60 backdrop-blur-sm"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                            className="glass-panel rounded-[2.5rem] p-6 md:p-10 max-w-2xl w-[95%] shadow-apple-lg relative z-10 overflow-hidden max-h-[90vh] flex flex-col"
+                        >
+                            <BatchArtistImporter onClose={() => setShowBatchImport(false)} />
                         </motion.div>
                     </div>
                 )}

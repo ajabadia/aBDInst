@@ -220,3 +220,65 @@ export async function uploadMetadataAsset(formData: FormData) {
         return { success: false, error: error.message };
     }
 }
+export async function batchImportArtists(rawNames: string) {
+    try {
+        const session = await auth();
+        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
+            throw new Error('Unauthorized');
+        }
+
+        await dbConnect();
+
+        // 1. Clean and split names
+        const names = Array.from(new Set(
+            rawNames
+                .split(/[\n,;]/)
+                .map(n => n.trim())
+                .filter(n => n.length > 2)
+                .filter(n => !/^\d+$/.test(n)) // Filter out purely numeric names
+        ));
+
+        const results: Array<{ name: string; status: 'created' | 'exists' | 'error'; error?: string; artistId?: string }> = [];
+
+        // 2. Process each name
+        for (const name of names) {
+            try {
+                // Generate key from name
+                const key = name.toLowerCase()
+                    .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+                    .replace(/[^a-z0-9]/g, '-')
+                    .replace(/-+/g, '-')
+                    .replace(/^-|-$/g, '');
+
+                // Check if exists
+                const existing = await CatalogMetadata.findOne({ type: 'artist', key });
+                if (existing) {
+                    results.push({ name, status: 'exists', artistId: existing._id.toString() });
+                    continue;
+                }
+
+                // Create new artist (upsertMetadata handles enrichment)
+                const upsertResult = await upsertMetadata({
+                    type: 'artist',
+                    key,
+                    label: name,
+                    description: `Auto-created via batch import.`
+                });
+
+                if (upsertResult.success) {
+                    results.push({ name, status: 'created', artistId: (upsertResult.data as any).id });
+                } else {
+                    results.push({ name, status: 'error', error: upsertResult.error });
+                }
+            } catch (err: any) {
+                results.push({ name, status: 'error', error: err.message });
+            }
+        }
+
+        revalidatePath('/dashboard/admin/metadata');
+        return { success: true, results };
+    } catch (error: any) {
+        console.error('Batch Import Error:', error);
+        return { success: false, error: error.message };
+    }
+}
