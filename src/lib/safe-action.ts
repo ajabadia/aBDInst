@@ -1,5 +1,7 @@
 import { auth } from "@/auth";
 import { z } from "zod";
+import { AppError, ValidationError, AuthError } from "./errors";
+import { logEvent, generateCorrelationId } from "./logger";
 
 /**
  * Standard response format for all Server Actions
@@ -7,6 +9,7 @@ import { z } from "zod";
 export type ActionResponse<T> = {
     data?: T;
     error?: string;
+    code?: string;
     success: boolean;
 };
 
@@ -15,12 +18,17 @@ export type ActionResponse<T> = {
  */
 export async function createSafeAction<TInput, TOutput>(
     schema: z.ZodSchema<TInput>,
-    action: (data: TInput, userId: string, role: string) => Promise<TOutput>,
-    options: { protected?: boolean; allowedRoles?: string[] } = { protected: true }
+    action: (data: TInput, userId: string, role: string, correlationId: string) => Promise<TOutput>,
+    options: { protected?: boolean; allowedRoles?: string[]; name?: string } = { protected: true }
 ): Promise<(data: TInput) => Promise<ActionResponse<TOutput>>> {
+    const actionName = options.name || 'ANONYMOUS_ACTION';
+
     return async (input: TInput): Promise<ActionResponse<TOutput>> => {
+        const correlationId = generateCorrelationId();
+        const start = Date.now();
+
         try {
-            // 1. Validation
+            // 1. Validation FIRST
             const validatedInput = schema.parse(input);
 
             // 2. Authentication Check
@@ -30,29 +38,78 @@ export async function createSafeAction<TInput, TOutput>(
             if (options.protected !== false) {
                 const session = await auth();
                 if (!session?.user?.id) {
-                    return { success: false, error: "No autorizado: Inicia sesión para continuar" };
+                    throw new AuthError("Inicia sesión para continuar");
                 }
                 userId = session.user.id;
                 userRole = (session.user as any).role || "normal";
 
                 // 3. Role Authorization
                 if (options.allowedRoles && !options.allowedRoles.includes(userRole)) {
-                    return { success: false, error: "Acceso denegado: Privilegios insuficientes" };
+                    throw new AuthError("Privilegios insuficientes");
                 }
             }
 
-            // 4. Execute Action
-            const result = await action(validatedInput, userId, userRole);
+            // 4. Log Execution Start
+            await logEvent({
+                nivel: 'INFO',
+                origen: 'SAFE_ACTION',
+                accion: actionName,
+                mensaje: `Iniciando ejecución`,
+                correlacion_id: correlationId,
+                detalles: { userId, userRole }
+            });
+
+            // 5. Execute Action
+            const result = await action(validatedInput, userId, userRole, correlationId);
+
+            const duration = Date.now() - start;
+            await logEvent({
+                nivel: 'INFO',
+                origen: 'SAFE_ACTION',
+                accion: `${actionName}_SUCCESS`,
+                mensaje: `Completado exitosamente en ${duration}ms`,
+                correlacion_id: correlationId,
+                detalles: { duration_ms: duration }
+            });
+
             return { success: true, data: result };
 
         } catch (error: any) {
-            console.error("Action Error:", error);
-            
+            const duration = Date.now() - start;
+            let errorMessage = error.message || "Error interno del servidor";
+            let errorCode = "INTERNAL_ERROR";
+            let statusCode = 500;
+
             if (error instanceof z.ZodError) {
-                return { success: false, error: `Error de validación: ${error.issues.map(e => e.message).join(", ")}` };
+                errorMessage = `Error de validación: ${error.issues.map(e => e.message).join(", ")}`;
+                errorCode = 'VALIDATION_ERROR';
+                statusCode = 400;
+            } else if (error instanceof AppError) {
+                errorMessage = error.message;
+                errorCode = error.code;
+                statusCode = error.statusCode;
             }
 
-            return { success: false, error: error.message || "Error interno del servidor" };
+            await logEvent({
+                nivel: statusCode >= 500 ? 'ERROR' : 'WARN',
+                origen: 'SAFE_ACTION',
+                accion: `${actionName}_FAIL`,
+                mensaje: errorMessage,
+                correlacion_id: correlationId,
+                detalles: {
+                    duration_ms: duration,
+                    code: errorCode,
+                    status: statusCode,
+                    details: error.details
+                },
+                stack: statusCode >= 500 ? error.stack : undefined
+            });
+
+            return {
+                success: false,
+                error: errorMessage,
+                code: errorCode
+            };
         }
     };
 }

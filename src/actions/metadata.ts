@@ -2,9 +2,13 @@
 
 import dbConnect from '@/lib/db';
 import CatalogMetadata, { ICatalogMetadata } from '@/models/CatalogMetadata';
-import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { enrichArtistMetadata } from '@/lib/music/enrichment';
+import { createSafeAction } from '@/lib/safe-action';
+import { CatalogMetadataSchema } from '@/lib/schemas';
+import { DatabaseError, NotFoundError, AppError, ValidationError } from '@/lib/errors';
+import { logEvent } from '@/lib/logger';
+import { z } from 'zod';
 
 // Helper to sanitize Mongoose documents
 function sanitize(doc: any) {
@@ -58,13 +62,9 @@ export async function getMetadataMap(type?: string) {
     }
 }
 
-export async function upsertMetadata(data: Partial<ICatalogMetadata>) {
-    try {
-        const session = await auth();
-        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
-            throw new Error('Unauthorized');
-        }
-
+export const upsertMetadata = createSafeAction(
+    CatalogMetadataSchema.partial(),
+    async (data, userId, role, correlationId) => {
         if (!data.type || !data.key) {
             throw new Error('Type and Key are required');
         }
@@ -72,7 +72,7 @@ export async function upsertMetadata(data: Partial<ICatalogMetadata>) {
         await dbConnect();
 
         // Ensure label is present, default to key if not
-        let updateData = {
+        let updateData: any = {
             ...data,
             label: data.label || data.key
         };
@@ -81,7 +81,14 @@ export async function upsertMetadata(data: Partial<ICatalogMetadata>) {
         if (data.type === 'artist') {
             const existing = await CatalogMetadata.findOne({ type: 'artist', key: data.key });
             if (!existing || (!existing.images?.length && !data.images?.length)) {
-                console.log(`🔍 Enriching artist metadata for: ${data.label || data.key}`);
+                await logEvent({
+                    nivel: 'INFO',
+                    origen: 'METADATA_ACTION',
+                    accion: 'ENRICH_ARTIST',
+                    mensaje: `Enriqueciendo metadatos para: ${data.label || data.key}`,
+                    correlacion_id: correlationId
+                });
+
                 const enrichment = await enrichArtistMetadata(data.label || data.key);
                 updateData = {
                     ...updateData,
@@ -92,141 +99,122 @@ export async function upsertMetadata(data: Partial<ICatalogMetadata>) {
             }
         }
 
-        const result = await CatalogMetadata.findOneAndUpdate(
-            { type: data.type, key: data.key },
-            { $set: updateData },
-            { upsert: true, new: true, runValidators: true }
-        );
+        try {
+            const result = await CatalogMetadata.findOneAndUpdate(
+                { type: data.type, key: data.key },
+                { $set: updateData },
+                { upsert: true, new: true, runValidators: true }
+            );
 
-        revalidatePath('/instruments');
-        revalidatePath('/dashboard/admin/metadata');
+            revalidatePath('/instruments');
+            revalidatePath('/dashboard/admin/metadata');
 
-        return { success: true, data: sanitize(result) };
-    } catch (error: any) {
-        console.error('Upsert Metadata Error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-export async function deleteMetadata(id: string) {
-    try {
-        const session = await auth();
-        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
-            throw new Error('Unauthorized');
+            return sanitize(result);
+        } catch (error: any) {
+            throw new DatabaseError("Error al guardar metadatos", error);
         }
+    },
+    { protected: true, allowedRoles: ['admin', 'editor'], name: 'UPSERT_METADATA' }
+);
 
+export const deleteMetadata = createSafeAction(
+    z.string(),
+    async (id, userId, role, correlationId) => {
         await dbConnect();
-        await CatalogMetadata.findByIdAndDelete(id);
+        try {
+            await CatalogMetadata.findByIdAndDelete(id);
 
-        revalidatePath('/instruments');
-        revalidatePath('/dashboard/admin/metadata');
+            revalidatePath('/instruments');
+            revalidatePath('/dashboard/admin/metadata');
 
-        return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
-
-export async function refreshArtistMetadata(id: string) {
-    try {
-        const session = await auth();
-        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
-            throw new Error('Unauthorized');
+            return true;
+        } catch (error: any) {
+            throw new DatabaseError("Error al eliminar metadato", error);
         }
+    },
+    { protected: true, allowedRoles: ['admin', 'editor'], name: 'DELETE_METADATA' }
+);
 
+export const refreshArtistMetadata = createSafeAction(
+    z.string(),
+    async (id, userId, role, correlationId) => {
         await dbConnect();
         const artist = await CatalogMetadata.findById(id);
         if (!artist || artist.type !== 'artist') {
-            throw new Error('Artist not found');
+            throw new NotFoundError('Artista');
         }
 
-        console.log(`🔄 Refreshing Discogs data for artist: ${artist.label}`);
-        const enrichment = await enrichArtistMetadata(artist.label);
+        await logEvent({
+            nivel: 'INFO',
+            origen: 'METADATA_ACTION',
+            accion: 'REFRESH_ARTIST_START',
+            mensaje: `Refrescando datos para: ${artist.label}`,
+            correlacion_id: correlationId
+        });
 
-        if (enrichment.images.length > 0 || enrichment.description) {
-            // Merge images, prefer new ones but keep existing if they were manual?
-            // Actually, Discogs refresh usually means "get me the latest/better ones".
-            // We rotate images: new Discogs images first.
+        try {
+            const enrichment = await enrichArtistMetadata(artist.label);
 
-            const updated = await CatalogMetadata.findByIdAndUpdate(id, {
-                $set: {
-                    images: enrichment.images,
-                    assetUrl: enrichment.assetUrl || artist.assetUrl,
-                    description: artist.description && !artist.description.includes('Auto-created')
-                        ? artist.description // Keep manual description
-                        : enrichment.description || artist.description
-                }
-            }, { new: true });
+            if (enrichment.images.length > 0 || enrichment.description) {
+                const updated = await CatalogMetadata.findByIdAndUpdate(id, {
+                    $set: {
+                        images: enrichment.images,
+                        assetUrl: enrichment.assetUrl || artist.assetUrl,
+                        description: artist.description && !artist.description.includes('Auto-created')
+                            ? artist.description // Keep manual description
+                            : enrichment.description || artist.description
+                    }
+                }, { new: true });
 
-            revalidatePath('/dashboard/admin/metadata');
-            return { success: true, data: sanitize(updated) };
+                revalidatePath('/dashboard/admin/metadata');
+                return sanitize(updated);
+            }
+
+            throw new Error('No se encontraron datos nuevos en Discogs');
+        } catch (error: any) {
+            if (error instanceof AppError) throw error;
+            throw new DatabaseError("Error al refrescar datos del artista", error);
         }
+    },
+    { protected: true, allowedRoles: ['admin', 'editor'], name: 'REFRESH_ARTIST' }
+);
 
-        return { success: false, error: 'No se encontraron datos nuevos en Discogs' };
-    } catch (error: any) {
-        console.error('Refresh Artist Error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-export async function uploadMetadataAsset(formData: FormData) {
-    try {
-        const session = await auth();
-        // Strict Admin check for metadata
-        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
-            throw new Error('Unauthorized');
-        }
-
-        const userId = (session.user as any).id;
+export const uploadMetadataAsset = createSafeAction(
+    z.instanceof(FormData),
+    async (formData, userId, role, correlationId) => {
         const file = formData.get('file') as File;
-        if (!file) throw new Error('No file provided');
+        if (!file) throw new ValidationError('No se proporcionó ningún archivo');
 
-        // Optimize SVG if needed
-        let buffer = Buffer.from(await file.arrayBuffer());
+        await logEvent({
+            nivel: 'INFO',
+            origen: 'METADATA_ACTION',
+            accion: 'UPLOAD_ASSET',
+            mensaje: `Subiendo archivo: ${file.name} (${file.type})`,
+            correlacion_id: correlationId
+        });
 
-        if (file.type === 'image/svg+xml') {
-            const svgContent = buffer.toString('utf-8');
-            // Simplified optimization: Replace typical black/hardcoded fills with currentColor or remove them to allow css coloring
-            // This is a naive regex approach. For robust handling, use an SVG parser/optimizer llike SVGO in future.
-            // For now, we mainly want to ensure no weird dimensions lock it.
+        try {
+            let buffer = Buffer.from(await file.arrayBuffer());
 
-            // Note: Cloudinary sanitizes SVGs on upload usually.
-            // We just ensure we upload it. Modification in-flight is risky without a parser.
-            // Let's rely on CSS 'fill-current' in the frontend for now, 
-            // but we can try to strip width/height if present to ensure scaling.
-            // const optimizedSvg = svgContent.replace(/width="\d+"/, '').replace(/height="\d+"/, '');
-            // buffer = Buffer.from(optimizedSvg);
+            const { getStorageProvider } = await import('@/lib/storage-providers/factory');
+            const provider = await getStorageProvider(userId);
+
+            const url = await provider.upload(
+                new File([buffer], file.name, { type: file.type }),
+                userId,
+                'instrument-collector/metadata'
+            );
+
+            return { url };
+        } catch (error: any) {
+            throw new AppError("Error al subir archivo de metadatos", 500, 'UPLOAD_ERROR', error);
         }
-
-        const { getStorageProvider } = await import('@/lib/storage-providers/factory');
-        const provider = await getStorageProvider(userId);
-
-        // Force 'instrument-collector/metadata' folder
-        // Note: provider interface usually takes userId. 
-        // We will assume the provider implementation respects customPath if we modified it (we did in step 1 if we pass it).
-        // Wait, CloudinaryProvider.upload signature is (file, userId, customPath).
-
-        const url = await provider.upload(
-            new File([buffer], file.name, { type: file.type }),
-            userId,
-            'instrument-collector/metadata'
-        );
-
-        console.log('Provider returned URL:', url);
-
-        return { success: true, url };
-    } catch (error: any) {
-        console.error('Upload Metadata Error:', error);
-        return { success: false, error: error.message };
-    }
-}
-export async function batchImportArtists(rawNames: string) {
-    try {
-        const session = await auth();
-        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
-            throw new Error('Unauthorized');
-        }
-
+    },
+    { protected: true, allowedRoles: ['admin', 'editor'], name: 'UPLOAD_METADATA_ASSET' }
+);
+export const batchImportArtists = createSafeAction(
+    z.string(),
+    async (rawNames, userId, role, correlationId) => {
         await dbConnect();
 
         // 1. Clean and split names
@@ -239,6 +227,14 @@ export async function batchImportArtists(rawNames: string) {
         ));
 
         const results: Array<{ name: string; status: 'created' | 'exists' | 'error'; error?: string; artistId?: string }> = [];
+
+        await logEvent({
+            nivel: 'INFO',
+            origen: 'METADATA_ACTION',
+            accion: 'BATCH_IMPORT_START',
+            mensaje: `Iniciando importación masiva de ${names.length} artistas`,
+            correlacion_id: correlationId
+        });
 
         // 2. Process each name
         for (const name of names) {
@@ -257,28 +253,30 @@ export async function batchImportArtists(rawNames: string) {
                     continue;
                 }
 
-                // Create new artist (upsertMetadata handles enrichment)
-                const upsertResult = await upsertMetadata({
+                // Create new artist (upsertMetadata logic internally or call the function?)
+                // Since this is a server action, better to implement the core logic here to avoid re-validating etc.
+                // But we can call the core logic if it was separate. For now, inline it or call the action but wait for its internal logic.
+                // Call upsertMetadata.action directly if we want to bypass wrapper, but safest here is to just use Mongoose.
+
+                const enrichment = await enrichArtistMetadata(name);
+                const result = await CatalogMetadata.create({
                     type: 'artist',
                     key,
                     label: name,
-                    description: `Auto-created via batch import.`
+                    description: enrichment.description || `Auto-created via batch import.`,
+                    assetUrl: enrichment.assetUrl,
+                    images: enrichment.images,
                 });
 
-                if (upsertResult.success) {
-                    results.push({ name, status: 'created', artistId: (upsertResult.data as any).id });
-                } else {
-                    results.push({ name, status: 'error', error: upsertResult.error });
-                }
+                results.push({ name, status: 'created', artistId: result._id.toString() });
+
             } catch (err: any) {
                 results.push({ name, status: 'error', error: err.message });
             }
         }
 
         revalidatePath('/dashboard/admin/metadata');
-        return { success: true, results };
-    } catch (error: any) {
-        console.error('Batch Import Error:', error);
-        return { success: false, error: error.message };
-    }
-}
+        return results;
+    },
+    { protected: true, allowedRoles: ['admin', 'editor'], name: 'BATCH_IMPORT_ARTISTS' }
+);

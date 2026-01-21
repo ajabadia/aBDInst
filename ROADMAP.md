@@ -59,13 +59,13 @@
   - [x] **Data Inheritance**: Musical context (instruments) added to a Master Release automatically propagates to all its versions.
   - [x] **UI Unification**: Display global instrument associations even when viewing a specific local edition (Vinyl vs CD).
 
-### 2. Musical Relationships System 🚧 IN PROGRESS
-*Cross-linking instruments, artists, and albums.*
+### 2. Musical Relationships System ✅ COMPLETED
+*Goal: Cross-linking instruments, artists, and albums with bidirectional synchronization.*
 
-#### Phase 1: Artist/Band Management
-- [ ] **`Artist` Model**: Name, bio, image, type (band/solo/group), founded year, genres.
-- [ ] **Admin Panel**: CRUD for Artists (similar to metadata management).
-- [ ] **Fix**: Restore access card to `/dashboard/admin/metadata` in admin dashboard.
+#### Phase 1: Artist/Band Management ✅
+- [x] **`Artist` Model**: Implemented via `CatalogMetadata` with specialized fields.
+- [x] **Admin Panel**: CRUD for Artists in `MetadataManager` with Discogs refresh.
+- [x] **Metadata Navigation**: Integrated into Navbar ("Museo") and Dashboard.
 
 - [x] **Metadata Multi-Image Support**: Support multiple images/logos for ALL metadata types (Brands, Artists, Types, Decades).
   - [x] **Primary Selector**: Admin/Editor UI to select the "Active" or "Primary" image/logo.
@@ -78,21 +78,17 @@
             - Relocate the manual enrichment trigger from "Market" to "Specifications" to better align with user mental models.
             - Enhance `MagicImporter` with clear labeling and structured guidance for "Specs Pro" mode, distinguishing it from general AI analysis.
         6. **Automated Sync (Cron Jobs)**:
-#### Phase 2: N-M Relationships (Pivot Tables)
-- [ ] **`InstrumentArtist`**: Link instruments to artists (e.g., "Kraftwerk used this Minimoog").
-  - Fields: `instrumentId`, `artistId`, `notes`, `yearsUsed`, `isVerified`.
-- [ ] **`InstrumentAlbum`**: Link instruments to albums (e.g., "This bass on 'Dark Side of the Moon'").
-  - Fields: `instrumentId`, `albumId`, `notes`, `tracks[]`, `isVerified`.
-- [ ] **`ArtistAlbum`**: Link artists to albums (many-to-many).
-  - Fields: `artistId`, `albumId`, `role` (main/featured/producer).
+#### Phase 2: N-M Relationships & Bidirectional Sync ✅
+- [x] **Bidirectional Logic**: Automatic reverse links (`CatalogMetadata.instruments`, `MusicAlbum.instruments`).
+- [x] **Sync Utilities**: `bidirectional.ts` service for background relationship maintenance.
+- [x] **Artist-Album Link**: Auto-linking albums to their artist metadata.
 
-#### Phase 3: UI for Associations
-- [ ] **Instrument Detail Page**: Section "Used by Artists/Albums" with add/remove UI.
-- [ ] **Album Detail Page**: Section "Instruments Used" with add/remove UI.
-  - [ ] **AI Detection**: Use AI to detect instruments used in an album (structured JSON response).
-  - [ ] **Ghost Instrument Creation**: If an detected instrument doesn't exist, auto-create a "Ghost" record with basic AI-extracted data (Brand, Model, Type). 
-    - **Status**: Must be set to `pending` so admins/editors can review and complete it later.
-  - [ ] **Relationship Propagation**: Automatically link identified instruments to the album's artists.
+#### Phase 3: UI for Associations & AI Discovery ✅
+- [x] **Instrument Detail Page**: Added "Used by Artists/Albums" section with management UI.
+- [x] **Album Detail Page**: Added "Instruments Used" section with management UI.
+- [x] **AI Detection & Enrichment**: Integrated AI to detect instruments and auto-create relationships during album import.
+- [x] **Ghost Mode**: Support for auto-creating placeholder instruments during AI extraction.
+- [x] **Relationship Propagation**: Automatic linking of identified instruments to album artists.
 
 #### Phase 3: Editor Integration (DRY Module)
 - [x] **Unified Association Manager**: Reusable component to search/add/create Artists and Albums.
@@ -108,15 +104,15 @@
   - **Issue**: Some existing artists in the catalog are not appearing in the search results.
   - **Resolution**: Code logic is correct. Missing artists were due to missing database entries or incorrect `type`.
 
-#### Phase 6: Metadata Enrichment & Catalog Pages
-- [ ] **Rich Metadata Profiles**: Create dedicated landing pages for Artists, Decades, Types, and Brands.
-- [ ] **Data Enrichment**: Fetch and display historical data, images/logos, and biographies for these entities.
-- [ ] **Public Exposure**: Design a strategy to make these profiles public to create a "Wikipedia of Gear".
-- [ ] **Catalog Statistics**:
-  - [ ] Global/Specific item counts.
-  - [ ] Distribution by Brand/Type.
-  - [ ] Correlation between Artists and Decades.
-- [ ] **Association Grids**: Show a visual grid of all instruments and albums linked to the specific metadata entity.
+#### Phase 3: Catalog Encyclopedia & Discovery ✅
+- [x] **Rich Metadata Profiles**: Dynamic landing pages for Artists, Brands, Decades, and Types.
+- [x] **Discovery Engine**: Statistics, averages, and usage grids per category.
+- [x] **Discovery Experience**: "Navegador del Museo" widget in Dashboard.
+- [x] **Association Grids**: Visual grids of related gear and discography.
+
+#### Phase 4: Batch Import & Rapid Sourcing ✅
+- [x] **Batch Artist Import**: Bulk creation tool with smart list cleaning.
+- [x] **Auto-Enrichment**: Real-time Discogs extraction during batch processing.
 
 ### 3. Advanced Features
 - [ ] **Verification System**: Mark relationships as "verified" (admin) vs "user-submitted".
@@ -205,11 +201,15 @@
         5. **Automated Sync (Cron)**: 
             - Weekly full-catalog refresh for technical metadata.
             - Daily market price analysis and history storage in `PriceHistory`.
-        6. **High-Resolution Media Pipeline**: Automated prioritization of Official > API > Marketplace imagery.
-- [ ] **Market Dashboard**: Visualize price trends, rarity index, and platform comparisons across all equipment categories.
-- [ ] **UX Patterns**: Study "Digital Museum" kiosks (bitesize content, high contrast, storytelling).
-- [ ] **Audio/Video**: Explore adding audio clips (instrument samples) or video (performances) to slides.
-- [ ] **Performance**: Evaluate lazy-loading strategies for every heavy media showrooms.
+---
+
+## 📸 Short-Term: Phase 8 - Immersive Media & High-Res Views 🚧 IN PROGRESS
+*Goal: Cinematic exploration of the museum assets.*
+
+- [ ] **High-Performance Lightbox**: Ultra-zoom with pan/pinch support.
+- [ ] **Unsplash Integration**: Sourcing atmospheric imagery for profiles.
+- [ ] **3D / AR Views**: Interactive `<model-viewer>` for `.glb` assets.
+- [ ] **Visual Performance**: Lazy-loading and progressive image blur for 4K assets.
 
 ---
 

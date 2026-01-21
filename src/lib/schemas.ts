@@ -109,4 +109,19 @@ export const ChangePasswordSchema = z.object({
         .regex(/[0-9]/, "Debe contener al menos un número"),
 });
 
-export type InstrumentFormData = z.infer<typeof InstrumentSchema>;
+export const CatalogMetadataSchema = z.object({
+    id: z.string().optional(),
+    type: z.enum(['brand', 'artist', 'type', 'decade']),
+    key: z.string().min(1, "El identificador es obligatorio"),
+    label: z.string().min(1, "El nombre visible es obligatorio"),
+    description: z.string().optional(),
+    assetUrl: z.string().optional(),
+    images: z.array(z.object({
+        url: z.string().url("URL de imagen inválida"),
+        isPrimary: z.boolean().default(false),
+        source: z.string().optional(),
+    })).optional(),
+    instruments: z.array(z.string()).optional(),
+});
+
+export type CatalogMetadataData = z.infer<typeof CatalogMetadataSchema>;
