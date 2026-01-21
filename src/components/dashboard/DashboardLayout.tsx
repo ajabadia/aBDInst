@@ -4,7 +4,8 @@ import { useState } from 'react';
 import {
     Plus, Music, Settings, GitCompare, Bell,
     TrendingUp, LineChart, DollarSign,
-    Box, QrCode, Activity, Wrench, ChevronRight
+    Box, QrCode, Activity, Wrench, ChevronRight,
+    Inbox, Package, Calendar, Layers
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
@@ -146,6 +147,35 @@ export default function DashboardLayout({ collection, feed, user, finance, tags 
 
                 {/* RIGHT COLUMN: Sidebar Activity & Filters */}
                 <div className="lg:col-span-4 space-y-8">
+                    {/* --- 3. MUSEUM BROWSER --- */}
+                    <div className="glass-panel rounded-[2.5rem] p-8 shadow-apple-md border-black/5 dark:border-white/5">
+                        <div className="flex items-center justify-between mb-8">
+                            <h3 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                                <Inbox size={20} className="text-ios-blue" />
+                                Explorar Museo
+                            </h3>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                            <Link href="/instruments?view=artists" className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl hover:bg-ios-blue/10 transition-colors group">
+                                <Music className="w-6 h-6 text-ios-blue mb-3 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs font-bold uppercase tracking-wider block">Artistas</span>
+                            </Link>
+                            <Link href="/instruments?view=brands" className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl hover:bg-ios-blue/10 transition-colors group">
+                                <Package className="w-6 h-6 text-ios-blue mb-3 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs font-bold uppercase tracking-wider block">Marcas</span>
+                            </Link>
+                            <Link href="/instruments?view=decades" className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl hover:bg-ios-blue/10 transition-colors group">
+                                <Calendar className="w-6 h-6 text-ios-blue mb-3 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs font-bold uppercase tracking-wider block">Épocas</span>
+                            </Link>
+                            <Link href="/instruments?view=types" className="p-4 bg-gray-50 dark:bg-white/5 rounded-2xl hover:bg-ios-blue/10 transition-colors group">
+                                <Layers className="w-6 h-6 text-ios-blue mb-3 group-hover:scale-110 transition-transform" />
+                                <span className="text-xs font-bold uppercase tracking-wider block">Tipos</span>
+                            </Link>
+                        </div>
+                    </div>
+
                     <div className="glass-panel rounded-[2.5rem] p-8 sticky top-28 shadow-apple-md border-black/5 dark:border-white/5">
                         <div className="flex items-center justify-between mb-8">
                             <h3 className="text-xl font-bold tracking-tight flex items-center gap-2">
@@ -155,7 +185,7 @@ export default function DashboardLayout({ collection, feed, user, finance, tags 
                             <span className="px-2 py-0.5 bg-ios-blue/10 text-ios-blue text-[10px] font-bold rounded-full uppercase tracking-wider">En vivo</span>
                         </div>
 
-                        <div className="space-y-1 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
+                        <div className="space-y-1 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
                             <ActivityFeed activities={feed.slice(0, 8)} compact />
                         </div>
 

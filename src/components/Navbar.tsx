@@ -7,7 +7,7 @@ import { useState, useEffect } from 'react';
 
 import SettingsModal from './SettingsModal';
 import { ModeToggle } from './ModeToggle';
-import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, Shield, Heart, Activity, Wrench, Bell, Tag, Mail, MessageSquare, Camera, Layout, Disc } from 'lucide-react';
+import { Music, LayoutDashboard, Search, Menu, X, User, LogOut, Command, Settings, Shield, Heart, Activity, Wrench, Bell, Tag, Mail, MessageSquare, Camera, Layout, Disc, Inbox, ChevronDown } from 'lucide-react';
 import NotificationBell from './notifications/NotificationBell';
 import { useVaultMode } from '@/context/VaultModeContext';
 import { useCommandPalette } from '@/context/CommandPaletteContext';
@@ -34,12 +34,10 @@ export default function Navbar({ session }: { session: any }) {
     const navLinks = [
         { name: 'Catálogo', href: '/instruments', icon: Music },
         { name: 'Mi Colección', href: '/dashboard', icon: LayoutDashboard, authRequired: true },
+        { name: 'Museo', href: '/catalog', icon: Inbox, authRequired: false },
         { name: 'Música', href: '/dashboard/music', icon: Disc, authRequired: true },
         { name: 'Showrooms', href: '/dashboard/showrooms', icon: Layout, authRequired: true },
-        { name: 'Alertas', href: '/dashboard/alerts', icon: Bell, authRequired: true },
-        { name: 'Wishlist', href: '/dashboard/wishlist', icon: Heart, authRequired: true },
         { name: 'Taller', href: '/dashboard/maintenance', icon: Wrench, authRequired: true },
-        { name: 'Analytics', href: '/dashboard/analytics', icon: Activity, authRequired: true },
         { name: 'Blog', href: '/blog', icon: MessageSquare },
         { name: 'Contacto', href: '/contact', icon: Mail },
     ];
@@ -237,20 +235,4 @@ export default function Navbar({ session }: { session: any }) {
     );
 }
 
-function ChevronDown({ size, className }: { size: number, className?: string }) {
-    return (
-        <svg
-            width={size}
-            height={size}
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2.5"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className={className}
-        >
-            <path d="m6 9 6 6 6-6" />
-        </svg>
-    );
-}
+
