@@ -14,6 +14,21 @@ Background: Solid distinct color (E.g. #1e1e1e or similar) for easy removal.
 Style: Apple App Icon style, high gloss, soft shadows.
 `;
 
+export async function getAISystemPrompt() {
+    const session = await auth();
+    if (!session || (session.user as any).role !== 'admin') {
+        return { success: false, error: 'No autorizado' };
+    }
+
+    try {
+        const { getSystemConfig } = await import('./admin');
+        const prompt = await getSystemConfig('ai_system_prompt') || "Default prompt...";
+        return { success: true, prompt };
+    } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
 export async function generateBadgePrompt(name: string, description: string) {
     return BADGE_PROMPT_TEMPLATE
         .replace('{{NAME}}', name)
@@ -86,7 +101,7 @@ export async function analyzeInstrumentImage(formData: FormData) {
 
     try {
         const { getSystemConfig } = await import('./admin');
-        const systemPrompt = await getSystemConfig('ai_system_prompt') || "You are an expert instrument appraiser. Analyze the provided image/text and return a JSON object with brand, model, type, year, description, specs (array of category/label/value), originalPrice (price/currency/year), and marketValue (estimatedPrice/currency/priceRange)."; // Fallback
+        const systemPrompt = await getSystemConfig('ai_system_prompt') || "You are an expert instrument appraiser. Analyze the provided image/text and return a JSON object with brand, model, type, year, description, specs (array of category/label/value), originalPrice (price/currency/year), and marketValue (estimatedPrice/currency/priceRange). IMPORTANT: Escape all double quotes within string values (e.g. \"text with \\\"quotes\\\"\"). Output valid JSON only."; // Fallback
         const modelName = await getSystemConfig('ai_model_name') || 'gemini-2.0-flash-exp';
 
         console.log('--- GEMINI IMAGE ANALYSIS START ---');

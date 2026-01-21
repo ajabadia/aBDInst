@@ -55,6 +55,42 @@ function sanitizeArtistKey(key: string): string {
 }
 
 /**
+ * Enrich a single artist with Discogs data
+ */
+export async function enrichArtistMetadata(artistName: string): Promise<{ images: any[], description?: string, assetUrl?: string }> {
+    let artistImages: any[] = [];
+    let primaryAssetUrl = undefined;
+    let description = undefined;
+
+    try {
+        const discogsResults = await searchDiscogsArtists(artistName);
+        if (discogsResults && discogsResults.length > 0) {
+            const topResult = discogsResults[0];
+            const artistDetails = await getDiscogsArtist(topResult.id.toString());
+
+            if (artistDetails) {
+                if (artistDetails.images) {
+                    artistImages = artistDetails.images.map((img: any, idx: number) => ({
+                        url: img.resource_url,
+                        isPrimary: idx === 0,
+                        source: 'discogs',
+                        externalId: topResult.id.toString()
+                    }));
+                    primaryAssetUrl = artistImages[0]?.url;
+                }
+                if (artistDetails.profile) {
+                    description = artistDetails.profile;
+                }
+            }
+        }
+    } catch (discogsError) {
+        console.error(`⚠️ Failed to fetch Discogs info for ${artistName}:`, discogsError);
+    }
+
+    return { images: artistImages, description, assetUrl: primaryAssetUrl };
+}
+
+/**
  * Ensure artists exist in CatalogMetadata
  * Creates them if they don't exist (no duplicates)
  */
@@ -74,47 +110,26 @@ export async function ensureArtistsExist(artists: AIArtist[], userId?: string): 
 
         if (!existing) {
             // New artist: Try to fetch images from Discogs
-            let artistImages = [];
-            let primaryAssetUrl = undefined;
-
-            try {
-                const discogsResults = await searchDiscogsArtists(artist.name);
-                if (discogsResults && discogsResults.length > 0) {
-                    const topResult = discogsResults[0];
-                    const artistDetails = await getDiscogsArtist(topResult.id.toString());
-
-                    if (artistDetails && artistDetails.images) {
-                        artistImages = artistDetails.images.map((img: any, idx: number) => ({
-                            url: img.resource_url,
-                            isPrimary: idx === 0,
-                            source: 'discogs',
-                            externalId: topResult.id.toString()
-                        }));
-                        primaryAssetUrl = artistImages[0]?.url;
-                    }
-                }
-            } catch (discogsError) {
-                console.error(`⚠️ Failed to fetch Discogs info for ${artist.name}:`, discogsError);
-            }
+            const enrichment = await enrichArtistMetadata(artist.name);
 
             // Create new artist in metadata
             existing = await CatalogMetadata.create({
                 type: 'artist',
                 key: sanitizedKey,
                 label: artist.name,
-                assetUrl: primaryAssetUrl,
-                images: artistImages,
-                description: `Auto-created from AI detection${userId ? ` by user ${userId}` : ''}`
+                assetUrl: enrichment.assetUrl,
+                images: enrichment.images,
+                description: enrichment.description || `Auto-created from AI detection${userId ? ` by user ${userId}` : ''}`
             });
 
-            console.log(`✅ Created artist: ${artist.name} (${sanitizedKey}) with ${artistImages.length} images`);
+            console.log(`✅ Created artist: ${artist.name} (${sanitizedKey}) with ${enrichment.images.length} images`);
 
             // Notify admins about new metadata entry
             await notifyAdmins('metadata_alert', {
                 category: 'artist',
                 key: sanitizedKey,
                 label: artist.name,
-                message: `Nuevo artista detectado por AI: ${artist.name}. ${artistImages.length > 0 ? 'Imágenes importadas de Discogs.' : 'Requiere revisión y logo.'}`
+                message: `Nuevo artista detectado por AI: ${artist.name}. ${enrichment.images.length > 0 ? 'Imágenes importadas de Discogs.' : 'Requiere revisión y logo.'}`
             });
         }
 

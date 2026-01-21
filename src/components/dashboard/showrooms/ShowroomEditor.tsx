@@ -14,7 +14,7 @@ import autoTable from 'jspdf-autotable';
 import { FileText } from 'lucide-react';
 import ImageUpload from '@/components/ImageUpload';
 import SlideManagerModal from './SlideManagerModal';
-// No op (lines removed)
+import ShowroomQrLabelGenerator from './ShowroomQrLabelGenerator';
 
 // Simple Switch Component if not available
 function SimpleSwitch({ checked, onCheckedChange, label }: { checked: boolean; onCheckedChange: (c: boolean) => void; label: string }) {
@@ -169,6 +169,7 @@ export default function ShowroomEditor({ showroom, instrumentCollection, musicCo
         setItems([...items, {
             collectionId,
             itemType,
+            collectionModel: itemType === 'music' ? 'UserMusicCollection' : 'UserCollection',
             publicNote: '',
             placardText: '',
             displayOrder: items.length,
@@ -258,6 +259,7 @@ export default function ShowroomEditor({ showroom, instrumentCollection, musicCo
                     <Button variant="outline" size="sm" onClick={handleDuplicate} icon={Copy} disabled={isSaving}>
                         Duplicar
                     </Button>
+                    <ShowroomQrLabelGenerator showroomName={formData.name} items={items} />
                     <Button variant="outline" size="sm" onClick={generatePDF} icon={FileText}>
                         PDF
                     </Button>
@@ -275,7 +277,13 @@ export default function ShowroomEditor({ showroom, instrumentCollection, musicCo
                     open={slideModal.open}
                     onOpenChange={(open) => setSlideModal(prev => ({ ...prev, open }))}
                     initialSlides={items[slideModal.itemIndex].slides || []}
-                    itemName={allItems.find((c: any) => c._id === items[slideModal.itemIndex].collectionId)?.instrumentId?.name || allItems.find((c: any) => c._id === items[slideModal.itemIndex].collectionId)?.albumId?.title || 'Item'}
+                    itemName={(() => {
+                        const d = getItemDetails(items[slideModal.itemIndex].collectionId);
+                        if (!d) return 'Item';
+                        return items[slideModal.itemIndex].itemType === 'music'
+                            ? `${d.albumId?.artist} - ${d.albumId?.title}`
+                            : `${d.instrumentId?.brand} ${d.instrumentId?.model}`;
+                    })()}
                     onSave={(newSlides) => {
                         const newItems = [...items];
                         newItems[slideModal.itemIndex].slides = newSlides;
@@ -441,20 +449,35 @@ export default function ShowroomEditor({ showroom, instrumentCollection, musicCo
                                     <div key={item.collectionId} className="p-4 bg-gray-50 dark:bg-black/20 rounded-xl space-y-4 group border border-transparent hover:border-gray-200 dark:hover:border-white/10 transition-colors">
                                         <div className="flex gap-4 items-start">
                                             <div className="w-16 h-16 bg-white rounded-lg overflow-hidden shrink-0 relative shadow-sm">
-                                                {details.images?.[0]?.url || details.instrumentId?.genericImages?.[0] ? (
-                                                    <Image
-                                                        src={details.images?.[0]?.url || details.instrumentId?.genericImages?.[0]}
-                                                        alt="thumb"
-                                                        fill
-                                                        className="object-cover"
-                                                    />
-                                                ) : <div className="w-full h-full bg-gray-200" />}
+                                                {(() => {
+                                                    const isMusic = item.itemType === 'music';
+                                                    const img = isMusic
+                                                        ? details.albumId?.coverImage
+                                                        : (details.images?.[0]?.url || details.instrumentId?.genericImages?.[0]);
+
+                                                    return img ? (
+                                                        <Image
+                                                            src={img}
+                                                            alt="thumb"
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                    ) : <div className="w-full h-full bg-gray-200" />;
+                                                })()}
                                             </div>
                                             <div className="flex-grow min-w-0">
                                                 <div className="flex justify-between items-start">
                                                     <div>
-                                                        <p className="font-bold text-lg leading-tight">{details.instrumentId?.brand} {details.instrumentId?.model}</p>
-                                                        <p className="text-xs text-gray-500 font-mono uppercase mt-1">{details.year || 'N/A'} • {details.instrumentId?.type}</p>
+                                                        <p className="font-bold text-lg leading-tight">
+                                                            {item.itemType === 'music'
+                                                                ? `${details.albumId?.artist} - ${details.albumId?.title}`
+                                                                : `${details.instrumentId?.brand} ${details.instrumentId?.model}`}
+                                                        </p>
+                                                        <p className="text-xs text-gray-500 font-mono uppercase mt-1">
+                                                            {item.itemType === 'music'
+                                                                ? details.albumId?.year
+                                                                : (details.year || 'N/A')} • {item.itemType === 'music' ? 'Música' : details.instrumentId?.type}
+                                                        </p>
                                                     </div>
                                                     <button onClick={() => removeItem(item.collectionId)} className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-full transition-colors">
                                                         <X size={18} />
@@ -488,6 +511,19 @@ export default function ShowroomEditor({ showroom, instrumentCollection, musicCo
                                                         onChange={(e) => {
                                                             const newItems = [...items];
                                                             newItems[idx].publicNote = e.target.value;
+                                                            setItems(newItems);
+                                                        }}
+                                                    />
+                                                </div>
+                                                <div className="space-y-1 md:col-span-2">
+                                                    <label className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">Atribución / Préstamo (Opcional)</label>
+                                                    <input
+                                                        className="w-full text-sm bg-white dark:bg-black/40 border border-gray-200 dark:border-white/10 rounded-lg p-2 focus:ring-2 ring-ios-blue/20 outline-none"
+                                                        placeholder="Ej: 'Prestado por Carlos R.', 'Colección Privada ABD'..."
+                                                        value={item.attribution || ''}
+                                                        onChange={(e) => {
+                                                            const newItems = [...items];
+                                                            newItems[idx].attribution = e.target.value;
                                                             setItems(newItems);
                                                         }}
                                                     />

@@ -75,39 +75,19 @@ export async function runScraperForAlert(alertId: string) {
         const alert = await PriceAlert.findById(alertId);
         if (!alert) throw new Error('Alert not found');
 
-        // Initialize enabled scrapers
-        // In the future, we could check alert.sources to filter
-        const scrapers = [
-            new ReverbScraper(),
-            new WallapopScraper()
-        ];
+        // 1. Use centralized Intelligence Service to fetch from all integrated APIs + Scrapers
+        const { marketIntelligence } = await import('@/lib/api/MarketIntelligenceService');
+        const results = await marketIntelligence.fetchAllListings(alert.query);
 
-        // Use configured sources if they exist, otherwise default to all
-        const sourcesToRun = alert.sources && alert.sources.length > 0
-            ? scrapers.filter(s => alert.sources.includes(s.name))
-            : scrapers;
+        console.log(`[PriceAlert] Fetched ${results.length} listings for: ${alert.query}`);
 
-        console.log(`Running scrapers for: ${alert.query} [${sourcesToRun.map(s => s.name).join(', ')}]`);
-
-        // Run in parallel
-        const resultsArrays = await Promise.all(
-            sourcesToRun.map(scraper => scraper.search(alert.query).catch(e => {
-                console.error(`Scraper ${scraper.name} failed:`, e);
-                return [];
-            }))
-        );
-
-        // Flatten results
-        const results = resultsArrays.flat();
-
-        // Filter by target price if set
+        // 2. Filter by target price if set
         const deals = results.filter(item => {
             if (!alert.targetPrice) return true;
             return item.price <= alert.targetPrice;
         });
 
-        // Save scraped listings to cache
-        // Use bulkWrite for performance if many results
+        // 3. Save to cache (bulk write)
         const bulkOps = results.map(item => ({
             updateOne: {
                 filter: { source: item.source, externalId: item.id },
@@ -129,7 +109,7 @@ export async function runScraperForAlert(alertId: string) {
             await ScrapedListing.bulkWrite(bulkOps);
         }
 
-        // Notify User if deals found
+        // 4. Notify User if deals found
         if (deals.length > 0) {
             try {
                 const User = (await import('@/models/User')).default;
@@ -162,11 +142,10 @@ export async function runScraperForAlert(alertId: string) {
                 }
             } catch (emailErr) {
                 console.error('Failed to send alert email:', emailErr);
-                // Don't fail the scraper just because email failed
             }
         }
 
-        // Update alert stats
+        // 5. Update alert stats
         alert.lastChecked = new Date();
         alert.triggerCount += 1;
         await alert.save();

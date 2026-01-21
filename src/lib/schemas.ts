@@ -34,6 +34,7 @@ export const InstrumentSchema = z.object({
     variantLabel: z.string().optional(),
     excludedImages: z.array(z.string()).optional(),
     isBaseModel: z.boolean().default(false),
+    reverbUrl: z.string().url("URL de Reverb inválida").optional().or(z.literal("")),
     marketValue: z.object({
         original: z.object({
             price: z.number().optional(),

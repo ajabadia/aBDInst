@@ -3,10 +3,10 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Trash2, Save, X, Search, Filter, Tag, Upload, Music, Calendar, Edit3, Globe, Layers } from 'lucide-react';
+import { Plus, Trash2, Save, X, Search, Filter, Tag, Upload, Music, Calendar, Edit3, Globe, Layers, RotateCw, Loader2 } from 'lucide-react';
 import DragDropUploader from './DragDropUploader';
 import { Button } from '@/components/ui/Button';
-import { upsertMetadata, deleteMetadata, getCatalogMetadata } from '@/actions/metadata';
+import { upsertMetadata, deleteMetadata, getCatalogMetadata, refreshArtistMetadata } from '@/actions/metadata';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -24,6 +24,63 @@ interface MetadataItem {
         source?: 'manual' | 'discogs' | 'spotify';
         externalId?: string;
     }>;
+}
+
+// Separate component for images with loading state
+function MetadataImage({ src, alt, isPrimary, onClick, onDelete }: {
+    src: string;
+    alt: string;
+    isPrimary?: boolean;
+    onClick: () => void;
+    onDelete: (e: React.MouseEvent) => void;
+}) {
+    const [isLoaded, setIsLoaded] = useState(false);
+
+    return (
+        <div
+            onClick={onClick}
+            className={cn(
+                "relative aspect-square rounded-xl overflow-hidden border-2 transition-all group shadow-sm cursor-pointer",
+                isPrimary ? "border-ios-blue ring-4 ring-ios-blue/10" : "border-transparent opacity-80 hover:opacity-100 hover:scale-[1.02]"
+            )}>
+            {!isLoaded && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/5 dark:bg-white/5">
+                    <Loader2 className="w-5 h-5 text-ios-blue animate-spin opacity-50" />
+                </div>
+            )}
+            <Image
+                src={src}
+                alt={alt}
+                fill
+                className={cn(
+                    "object-cover transition-opacity duration-300",
+                    isLoaded ? "opacity-100" : "opacity-0"
+                )}
+                onLoad={() => setIsLoaded(true)}
+            />
+            <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 bg-black/40 transition-opacity">
+                {!isPrimary && (
+                    <div className="bg-white/90 dark:bg-black/40 p-2 rounded-full text-ios-blue shadow-lg">
+                        <Plus size={20} className="rotate-45" />
+                        <p className="text-[10px] font-bold mt-1 text-center">PRINCIPAL</p>
+                    </div>
+                )}
+                <Button
+                    size="icon"
+                    variant="ghost"
+                    className="w-8 h-8 rounded-full text-white hover:text-red-500 bg-black/20"
+                    onClick={onDelete}
+                >
+                    <Trash2 size={12} />
+                </Button>
+            </div>
+            {isPrimary && (
+                <div className="absolute top-2 right-2 bg-ios-blue text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase shadow-md">
+                    PRINCIPAL
+                </div>
+            )}
+        </div>
+    );
 }
 
 const TABS = [
@@ -67,8 +124,8 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
         }
     };
 
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSave = async (e?: React.FormEvent | React.MouseEvent) => {
+        if (e) e.preventDefault();
         if (!editingItem || !editingItem.key) return;
 
         const result = await upsertMetadata({
@@ -97,6 +154,26 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
         } else {
             toast.error('Error al eliminar');
         }
+    };
+
+    const handleRefresh = async (id: string, label: string) => {
+        const promise = refreshArtistMetadata(id);
+
+        toast.promise(promise, {
+            loading: `Refrescando datos de ${label}...`,
+            success: (res) => {
+                if (res.success) {
+                    loadMetadata();
+                    // If we are currently editing this item, update the form
+                    if (editingItem?.id === id) {
+                        setEditingItem(res.data);
+                    }
+                    return 'Datos actualizados desde Discogs';
+                }
+                throw new Error(res.error || 'No se encontraron datos');
+            },
+            error: (err) => err.message
+        });
     };
 
     return (
@@ -159,6 +236,17 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
                                     )}
                                 </div>
                                 <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-1 group-hover:translate-y-0">
+                                    {item.type === 'artist' && (
+                                        <Button
+                                            size="icon"
+                                            variant="secondary"
+                                            onClick={() => handleRefresh(item.id!, item.label)}
+                                            className="rounded-full w-8 h-8 hover:text-ios-blue"
+                                            title="Refrescar de Discogs"
+                                        >
+                                            <RotateCw size={14} />
+                                        </Button>
+                                    )}
                                     <Button size="icon" variant="secondary" onClick={() => setEditingItem(item)} className="rounded-full w-8 h-8">
                                         <Edit3 size={14} />
                                     </Button>
@@ -199,28 +287,39 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
                             initial={{ opacity: 0, scale: 0.95, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                            className="glass-panel rounded-[2.5rem] p-10 max-w-xl w-full shadow-apple-lg relative z-10 overflow-hidden"
+                            className="glass-panel rounded-[2.5rem] p-6 md:p-10 max-w-5xl w-[95%] md:w-[80%] shadow-apple-lg relative z-10 overflow-hidden max-h-[90vh] flex flex-col"
                         >
                             {/* Modal Close Button */}
                             <Button
                                 variant="ghost"
                                 size="icon"
                                 onClick={() => setEditingItem(null)}
-                                className="absolute top-6 right-6 rounded-full hover:bg-black/5"
+                                className="absolute top-6 right-6 rounded-full hover:bg-black/5 z-20"
                             >
                                 <X size={20} />
                             </Button>
 
-                            <div className="flex items-center gap-4 mb-10">
+                            <div className="flex items-center gap-4 mb-8 flex-shrink-0">
                                 <div className="p-3 bg-ios-blue/10 text-ios-blue rounded-2xl">
                                     <Layers size={24} />
                                 </div>
                                 <h2 className="text-3xl font-bold tracking-tight">
                                     {editingItem.id ? 'Editar Detalle' : 'Nueva Entrada'}
                                 </h2>
+                                {editingItem.id && editingItem.type === 'artist' && (
+                                    <Button
+                                        variant="secondary"
+                                        size="sm"
+                                        onClick={() => handleRefresh(editingItem.id!, editingItem.label || '')}
+                                        icon={RotateCw}
+                                        className="ml-auto rounded-full"
+                                    >
+                                        Refrescar
+                                    </Button>
+                                )}
                             </div>
 
-                            <form onSubmit={handleSave} className="space-y-8">
+                            <form onSubmit={handleSave} className="space-y-8 overflow-y-auto pr-2 custom-scrollbar pb-4 flex-grow">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                     <div className="space-y-2">
                                         <label className="apple-label ml-1">Identificador (Key)</label>
@@ -254,69 +353,43 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
 
                                     {/* Existing Images Gallery */}
                                     {editingItem.images && editingItem.images.length > 0 && (
-                                        <div className="grid grid-cols-4 gap-3 mb-4">
-                                            {editingItem.images.map((img, idx) => (
-                                                <div key={idx} className={cn(
-                                                    "relative aspect-square rounded-xl overflow-hidden border-2 transition-all",
-                                                    img.isPrimary ? "border-ios-blue shadow-md" : "border-transparent opacity-70 hover:opacity-100"
-                                                )}>
-                                                    <Image
+                                        <div className="p-4 bg-black/5 dark:bg-white/5 rounded-[2rem] border border-black/5 dark:border-white/5">
+                                            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                                                {editingItem.images.map((img, idx) => (
+                                                    <MetadataImage
+                                                        key={idx}
                                                         src={img.url}
                                                         alt={`Image ${idx}`}
-                                                        fill
-                                                        className="object-cover"
+                                                        isPrimary={img.isPrimary}
+                                                        onClick={() => {
+                                                            if (img.isPrimary) return;
+                                                            const newImages = editingItem.images?.map((i, k) => ({
+                                                                ...i,
+                                                                isPrimary: k === idx
+                                                            }));
+                                                            setEditingItem({
+                                                                ...editingItem,
+                                                                images: newImages,
+                                                                assetUrl: img.url
+                                                            });
+                                                        }}
+                                                        onDelete={(e) => {
+                                                            e.stopPropagation();
+                                                            const newImages = editingItem.images?.filter((_, k) => k !== idx);
+                                                            let newAssetUrl = editingItem.assetUrl;
+                                                            if (img.isPrimary) {
+                                                                newAssetUrl = newImages && newImages.length > 0 ? newImages[0].url : undefined;
+                                                                if (newImages && newImages.length > 0) newImages[0].isPrimary = true;
+                                                            }
+                                                            setEditingItem({
+                                                                ...editingItem,
+                                                                images: newImages,
+                                                                assetUrl: newAssetUrl
+                                                            });
+                                                        }}
                                                     />
-                                                    <div className="absolute inset-0 flex items-center justify-center gap-1 opacity-0 hover:opacity-100 bg-black/40 transition-opacity">
-                                                        {!img.isPrimary && (
-                                                            <Button
-                                                                size="icon"
-                                                                variant="ghost"
-                                                                className="w-8 h-8 rounded-full text-white hover:text-ios-blue"
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    const newImages = editingItem.images?.map((i, k) => ({
-                                                                        ...i,
-                                                                        isPrimary: k === idx
-                                                                    }));
-                                                                    setEditingItem({
-                                                                        ...editingItem,
-                                                                        images: newImages,
-                                                                        assetUrl: img.url
-                                                                    });
-                                                                }}
-                                                            >
-                                                                <Edit3 size={12} />
-                                                            </Button>
-                                                        )}
-                                                        <Button
-                                                            size="icon"
-                                                            variant="ghost"
-                                                            className="w-8 h-8 rounded-full text-white hover:text-red-500"
-                                                            onClick={(e) => {
-                                                                e.stopPropagation();
-                                                                const newImages = editingItem.images?.filter((_, k) => k !== idx);
-                                                                let newAssetUrl = editingItem.assetUrl;
-                                                                if (img.isPrimary) {
-                                                                    newAssetUrl = newImages && newImages.length > 0 ? newImages[0].url : undefined;
-                                                                    if (newImages && newImages.length > 0) newImages[0].isPrimary = true;
-                                                                }
-                                                                setEditingItem({
-                                                                    ...editingItem,
-                                                                    images: newImages,
-                                                                    assetUrl: newAssetUrl
-                                                                });
-                                                            }}
-                                                        >
-                                                            <Trash2 size={12} />
-                                                        </Button>
-                                                    </div>
-                                                    {img.isPrimary && (
-                                                        <div className="absolute top-1 right-1 bg-ios-blue text-white text-[8px] font-bold px-1.5 py-0.5 rounded-full uppercase">
-                                                            Ppal
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
                                         </div>
                                     )}
 
@@ -347,16 +420,17 @@ export default function MetadataManager({ initialData }: { initialData: any[] })
                                         placeholder="Información adicional sobre este metadato..."
                                     />
                                 </div>
-
-                                <div className="flex gap-4 pt-4">
-                                    <Button type="button" variant="secondary" onClick={() => setEditingItem(null)} className="flex-1">
-                                        Descartar
-                                    </Button>
-                                    <Button type="submit" className="flex-1 shadow-apple-glow">
-                                        Guardar Cambios
-                                    </Button>
-                                </div>
                             </form>
+
+                            {/* Sticky Footer */}
+                            <div className="flex gap-4 pt-6 border-t border-black/5 dark:border-white/5 bg-white/50 dark:bg-black/20 backdrop-blur-md flex-shrink-0 -mx-10 px-10 -mb-10 pb-10 mt-4 h-32 items-center">
+                                <Button type="button" variant="secondary" onClick={() => setEditingItem(null)} className="flex-1 rounded-2xl h-12 text-base font-bold">
+                                    Descartar
+                                </Button>
+                                <Button type="button" onClick={handleSave} className="flex-1 shadow-apple-glow rounded-2xl h-12 text-base font-bold">
+                                    Guardar Cambios
+                                </Button>
+                            </div>
                         </motion.div>
                     </div>
                 )}

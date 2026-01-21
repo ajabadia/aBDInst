@@ -45,6 +45,16 @@ const nextConfig: NextConfig = {
         hostname: 'i.scdn.co',
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'rvb-img.reverb.com',
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ebayimg.com',
+        pathname: '/**',
+      },
     ],
   },
   experimental: {

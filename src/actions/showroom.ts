@@ -5,6 +5,9 @@ import Exhibition from '@/models/Exhibition';
 import ExhibitionSubmission from '@/models/ExhibitionSubmission';
 import Instrument from '@/models/Instrument'; // Ensure model loaded
 import User from '@/models/User'; // Ensure model loaded
+import UserCollection from '@/models/UserCollection';
+import UserMusicCollection from '@/models/UserMusicCollection';
+import MusicAlbum from '@/models/MusicAlbum';
 
 export async function getExhibitionBySlug(slug: string) {
     await dbConnect();
@@ -108,7 +111,10 @@ export async function getUserShowrooms() {
         .sort({ createdAt: -1 })
         .populate({
             path: 'items.collectionId',
-            populate: { path: 'instrumentId' }
+            populate: [
+                { path: 'instrumentId' },
+                { path: 'albumId' }
+            ]
         })
         .lean();
 
@@ -169,7 +175,10 @@ export async function getPublicShowroom(slug: string) {
     const showroom = await Showroom.findOne({ slug }) // Fetch strictly by slug first
         .populate({
             path: 'items.collectionId',
-            populate: { path: 'instrumentId' }
+            populate: [
+                { path: 'instrumentId' },
+                { path: 'albumId' }
+            ]
         })
         .populate('userId', 'name image')
         .lean();
@@ -221,6 +230,7 @@ export async function updateShowroom(id: string, payload: { name?: string; descr
         const { revalidatePath } = await import('next/cache');
         revalidatePath('/dashboard/showrooms');
         revalidatePath(`/s/${showroom.slug}`);
+        revalidatePath(`/dashboard/showrooms/${showroom._id}`);
 
         return { success: true, data: JSON.parse(JSON.stringify(showroom)) };
     } catch (e: any) {

@@ -1,14 +1,17 @@
 import { getExhibitionBySlug } from '@/actions/showroom';
+import { getUserCollection } from '@/actions/collection';
 import { notFound } from 'next/navigation';
 import Image from 'next/image';
 import Link from 'next/link';
-import { Calendar, Trophy, User, ArrowLeft } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
-import ShowroomActions from '@/components/museum/ShowroomActions';
+import { Calendar, Trophy, ArrowLeft } from 'lucide-react';
+import ParticipationModal from '@/components/museum/ParticipationModal';
 
 export default async function ExhibitionDetailPage({ params }: { params: Promise<{ slug: string }> }) {
     const { slug } = await params;
-    const data = await getExhibitionBySlug(slug);
+    const [data, userCollection] = await Promise.all([
+        getExhibitionBySlug(slug),
+        getUserCollection()
+    ]);
 
     if (!data) notFound();
 
@@ -62,11 +65,13 @@ export default async function ExhibitionDetailPage({ params }: { params: Promise
                                 : 'Este evento ha finalizado o aún no ha comenzado.'}
                         </p>
                     </div>
-                    {/* Placeholder for Client Component Button */}
+                    {/* Participation Flow */}
                     {exhibition.status === 'active' && (
-                        <Button size="lg" className="rounded-full px-8 bg-ios-blue hover:scale-105 transition-transform">
-                            Participar
-                        </Button>
+                        <ParticipationModal
+                            exhibitionId={exhibition._id}
+                            exhibitionTitle={exhibition.title}
+                            userCollection={userCollection}
+                        />
                     )}
                 </div>
 

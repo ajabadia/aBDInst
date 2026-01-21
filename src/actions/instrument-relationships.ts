@@ -34,6 +34,7 @@ export async function addArtistRelation(instrumentId: string, artistKey: string,
         );
 
         revalidatePath(`/instruments/${instrumentId}`);
+        revalidatePath(`/instruments/${instrumentId}/edit`);
         return { success: true };
     } catch (error: any) {
         console.error('Error adding artist relation:', error);
@@ -53,6 +54,7 @@ export async function removeArtistRelation(relationId: string, instrumentId: str
         await InstrumentArtist.findByIdAndDelete(relationId);
 
         revalidatePath(`/instruments/${instrumentId}`);
+        revalidatePath(`/instruments/${instrumentId}/edit`);
         return { success: true };
     } catch (error: any) {
         console.error('Error removing artist relation:', error);
@@ -109,6 +111,7 @@ export async function addAlbumRelation(instrumentId: string, albumId: string, de
         }
 
         revalidatePath(`/instruments/${instrumentId}`);
+        revalidatePath(`/instruments/${instrumentId}/edit`);
         return { success: true };
     } catch (error: any) {
         console.error('Error adding album relation:', error);

@@ -7,6 +7,10 @@ import { revalidatePath } from 'next/cache';
 import { InstrumentSchema } from '@/lib/schemas';
 import { escapeRegExp } from '@/lib/utils';
 import { checkRateLimit, getRateLimitKey } from '@/lib/rate-limit';
+import InstrumentArtist from '@/models/InstrumentArtist';
+import InstrumentAlbum from '@/models/InstrumentAlbum';
+import CatalogMetadata from '@/models/CatalogMetadata';
+import MusicAlbum from '@/models/MusicAlbum';
 
 // Helper to sanitize Mongoose documents for client
 function sanitize(doc: Record<string, any>) {
@@ -77,6 +81,20 @@ export async function createInstrument(data: FormData) {
             };
         }
 
+        const rawMarketValue = data.get('marketValue') ? JSON.parse(data.get('marketValue') as string) : undefined;
+        // Sanitize numeric fields in marketValue
+        if (rawMarketValue) {
+            if (rawMarketValue.original) {
+                if (rawMarketValue.original.price) rawMarketValue.original.price = Number(rawMarketValue.original.price);
+                if (rawMarketValue.original.year) rawMarketValue.original.year = Number(rawMarketValue.original.year);
+            }
+            if (rawMarketValue.current) {
+                if (rawMarketValue.current.value) rawMarketValue.current.value = Number(rawMarketValue.current.value);
+                if (rawMarketValue.current.min) rawMarketValue.current.min = Number(rawMarketValue.current.min);
+                if (rawMarketValue.current.max) rawMarketValue.current.max = Number(rawMarketValue.current.max);
+            }
+        }
+
         const rawData = {
             type: data.get('type'),
             subtype: data.get('subtype')?.toString() || undefined,
@@ -92,10 +110,15 @@ export async function createInstrument(data: FormData) {
             genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
             relatedTo: data.get('relatedTo') ? JSON.parse(data.get('relatedTo') as string) : [],
+            marketValue: rawMarketValue,
+            reverbUrl: data.get('reverbUrl')?.toString() || undefined,
 
             // Musical Context
             artists: data.get('artists') ? JSON.parse(data.get('artists') as string) : [],
-            albums: data.get('albums') ? JSON.parse(data.get('albums') as string) : [],
+            albums: data.get('albums') ? (JSON.parse(data.get('albums') as string) as any[]).map(a => ({
+                ...a,
+                year: a.year ? Number(a.year) : undefined
+            })) : [],
 
             // Variants
             parentId: data.get('parentId')?.toString() || undefined,
@@ -103,8 +126,7 @@ export async function createInstrument(data: FormData) {
             excludedImages: data.get('excludedImages') ? JSON.parse(data.get('excludedImages') as string) : [],
             isBaseModel: data.get('isBaseModel') === 'true',
 
-            // Force PENDING/DRAFT for all new submissions via this action to prevent accidental spam/fakes
-            // Even admins should review their "Magic Imports" before publishing.
+            // Force PENDING/DRAFT for all new submissions
             status: data.get('status')?.toString() || 'pending',
             statusHistory: [{
                 status: data.get('status')?.toString() || 'pending',
@@ -436,9 +458,36 @@ export async function getInstrumentById(id: string) {
         // Enforce uniqueness in hierarchy to prevent React duplicate key errors
         const uniqueHierarchy = Array.from(new Map(hierarchy.map((item: any) => [item._id.toString(), item])).values());
 
+        // Fetch confirmed relationships (InstrumentArtist, InstrumentAlbum)
+        const [artistRelations, albumRelations] = await Promise.all([
+            InstrumentArtist.find({ instrumentId: id }).populate('artistId').lean(),
+            InstrumentAlbum.find({ instrumentId: id }).populate('albumId').lean()
+        ]);
+
+        // Map relationships to the same format as internal AI-detected fields
+        const confirmedArtists = artistRelations.map((rel: any) => ({
+            _id: rel._id.toString(),
+            name: rel.artistId?.label || 'Artista Desconocido',
+            key: rel.artistId?.key || '',
+            assetUrl: rel.artistId?.assetUrl,
+            yearsUsed: rel.yearsUsed,
+            notes: rel.notes
+        }));
+
+        const confirmedAlbums = albumRelations.map((rel: any) => ({
+            _id: rel._id.toString(),
+            title: rel.albumId?.title || 'Álbum Desconocido',
+            artist: rel.albumId?.artist || 'Varios',
+            year: rel.albumId?.year,
+            coverImage: rel.albumId?.coverImage,
+            notes: rel.notes
+        }));
+
         // Safe return (ensure full serialization)
         const safeResult = JSON.parse(JSON.stringify({
             ...effectiveInstrument,
+            artists: confirmedArtists, // OVERWRITE internal artists with confirmed ones
+            albums: confirmedAlbums,   // OVERWRITE internal albums with confirmed ones
             _hierarchy: uniqueHierarchy,
             _variants: variants
         }));
@@ -459,6 +508,20 @@ export async function updateInstrument(id: string, data: FormData) {
 
         await dbConnect();
 
+        const rawMarketValue = data.get('marketValue') ? JSON.parse(data.get('marketValue') as string) : undefined;
+        // Sanitize numeric fields in marketValue
+        if (rawMarketValue) {
+            if (rawMarketValue.original) {
+                if (rawMarketValue.original.price) rawMarketValue.original.price = Number(rawMarketValue.original.price);
+                if (rawMarketValue.original.year) rawMarketValue.original.year = Number(rawMarketValue.original.year);
+            }
+            if (rawMarketValue.current) {
+                if (rawMarketValue.current.value) rawMarketValue.current.value = Number(rawMarketValue.current.value);
+                if (rawMarketValue.current.min) rawMarketValue.current.min = Number(rawMarketValue.current.min);
+                if (rawMarketValue.current.max) rawMarketValue.current.max = Number(rawMarketValue.current.max);
+            }
+        }
+
         const rawUpdateData = {
             type: data.get('type'),
             subtype: data.get('subtype')?.toString() || undefined,
@@ -475,7 +538,7 @@ export async function updateInstrument(id: string, data: FormData) {
             documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
 
             relatedTo: data.get('relatedTo') ? JSON.parse(data.get('relatedTo') as string) : [],
-            marketValue: data.get('marketValue') ? JSON.parse(data.get('marketValue') as string) : undefined,
+            marketValue: rawMarketValue,
 
             // Variants
             parentId: data.get('parentId')?.toString() || undefined,
@@ -484,8 +547,13 @@ export async function updateInstrument(id: string, data: FormData) {
             isBaseModel: data.get('isBaseModel') === 'true',
             status: data.get('status'),
             artists: data.get('artists') ? JSON.parse(data.get('artists') as string) : undefined,
-            albums: data.get('albums') ? JSON.parse(data.get('albums') as string) : undefined,
+            albums: data.get('albums') ? (JSON.parse(data.get('albums') as string) as any[]).map(a => ({
+                ...a,
+                year: a.year ? Number(a.year) : undefined
+            })) : undefined,
+            reverbUrl: data.get('reverbUrl')?.toString() || undefined,
         };
+
 
         // Remove undefined fields
         Object.keys(rawUpdateData).forEach(key => (rawUpdateData as Record<string, any>)[key] === undefined && delete (rawUpdateData as Record<string, any>)[key]);

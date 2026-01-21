@@ -12,16 +12,27 @@ interface ShowroomGridItemProps {
 
 export default function ShowroomGridItem({ item, isDark, privacy }: ShowroomGridItemProps) {
     const collectionData = item.collectionId || {};
-    const instrument = collectionData.instrumentId || {};
+    const itemType = item.itemType || 'instrument';
+
+    // Polymorphic Metadata Extraction
+    const isMusic = itemType === 'music';
+    const instrument = !isMusic ? (collectionData.instrumentId || {}) : null;
+    const album = isMusic ? (collectionData.albumId || {}) : null;
+
+    const title = isMusic ? album?.title : instrument?.model;
+    const subtitle = isMusic ? album?.artist : instrument?.brand;
+    const year = isMusic ? album?.year : instrument?.year;
+    const badge = isMusic ? 'Música' : instrument?.type?.replace('_', ' ');
+
+    // Slides
     const slides = item.slides && item.slides.length > 0 ? item.slides : [];
+    const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
+    const currentSlide = slides.length > 0 ? slides[currentSlideIndex] : null;
 
     // Fallback main image if no slides
-    const mainImage = collectionData.userImages?.[0]?.url || instrument.genericImages?.[0];
-
-    const [currentSlideIndex, setCurrentSlideIndex] = useState(0);
-
-    // Determines what to show in the media area
-    const currentSlide = slides.length > 0 ? slides[currentSlideIndex] : null;
+    const fallbackImage = isMusic
+        ? album?.coverImage
+        : (collectionData.userImages?.[0]?.url || instrument?.genericImages?.[0]);
 
     const handleNext = (e: React.MouseEvent) => {
         e.preventDefault();
@@ -38,7 +49,7 @@ export default function ShowroomGridItem({ item, isDark, privacy }: ShowroomGrid
     return (
         <div className="group space-y-6">
             {/* Image Card / Slide Player */}
-            <div className={`aspect-[4/5] relative rounded-[2rem] overflow-hidden ${isDark ? 'bg-white/5' : 'bg-black/5'}`}>
+            <div className={`aspect-[4/5] relative rounded-[2rem] overflow-hidden ${isDark ? 'bg-white/5' : 'bg-black/5'} shadow-xl`}>
 
                 {/* 1. Slide View */}
                 {currentSlide ? (
@@ -46,7 +57,7 @@ export default function ShowroomGridItem({ item, isDark, privacy }: ShowroomGrid
                         {currentSlide.type === 'image' && (
                             <Image
                                 src={currentSlide.url}
-                                alt={currentSlide.caption || instrument.model}
+                                alt={currentSlide.caption || title || 'Slide'}
                                 fill
                                 className="object-cover transition-transform duration-700"
                             />
@@ -60,11 +71,11 @@ export default function ShowroomGridItem({ item, isDark, privacy }: ShowroomGrid
                         )}
                     </>
                 ) : (
-                    /* 2. Legacy Fallback View */
-                    mainImage ? (
+                    /* 2. Fallback View */
+                    fallbackImage ? (
                         <Image
-                            src={mainImage}
-                            alt={instrument.model || 'Instrumento'}
+                            src={fallbackImage}
+                            alt={title || 'Item'}
                             fill
                             className="object-cover transition-transform duration-700 group-hover:scale-105"
                         />
@@ -75,11 +86,11 @@ export default function ShowroomGridItem({ item, isDark, privacy }: ShowroomGrid
                     )
                 )}
 
-                {/* Overlay Type Badge (Only on first slide/cover) */}
-                {((!currentSlide && mainImage) || currentSlideIndex === 0) && (
+                {/* Overlay Type Badge */}
+                {((!currentSlide && fallbackImage) || currentSlideIndex === 0) && (
                     <div className="absolute top-4 left-4 pointer-events-none">
-                        <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider backdrop-blur-md ${isDark ? 'bg-white/10 text-white' : 'bg-black/80 text-white'}`}>
-                            {instrument.type?.replace('_', ' ')}
+                        <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider backdrop-blur-md ${isDark ? 'bg-white/10 text-white' : 'bg-black/80 text-white'}`}>
+                            {badge}
                         </span>
                     </div>
                 )}
@@ -110,20 +121,20 @@ export default function ShowroomGridItem({ item, isDark, privacy }: ShowroomGrid
             {/* Text Info */}
             <div className="space-y-3">
                 <div>
-                    <h3 className="text-2xl font-bold leading-tight">{instrument.model}</h3>
-                    <p className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{instrument.brand}</p>
+                    <h3 className="text-2xl font-bold leading-tight line-clamp-2">{title}</h3>
+                    <p className={`font-medium ${isDark ? 'text-gray-400' : 'text-gray-500'}`}>{subtitle}</p>
                 </div>
 
                 {/* Specs / Details */}
-                <div className={`flex flex-wrap gap-4 text-sm ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
-                    {instrument.year && (
+                <div className={`flex flex-wrap gap-4 text-xs ${isDark ? 'text-gray-500' : 'text-gray-400'}`}>
+                    {year && (
                         <span className="flex items-center gap-1.5">
-                            <Calendar size={14} /> {instrument.year}
+                            <Calendar size={14} /> {year}
                         </span>
                     )}
                     {privacy?.showSerialNumbers && collectionData.serialNumber && (
                         <span className="flex items-center gap-1.5">
-                            <Tag size={14} /> S/N: {collectionData.serialNumber}
+                            <Tag size={14} /> {isMusic ? 'Edition' : 'S/N'}: {collectionData.serialNumber}
                         </span>
                     )}
                     {privacy?.showStatus && collectionData.status && (

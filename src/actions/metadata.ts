@@ -4,6 +4,7 @@ import dbConnect from '@/lib/db';
 import CatalogMetadata, { ICatalogMetadata } from '@/models/CatalogMetadata';
 import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
+import { enrichArtistMetadata } from '@/lib/music/enrichment';
 
 // Helper to sanitize Mongoose documents
 function sanitize(doc: any) {
@@ -71,10 +72,25 @@ export async function upsertMetadata(data: Partial<ICatalogMetadata>) {
         await dbConnect();
 
         // Ensure label is present, default to key if not
-        const updateData = {
+        let updateData = {
             ...data,
             label: data.label || data.key
         };
+
+        // If it's an artist and it's new (key doesn't exist yet) or has no images, enrich it
+        if (data.type === 'artist') {
+            const existing = await CatalogMetadata.findOne({ type: 'artist', key: data.key });
+            if (!existing || (!existing.images?.length && !data.images?.length)) {
+                console.log(`🔍 Enriching artist metadata for: ${data.label || data.key}`);
+                const enrichment = await enrichArtistMetadata(data.label || data.key);
+                updateData = {
+                    ...updateData,
+                    assetUrl: data.assetUrl || enrichment.assetUrl,
+                    images: data.images?.length ? data.images : enrichment.images,
+                    description: data.description || enrichment.description
+                };
+            }
+        }
 
         const result = await CatalogMetadata.findOneAndUpdate(
             { type: data.type, key: data.key },
@@ -107,6 +123,48 @@ export async function deleteMetadata(id: string) {
 
         return { success: true };
     } catch (error: any) {
+        return { success: false, error: error.message };
+    }
+}
+
+export async function refreshArtistMetadata(id: string) {
+    try {
+        const session = await auth();
+        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
+            throw new Error('Unauthorized');
+        }
+
+        await dbConnect();
+        const artist = await CatalogMetadata.findById(id);
+        if (!artist || artist.type !== 'artist') {
+            throw new Error('Artist not found');
+        }
+
+        console.log(`🔄 Refreshing Discogs data for artist: ${artist.label}`);
+        const enrichment = await enrichArtistMetadata(artist.label);
+
+        if (enrichment.images.length > 0 || enrichment.description) {
+            // Merge images, prefer new ones but keep existing if they were manual?
+            // Actually, Discogs refresh usually means "get me the latest/better ones".
+            // We rotate images: new Discogs images first.
+
+            const updated = await CatalogMetadata.findByIdAndUpdate(id, {
+                $set: {
+                    images: enrichment.images,
+                    assetUrl: enrichment.assetUrl || artist.assetUrl,
+                    description: artist.description && !artist.description.includes('Auto-created')
+                        ? artist.description // Keep manual description
+                        : enrichment.description || artist.description
+                }
+            }, { new: true });
+
+            revalidatePath('/dashboard/admin/metadata');
+            return { success: true, data: sanitize(updated) };
+        }
+
+        return { success: false, error: 'No se encontraron datos nuevos en Discogs' };
+    } catch (error: any) {
+        console.error('Refresh Artist Error:', error);
         return { success: false, error: error.message };
     }
 }

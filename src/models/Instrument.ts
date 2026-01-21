@@ -32,6 +32,7 @@ const InstrumentSchema = new Schema({
         url: { type: String, required: true },
         isPrimary: { type: Boolean, default: false }
     }],
+    reverbUrl: { type: String },
     genericImages: [{ type: String }], // URLs to images
 
     // Documentation

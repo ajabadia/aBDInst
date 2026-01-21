@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { Music2, Users, Disc3, Edit, Save, X, Plus, Search, Loader2 } from 'lucide-react';
@@ -59,6 +59,15 @@ export default function MusicalContextSection({
     const [albums, setAlbums] = useState(initialAlbums);
     const [isSaving, setIsSaving] = useState(false);
     const router = useRouter();
+
+    // Sync state with props (Synchronization Fix)
+    useEffect(() => {
+        setArtists(initialArtists);
+    }, [initialArtists]);
+
+    useEffect(() => {
+        setAlbums(initialAlbums);
+    }, [initialAlbums]);
 
     // Manager State
     const [showManager, setShowManager] = useState(false);
@@ -142,6 +151,36 @@ export default function MusicalContextSection({
                 )}
             </div>
 
+            {/* Management Toolbar (Unified UI) */}
+            {isEditing && (
+                <div className="flex flex-wrap gap-2 mb-6 p-2 bg-white/50 dark:bg-black/20 rounded-xl border border-black/5 dark:border-white/5">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Plus}
+                        onClick={() => {
+                            setManagerType('artist');
+                            setShowManager(true);
+                        }}
+                        className="text-ios-blue hover:text-ios-blue hover:bg-ios-blue/10"
+                    >
+                        Añadir Artista
+                    </Button>
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        icon={Plus}
+                        onClick={() => {
+                            setManagerType('album');
+                            setShowManager(true);
+                        }}
+                        className="text-ios-blue hover:text-ios-blue hover:bg-ios-blue/10"
+                    >
+                        Añadir Álbum
+                    </Button>
+                </div>
+            )}
+
             {/* Content */}
             {!hasContent && !isEditing ? (
                 <div className="text-center py-12 border-2 border-dashed border-gray-200 dark:border-gray-700 rounded-2xl">
@@ -166,28 +205,14 @@ export default function MusicalContextSection({
                 <div className="space-y-8">
                     {/* Artists Section */}
                     <div>
-                        <div className="flex items-center justify-between mb-4">
-                        </div>
-                        {isEditing && (
-                            <button
-                                type="button"
-                                onClick={() => {
-                                    setManagerType('artist');
-                                    setShowManager(true);
-                                }}
-                                className="text-xs font-bold text-ios-blue hover:underline flex items-center gap-1"
-                            >
-                                <Plus size={12} /> Añadir Artista
-                            </button>
-                        )}
                     </div>
 
                     {artists.length > 0 ? (
                         <div className="flex flex-wrap gap-3">
                             <AnimatePresence mode="popLayout">
-                                {artists.map((artist) => (
+                                {artists.map((artist, idx) => (
                                     <ArtistPill
-                                        key={artist._id}
+                                        key={artist._id || idx}
                                         artist={artist}
                                         isEditing={isEditing}
                                         onRemove={() => handleRemoveArtist(artist._id)}
@@ -208,18 +233,6 @@ export default function MusicalContextSection({
                                     ÁLBUMES {albums.length > 0 && `(${albums.length})`}
                                 </h4>
                             </div>
-                            {isEditing && (
-                                <button
-                                    type="button"
-                                    onClick={() => {
-                                        setManagerType('album');
-                                        setShowManager(true);
-                                    }}
-                                    className="text-xs font-bold text-ios-blue hover:underline flex items-center gap-1"
-                                >
-                                    <Plus size={12} /> Añadir Álbum
-                                </button>
-                            )}
                         </div>
 
                         {albums.length > 0 ? (

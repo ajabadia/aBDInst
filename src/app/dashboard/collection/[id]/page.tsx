@@ -20,8 +20,10 @@ import {
     Clock,
     Coins,
     Calendar,
-    FileText
+    FileText,
+    TrendingUp
 } from 'lucide-react';
+import MarketInsights from '@/components/instruments/MarketInsights';
 import { cn } from '@/lib/utils';
 import SellButton from '@/components/market/SellButton';
 
@@ -178,6 +180,18 @@ export default async function EditItemPage({ params }: { params: Promise<{ id: s
                                         collectionItemId={item._id}
                                         resources={resources}
                                         canEdit={true}
+                                    />
+                                </div>
+                            </Tab>
+                            <Tab label="Mercado" icon={<TrendingUp />}>
+                                <div className="p-6">
+                                    <div className="flex items-center gap-2 mb-8 text-ios-green">
+                                        <TrendingUp size={20} />
+                                        <h3 className="text-lg font-bold">Valor de Mercado y Tendencias</h3>
+                                    </div>
+                                    <MarketInsights
+                                        query={`${instrument.brand} ${instrument.model}`}
+                                        instrumentId={instrument._id || instrument.id}
                                     />
                                 </div>
                             </Tab>

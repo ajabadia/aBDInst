@@ -73,10 +73,13 @@
 - [ ] **Catalog Analytics (Admin)**: Count instruments by ALL metadata categories (Brand, Type, Artist, and Decade).
   - [ ] **Stats Dashboard**: Visualize distribution and density of the collection.
   - [ ] **Dynamic Counts**: Show counts in filters and administrative lists.
-
+        4. **"Silent" Deep Enrichment**: Automatically fetch and persist missing specs when a user views an instrument (Lazy Enrichment).
+        5. **Specs Pro UX Refinement**: 
+            - Relocate the manual enrichment trigger from "Market" to "Specifications" to better align with user mental models.
+            - Enhance `MagicImporter` with clear labeling and structured guidance for "Specs Pro" mode, distinguishing it from general AI analysis.
+        6. **Automated Sync (Cron Jobs)**:
 #### Phase 2: N-M Relationships (Pivot Tables)
 - [ ] **`InstrumentArtist`**: Link instruments to artists (e.g., "Kraftwerk used this Minimoog").
-  - [ ] **Artist Metadata Enrichment**: Automatically fetch artist logos/images from Discogs API when creating relationships.
   - Fields: `instrumentId`, `artistId`, `notes`, `yearsUsed`, `isVerified`.
 - [ ] **`InstrumentAlbum`**: Link instruments to albums (e.g., "This bass on 'Dark Side of the Moon'").
   - Fields: `instrumentId`, `albumId`, `notes`, `tracks[]`, `isVerified`.
@@ -105,13 +108,15 @@
   - **Issue**: Some existing artists in the catalog are not appearing in the search results.
   - **Resolution**: Code logic is correct. Missing artists were due to missing database entries or incorrect `type`.
 
-#### Phase 4: Showroom Integration
-- [ ] **Polymorphic Showrooms**: Mix instruments AND albums in same showroom ✅ DONE.
-- [ ] **Relationship Display**: Show artist/album info in instrument slides.
-- [ ] **Smart Slides**: Auto-generate "Used in [Album] by [Artist]" slides.
-- [ ] **PDF Export**: Include Musical Context info in the generated Instrument Spec Sheet (PDF).
-- [ ] **Fix**: Musical Context modal closing unexpectedly in form.
-- [ ] **Fix**: Serialization error on Metadata Page (Buffer objects).
+#### Phase 6: Metadata Enrichment & Catalog Pages
+- [ ] **Rich Metadata Profiles**: Create dedicated landing pages for Artists, Decades, Types, and Brands.
+- [ ] **Data Enrichment**: Fetch and display historical data, images/logos, and biographies for these entities.
+- [ ] **Public Exposure**: Design a strategy to make these profiles public to create a "Wikipedia of Gear".
+- [ ] **Catalog Statistics**:
+  - [ ] Global/Specific item counts.
+  - [ ] Distribution by Brand/Type.
+  - [ ] Correlation between Artists and Decades.
+- [ ] **Association Grids**: Show a visual grid of all instruments and albums linked to the specific metadata entity.
 
 ### 3. Advanced Features
 - [ ] **Verification System**: Mark relationships as "verified" (admin) vs "user-submitted".
@@ -131,15 +136,12 @@
   - Single source of truth for Discogs/Spotify integration
 
 ### Pending DRY Refactoring 🚧
-- [ ] **Unified Media Manager** (`@/lib/media/`)
-  - **Concept**: Single centralized module for all image and asset operations (DRY).
-  - **Coverage**: Apply to Instruments, Metadata (Artists/Brands), Showroom Slides, Avatars, Badges, and Music.
+- [x] **Unified Media Manager**
+  - **Status**: Implemented in `@/lib/media/MediaManager.ts` and `@/components/media/MediaLibrary.tsx` ✅
   - **Features**:
-    - `mediaEngine.upload()`: Unified handler for Cloudinary/Local/S3.
-    - `mediaEngine.optimize()`: Auto-resizing, WebP conversion, and SVG sanitization.
-    - `MediaLibrary`: A "Gallery" component to reuse previously uploaded images across the app.
-    - `PrimarySelector`: Reusable logic/UI for selecting the primary image in any collection.
-    - `ExternalEnricher`: Standardized logic to pull images from Discogs, Spotify, or Web Scrapers.
+    - Centralized `Media` model for all uploads.
+    - Reusable `MediaLibrary` gallery component.
+    - Automatic registration of uploads from all sources.
 
 - [ ] **Unified PDF Generation Module** (`@/lib/pdf/`)
   - **Concept**: Centralize PDF creation using `jsPDF` or `React-PDF`.
@@ -167,14 +169,15 @@
   - Centralize role-based access control
   - Currently duplicated in multiple server actions
 
-- [ ] **Unified AI Service** (`@/lib/ai/`)
-  - **Concept**: Centralize all AI-related logic (Prompts, Parsing, Retries, and JSON extraction).
-  - **Coverage**: Magic Import (Instruments), AI Writer (Blog/Notes), Market Scraper, and Music Detection.
-  - **Features**:
-    - `aiEngine.generateJSON()`: Reusable logic to enforce structured outputs and handle sanitization.
-    - `aiEngine.getDynamicPrompt()`: Unified retrieval from System Config.
-    - `aiEngine.parseMarkdownJSON()`: Extract JSON from AI markdown blocks (fix common AI quirks).
-    - `PromptVersioning`: Track and rollback prompt changes centrally.
+- [x] **Unified AI Service** (`@/actions/ai.ts`) ✅
+  - **Status**: Centralized Service active using Gemini 2.0 Flash.
+  - **Capabilities**:
+    - `analyzeInstrumentImage`: Vision analysis for identification.
+    - `analyzeInstrumentText`: Text-based appraisal.
+    - `analyzeInstrumentUrl`: Smart scraping with fallback to AI inference.
+    - `generateBlogContent`: AI Writer for content generation.
+    - `getMarketInsight`: Financial sentiment analysis.
+  - **Integration**: Used in Magic Importer, Scraper, and Blog.
 
 ### Benefits of DRY Refactoring:
 - 🎯 Easier maintenance (fix once, apply everywhere)
@@ -184,10 +187,69 @@
 
 ---
 
-## 🧠 Research & Best Practices (Ongoing)
+- [ ] **Market Intelligence & Data Enrichment (V4)**:
+    - **Goal**: Implement a unified engine to enrich the catalog using official APIs (Reverb, eBay, Mercado Libre, Synthesizer-API) and manufacturer CDNs.
+    - **Consolidated API Sources**:
+        - **Reverb API (Global Primary)**: Full category coverage (Synths, Drum Machines, Samplers, Interfaces, Pedals). 10k/day rate limit.
+        - **eBay Browse API**: Professional listings and high-res imagery via standardized category IDs.
+        - **Mercado Libre API**: Essential for Spanish (and LATAM) market context.
+        - **Synthesizer-API**: Technical specs for 800+ models with Cloudinary multi-res images.
+        - **Manufacturer CDNs**: Automated asset discovery for **Roland, Korg, Moog, Elektron, Akai, Yamaha**.
+    - **Architecture & Implementation Strategy**:
+        1. **Unified Enrichment Service**: Implement `enrichInstrumentData(type, brand, model)` to aggregate data from all sources in parallel.
+        2. **Multi-Category Mapping**: Logic to map internal types to specific platform categories.
+        3. **Instrument-Level Caching**: Centralized `marketValue` and technical spec snapshots with a 12h-24h TTL stored in the `Instrument` model.
+        4. **Specs Pro Refinement**: 
+            - Move manual enrichment trigger to the **Especificaciones Técnicas** tab.
+            - Enhance **MagicImporter** UI with specific instructions for "Specs Pro" mode.
+        5. **Automated Sync (Cron)**: 
+            - Weekly full-catalog refresh for technical metadata.
+            - Daily market price analysis and history storage in `PriceHistory`.
+        6. **High-Resolution Media Pipeline**: Automated prioritization of Official > API > Marketplace imagery.
+- [ ] **Market Dashboard**: Visualize price trends, rarity index, and platform comparisons across all equipment categories.
 - [ ] **UX Patterns**: Study "Digital Museum" kiosks (bitesize content, high contrast, storytelling).
 - [ ] **Audio/Video**: Explore adding audio clips (instrument samples) or video (performances) to slides.
-- [ ] **Performance**: Evaluate lazy-loading strategies for heavy media showrooms.
+- [ ] **Performance**: Evaluate lazy-loading strategies for every heavy media showrooms.
+
+---
+
+## 🔔 Phase 5: Notification & Communication System
+*Goal: Keep users informed and engaged via multiple channels.*
+
+### 1. Email Infrastructure 🚧 IN PROGRESS
+- [x] **SMTP Configuration**: `SmtpSettingsForm` for configuring distinct channels (Transactional, Alerts, Marketing).
+- [x] **Template Engine**: `EmailTemplatesManager` for editing HTML templates directly in the dashboard.
+- [ ] **Alerts & Triggers**:
+  - **Price Alerts**: Notify when a watched instrument drops in price (Reverb/eBay integration).
+  - **System Errors**: Auto-email admins on critical server failures (500 errors).
+  - **Maintenance Reminders**: Weekly summary of instruments needing restringing or service.
+
+### 2. In-App Notifications
+- [ ] **Notification Center**: Bell icon with unread count.
+- [ ] **Activity Feed**: "User X liked your showroom", "New item added to collection you follow".
+
+---
+
+## 💰 Phase 6: Finance & Asset Management
+*Goal: Turn the collection into a managed asset portfolio.*
+
+### 1. Valuation & Insurance
+- [ ] **Depreciation/Appreciation Curves**: Visualize value trends over time (Linear, Declining Balance).
+- [x] **Insurance Management** (`Insurance` model):
+  - [x] **Data Model**: Policies, Coverage, Expiration.
+  - [ ] **UI**: dedicated Insurance dashboard tab.
+  - **Claims Assistant**: Generate a "Loss Report" PDF with photos and values for insurers.
+- [x] **Price Alerts** (`PriceAlert` model): Logic to track target prices.
+- [ ] **Total Portfolio Value**: Real-time dashboard of total collection equity based on current market data.
+
+### 2. Compliance & Verification (Blockchain) 🔮
+*Concept: Immutable proof of ownership and authenticity.*
+- [ ] **Provenance Tree**: Digital genealogy tracking previous owners.
+- [ ] **Ownership Certificates (NFTs)**:
+  - **Minting**: Generate an immutable record on a Layer-2 network (Polygon/Optimism) for high-value items.
+  - **Transfer**: Securely transfer digital ownership when physically selling the instrument.
+- [ ] **Indicia & UBO Scanning**: (Compliance specific) Tools to verify Ultimate Beneficial Owners for high-value transactions.
+
 
 ---
 
@@ -213,15 +275,20 @@
     *   **Attribution**: "Lent by [User]" label and dynamic watermarking for borrowed items.
     *   **Catalog Placeholders**: Use "Master Catalog Records" as educational references if the item is missing.
 *   **Shared Showrooms**: "Curator in Chief" invites collaborators.
-*   **Duplicate/Fork Showroom**: Allow users to duplicate their own showrooms or "Fork" public showrooms (if allowed) to remix them.
+*   **Duplicate/Fork Showroom**: Allow users to duplicate their own showrooms or "Fork" public showrooms.
 *   **Internal Tools**: "Assembly Chat" for curation discussions.
 
-### 3. Gamification (Contests & Hall of Fame)
-*   **Thematic Contests**: Monthly themes (e.g., "60s Guitars", "Prog Rock Vinyls").
-*   **Submit Entry**: Allow users to submit an existing showroom (or specific items) to an active contest.
-*   **Voting System**: Anti-spam voting, categories ("Rarest", "Best Condition").
-*   **Hall of Fame**: Permanent archive of winning showrooms.
-*   **Profile Trophies**: user-selectable "Main Badge" next to avatar (e.g., "Curator of the Month").
+### 3. Gamification & Community 🚧 IN PROGRESS
+*   **Thematic Contests** (`Exhibition` models):
+    *   [x] **Models**: `Exhibition`, `ExhibitionSubmission`, `ExhibitionVote`.
+    *   [ ] **UI**: Contest listing and submission flow.
+*   **Badges System** (`Badge` models):
+    *   [x] **Infrastructure**: `Badge`, `UserBadge` models and `BadgeManager` UI.
+    *   [x] **Seed Script**: `seedBadges.ts`.
+    *   [ ] **Triggers**: Auto-award badges based on activity.
+*   **Blog/Content**:
+    *   [x] **Models**: `Article`, `FeaturedContent`, `Comment`.
+    *   [ ] **Public Blog**: View for curated content.
 
 ### 4. Technical & UX Refinements
 *   **Autoplay Mode (TV Style)**: "Play All" button that cycles through slides and audio automatically.

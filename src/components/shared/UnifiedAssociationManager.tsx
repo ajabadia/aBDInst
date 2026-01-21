@@ -64,15 +64,33 @@ export default function UnifiedAssociationManager({ entityType, onSelect, onCanc
 
     // Handle External Search (Auto-Enrichment)
     useEffect(() => {
-        if (debouncedExternalQuery && mode === 'create' && entityType === 'artist') {
-            performExternalSearch();
+        if (debouncedExternalQuery && mode === 'create') {
+            if (entityType === 'artist') {
+                performExternalArtistSearch();
+            } else {
+                performExternalAlbumSearch();
+            }
         }
     }, [debouncedExternalQuery]);
 
-    const performExternalSearch = async () => {
+    const performExternalArtistSearch = async () => {
         setSearchingExternal(true);
         const res = await searchArtistExternal(debouncedExternalQuery);
         if (res.success) setExternalResults(res.data || []);
+        setSearchingExternal(false);
+    };
+
+    const performExternalAlbumSearch = async () => {
+        setSearchingExternal(true);
+        const res = await searchMusic(debouncedExternalQuery);
+        if (res.success) {
+            // Combine Discogs and Spotify results for the picker
+            const combined = [
+                ...(res.discogs || []).map((d: any) => ({ ...d, source: 'discogs' })),
+                ...(res.spotify || []).map((s: any) => ({ ...s, source: 'spotify' }))
+            ];
+            setExternalResults(combined);
+        }
         setSearchingExternal(false);
     };
 
@@ -135,6 +153,34 @@ export default function UnifiedAssociationManager({ entityType, onSelect, onCanc
         setExternalResults([]);
         setExternalQuery('');
         toast.info('Datos importados de Discogs. Revisa y guarda.');
+    };
+
+    const handleImportAlbum = async (album: any) => {
+        setLoading(true);
+        const source = album.source || (album.uri?.includes('spotify') ? 'spotify' : 'discogs');
+        const id = album.id?.toString() || album.uri?.split(':').pop();
+
+        if (!id) {
+            toast.error('No se pudo determinar el ID del álbum');
+            setLoading(false);
+            return;
+        }
+
+        const res = await importAlbum(source as 'discogs' | 'spotify', id);
+
+        if (res.success) {
+            toast.success('Álbum importado y guardado');
+            // Re-fetch local data to include the new album
+            await loadLocalData();
+            setMode('search');
+            setExternalQuery('');
+            setExternalResults([]);
+            // Optionally select it automatically
+            if (res.data) onSelect(res.data);
+        } else {
+            toast.error('Error al importar álbum: ' + res.error);
+        }
+        setLoading(false);
     };
 
     return (
@@ -228,18 +274,18 @@ export default function UnifiedAssociationManager({ entityType, onSelect, onCanc
                 </div>
             )}
 
-            {/* Mode: Create Artist */}
-            {mode === 'create' && entityType === 'artist' && (
+            {/* Mode: Create (Artist or Album) */}
+            {mode === 'create' && (
                 <div className="p-6 space-y-6 overflow-y-auto">
-                    {/* Auto-Enrichment Search */}
+                    {/* Auto-Enrichment Search (Unified for Artist/Album) */}
                     <div className="bg-ios-blue/5 border border-ios-blue/10 rounded-2xl p-4 space-y-3">
                         <label className="text-xs font-bold text-ios-blue uppercase tracking-wider flex items-center gap-2">
-                            <Globe size={12} /> Importar desde Discogs (Recomendado)
+                            <Globe size={12} /> {entityType === 'artist' ? 'Importar Artista desde Discogs' : 'Importar Álbum desde Discogs/Spotify'}
                         </label>
                         <div className="relative">
                             <input
                                 type="text"
-                                placeholder="Escribe el nombre del artista para buscar..."
+                                placeholder={entityType === 'artist' ? "Escribe el nombre del artista..." : "Escribe el título del álbum o artista..."}
                                 className="w-full px-4 py-2 bg-white dark:bg-black/20 border border-ios-blue/20 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-ios-blue"
                                 value={externalQuery}
                                 onChange={(e) => setExternalQuery(e.target.value)}
@@ -249,19 +295,37 @@ export default function UnifiedAssociationManager({ entityType, onSelect, onCanc
 
                         {/* External Results Dropdown */}
                         {externalResults.length > 0 && (
-                            <div className="max-h-40 overflow-y-auto bg-white dark:bg-gray-800 rounded-xl border border-black/5 shadow-lg mt-2">
+                            <div className="max-h-60 overflow-y-auto bg-white dark:bg-gray-800 rounded-xl border border-black/5 shadow-lg mt-2">
                                 {externalResults.map(res => (
                                     <button
                                         type="button"
-                                        key={res.id}
-                                        onClick={() => handleSelectExternalArtist(res)}
-                                        className="w-full text-left px-4 py-2 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-3 border-b border-gray-100 dark:border-white/5 last:border-0"
+                                        key={res.id || res.uri}
+                                        onClick={() => {
+                                            if (entityType === 'artist') {
+                                                handleSelectExternalArtist(res);
+                                            } else {
+                                                handleImportAlbum(res);
+                                            }
+                                        }}
+                                        className="w-full text-left px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-3 border-b border-gray-100 dark:border-white/5 last:border-0"
                                     >
-                                        <div className="w-8 h-8 rounded bg-gray-200 overflow-hidden flex-shrink-0">
-                                            {res.thumb ? <img src={res.thumb} className="w-full h-full object-cover" /> : <Globe size={12} />}
+                                        <div className="w-10 h-10 rounded bg-gray-200 overflow-hidden flex-shrink-0">
+                                            {(res.thumb || res.images?.[0]?.url) ? (
+                                                <img src={res.thumb || res.images?.[0]?.url} className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-gray-400">
+                                                    {entityType === 'artist' ? <Users size={16} /> : <Disc3 size={16} />}
+                                                </div>
+                                            )}
                                         </div>
-                                        <div>
-                                            <p className="text-xs font-bold text-gray-900 dark:text-gray-100">{res.title}</p>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-xs font-bold text-gray-900 dark:text-gray-100 truncate">{res.title || res.name}</p>
+                                            <p className="text-[10px] text-gray-500 truncate">
+                                                {entityType === 'artist' ? 'Artista' : (res.artist || res.artists?.[0]?.name || 'Álbum')}
+                                            </p>
+                                        </div>
+                                        <div className="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 dark:bg-white/10 text-gray-500 uppercase">
+                                            {res.uri?.includes('spotify') ? 'Spotify' : 'Discogs'}
                                         </div>
                                     </button>
                                 ))}
@@ -269,59 +333,72 @@ export default function UnifiedAssociationManager({ entityType, onSelect, onCanc
                         )}
                     </div>
 
-                    <div className="space-y-4">
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold">Nombre del Artista</label>
-                                <input
-                                    type="text"
-                                    className="apple-input-field"
-                                    value={newItem.name}
-                                    onChange={e => setNewItem({ ...newItem, name: e.target.value, key: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-') })}
-                                />
-                            </div>
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold">Identificador (Key)</label>
-                                <input
-                                    type="text"
-                                    className="apple-input-field font-mono text-xs"
-                                    value={newItem.key}
-                                    onChange={e => setNewItem({ ...newItem, key: e.target.value })}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold">URL de Imagen (Logo/Foto)</label>
-                            <div className="flex gap-4">
-                                <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-black/40 flex-shrink-0 overflow-hidden border border-black/5 flex items-center justify-center">
-                                    {newItem.assetUrl ? (
-                                        <img src={newItem.assetUrl} className="w-full h-full object-cover" />
-                                    ) : (
-                                        <Globe className="text-gray-400" />
-                                    )}
+                    {/* Artist Creation Fields (Only for Artists) */}
+                    {entityType === 'artist' && (
+                        <div className="space-y-4">
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold">Nombre del Artista</label>
+                                    <input
+                                        type="text"
+                                        className="apple-input-field"
+                                        value={newItem.name}
+                                        onChange={e => setNewItem({ ...newItem, name: e.target.value, key: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, '-') })}
+                                    />
                                 </div>
-                                <input
-                                    type="text"
-                                    className="apple-input-field flex-1"
-                                    value={newItem.assetUrl || ''}
-                                    onChange={e => setNewItem({ ...newItem, assetUrl: e.target.value })}
-                                    placeholder="https://"
-                                />
+                                <div className="space-y-2">
+                                    <label className="text-sm font-semibold">Identificador (Key)</label>
+                                    <input
+                                        type="text"
+                                        className="apple-input-field font-mono text-xs"
+                                        value={newItem.key}
+                                        onChange={e => setNewItem({ ...newItem, key: e.target.value })}
+                                    />
+                                </div>
                             </div>
-                        </div>
 
-                        {newItem.discogsId && (
-                            <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs rounded-xl flex items-center gap-2">
-                                <Check size={14} />
-                                Vinculado a Discogs ID: {newItem.discogsId}. Se importarán imágenes adicionales automáticamente.
+                            <div className="space-y-2">
+                                <label className="text-sm font-semibold">URL de Imagen (Logo/Foto)</label>
+                                <div className="flex gap-4">
+                                    <div className="w-16 h-16 rounded-xl bg-gray-100 dark:bg-black/40 flex-shrink-0 overflow-hidden border border-black/5 flex items-center justify-center">
+                                        {newItem.assetUrl ? (
+                                            <img src={newItem.assetUrl} className="w-full h-full object-cover" />
+                                        ) : (
+                                            <Globe className="text-gray-400" />
+                                        )}
+                                    </div>
+                                    <input
+                                        type="text"
+                                        className="apple-input-field flex-1"
+                                        value={newItem.assetUrl || ''}
+                                        onChange={e => setNewItem({ ...newItem, assetUrl: e.target.value })}
+                                        placeholder="https://"
+                                    />
+                                </div>
                             </div>
-                        )}
-                    </div>
+
+                            {newItem.discogsId && (
+                                <div className="p-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 text-xs rounded-xl flex items-center gap-2">
+                                    <Check size={14} />
+                                    Vinculado a Discogs ID: {newItem.discogsId}. Se importarán imágenes adicionales automáticamente.
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Album Note (Only for Albums) */}
+                    {entityType === 'album' && (
+                        <div className="p-4 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 text-xs rounded-xl border border-blue-100 dark:border-blue-900/30">
+                            <AlertCircle className="w-4 h-4 mb-2" />
+                            Busca un álbum arriba para importarlo desde fuentes externas. Los álbumes importados se añadirán a tu catálogo y estarán disponibles para vincular.
+                        </div>
+                    )}
 
                     <div className="flex gap-3 pt-4">
                         <Button variant="ghost" onClick={() => setMode('search')} className="flex-1">Volver</Button>
-                        <Button variant="primary" onClick={handleCreateArtist} isLoading={loading} className="flex-1">Guardar Artista</Button>
+                        {entityType === 'artist' && (
+                            <Button variant="primary" onClick={handleCreateArtist} isLoading={loading} className="flex-1">Guardar Artista</Button>
+                        )}
                     </div>
                 </div>
             )}

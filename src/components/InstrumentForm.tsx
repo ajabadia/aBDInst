@@ -8,11 +8,15 @@ import { useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { Tabs, Tab } from '@/components/Tabs';
+import { useSession } from 'next-auth/react';
 import { Button } from './ui/Button';
-import { Save, X, Star, StarOff, Globe, Link as LinkIcon, FileText, Plus } from 'lucide-react';
+import { Save, X, Star, StarOff, Globe, Link as LinkIcon, FileText, Plus, Search, Sparkles, Zap, Users, Disc3 } from 'lucide-react';
 import ResourceSection from './resources/ResourceSection';
 import MagicImporter from './MagicImporter';
 import MusicalContextSection from './instrument/MusicalContextSection';
+import MediaLibrary from './media/MediaLibrary';
+import MarketInsights from './instruments/MarketInsights';
+import { getDeepEnrichment } from '@/actions/enrichment';
 
 
 
@@ -26,6 +30,11 @@ interface InstrumentFormProps {
 type SpecItem = { category: string; label: string; value: string };
 
 export default function InstrumentForm({ initialData, instrumentId, resources = [] }: InstrumentFormProps) {
+    const { data: session } = useSession();
+    const userRole = (session?.user as any)?.role || 'user';
+    const isAdmin = userRole === 'admin';
+    const isPrivileged = ['admin', 'editor', 'supereditor'].includes(userRole);
+
     const isEditing = !!instrumentId;
     // Initialize specs from initialData or empty array
     // initialData.specs might be an array (new format) or object (old format - we should probably ignore old format or migrate manually)
@@ -62,6 +71,17 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
     // Musical Context (for enrichment)
     const [artists, setArtists] = useState<any[]>(initialData?.artists || []);
     const [albums, setAlbums] = useState<any[]>(initialData?.albums || []);
+
+    // Controlled Identification State
+    const [brand, setBrand] = useState(initialData?.brand || '');
+    const [model, setModel] = useState(initialData?.model || '');
+    const [type, setType] = useState(initialData?.type || 'Synthesizer');
+    const [subtype, setSubtype] = useState(initialData?.subtype || '');
+    const [version, setVersion] = useState(initialData?.version || '');
+    const [variantLabel, setVariantLabel] = useState(initialData?.variantLabel || '');
+    const [years, setYears] = useState(Array.isArray(initialData?.years) ? initialData.years.join(', ') : (initialData?.years || ''));
+    const [description, setDescription] = useState(initialData?.description || '');
+    const [reverbUrl, setReverbUrl] = useState(initialData?.reverbUrl || '');
 
     useEffect(() => {
         getInstruments().then(setAllInstruments);
@@ -233,27 +253,47 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                 </div>
 
                 <MagicImporter
+                    isAdmin={isAdmin}
+                    isPrivileged={isPrivileged}
+                    existingDescription={description}
+                    existingSpecs={specs}
                     initialSearch={isEditing ? `${initialData?.brand || ''} ${initialData?.model || ''}`.trim() : undefined}
                     contextUrls={[
                         ...websites.map(w => w.url),
                         ...documents.map(d => d.url)
                     ].filter(url => url.startsWith('http'))}
                     onImport={(data) => {
-                        // Auto-fill logic
-                        const setVal = (name: string, val: string) => {
-                            const el = document.querySelector(`[name="${name}"]`) as HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement;
-                            if (el && val) el.value = val;
-                        };
+                        // Auto-fill logic using STATE instead of DOM
+                        if (data.brand && !brand) setBrand(data.brand);
+                        if (data.model && !model) setModel(data.model);
+                        if (data.type && !type) setType(data.type);
+                        if (data.subtype && !subtype) setSubtype(data.subtype);
 
-                        if (data.brand) setVal('brand', data.brand);
-                        if (data.model) setVal('model', data.model);
-                        if (data.type) setVal('type', data.type);
-                        if (data.subtype) setVal('subtype', data.subtype);
-                        if (data.description) setVal('description', data.description);
-                        if (data.year) setVal('years', data.year);
+                        // Handle Description: Append instead of overwrite
+                        if (data.description) {
+                            if (description && description.length > 0) {
+                                // Add a separator if appending
+                                setDescription(prev => `${prev}\n\n---\n✨ EXTRACTED INFO:\n${data.description}`);
+                                toast.info('Nueva descripción añadida al final de la actual.');
+                            } else {
+                                setDescription(data.description);
+                            }
+                        }
 
-                        // Prices & Value
-                        if (data.originalPrice) {
+                        const yearVal = data.year || data.productionYears;
+                        if (yearVal && !years) setYears(Array.isArray(yearVal) ? yearVal.join(', ') : yearVal);
+
+                        // Images
+                        if (data.images && Array.isArray(data.images)) {
+                            data.images.forEach((url: string) => {
+                                if (!images.includes(url)) addImage(url);
+                            });
+                        } else if (data.imageUrl && !images.includes(data.imageUrl)) {
+                            addImage(data.imageUrl);
+                        }
+
+                        // Prices & Value - Only update if not set
+                        if (data.originalPrice && !marketValue.original?.price) {
                             setMarketValue((prev: any) => ({
                                 ...prev,
                                 original: {
@@ -264,8 +304,7 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                             }));
                         }
 
-                        if (data.marketValue) {
-                            // Update State directly instead of DOM
+                        if (data.marketValue && !marketValue.current?.value) {
                             setMarketValue((prev: any) => ({
                                 ...prev,
                                 current: {
@@ -279,6 +318,10 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                             }));
                         }
 
+                        if (data.reverbUrl) {
+                            setReverbUrl(data.reverbUrl);
+                        }
+
                         // Add websites from data if they don't exist
                         if (data.websites && Array.isArray(data.websites)) {
                             setWebsites(prev => {
@@ -290,44 +333,43 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                                 const combined = [...prev, ...newWebsites];
                                 // Deduplicate by URL
                                 const unique = Array.from(new Map(combined.map(item => [item.url, item])).values());
-
-                                // Ensure only one is primary
-                                if (unique.some(w => w.isPrimary)) {
-                                    let foundPrimary = false;
-                                    return unique.map(w => {
-                                        if (w.isPrimary && !foundPrimary) {
-                                            foundPrimary = true;
-                                            return w;
-                                        }
-                                        return { ...w, isPrimary: false };
-                                    });
-                                }
                                 return unique;
-                            });
-                        } else if (data.website) {
-                            setWebsites(prev => {
-                                if (!prev.find(w => w.url === data.website)) {
-                                    return [...prev, { url: data.website, isPrimary: prev.length === 0 }];
-                                }
-                                return prev;
                             });
                         }
 
                         if (data.specs && Array.isArray(data.specs)) {
                             setSpecs(prev => {
                                 // Basic deduplication by label within the same category
-                                const existingLabels = new Set(prev.map(s => `${s.category}:${s.label}`));
-                                const newSpecs = data.specs.filter((s: any) => !existingLabels.has(`${s.category}:${s.label}`));
-                                return [...prev, ...newSpecs];
+                                // The MagicImporter already filtered based on user preference
+                                const existingLabels = new Set(prev.map(s => `${s.category}:${s.label}`.toLowerCase()));
+                                const newSpecs = data.specs.filter((s: any) => !existingLabels.has(`${s.category}:${s.label}`.toLowerCase()));
+
+                                // For conflicting labels that WERE selected in the modal, we overwrite
+                                const labelsToReplace = new Set(data.specs.map((s: any) => `${s.category}:${s.label}`.toLowerCase()));
+                                const preservedSpecs = prev.filter(s => !labelsToReplace.has(`${s.category}:${s.label}`.toLowerCase()));
+
+                                return [...preservedSpecs, ...data.specs];
                             });
                         }
 
                         // Capture musical context for enrichment
                         if (data.artists && Array.isArray(data.artists)) {
-                            setArtists(data.artists);
+                            const normalized = data.artists.map((a: any) => {
+                                if (typeof a === 'string') return { name: a, _id: null, key: a };
+                                return a;
+                            });
+                            setArtists(prev => {
+                                const existingNames = new Set(prev.map(p => p.name.toLowerCase()));
+                                const filtered = normalized.filter(n => !existingNames.has(n.name.toLowerCase()));
+                                return [...prev, ...filtered];
+                            });
                         }
                         if (data.albums && Array.isArray(data.albums)) {
-                            setAlbums(data.albums);
+                            setAlbums(prev => {
+                                const existingTitles = new Set(prev.map(p => p.title.toLowerCase()));
+                                const filtered = data.albums.filter((n: any) => !existingTitles.has(n.title.toLowerCase()));
+                                return [...prev, ...filtered];
+                            });
                         }
                     }} />
             </div>
@@ -338,18 +380,18 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="apple-label">Marca *</label>
-                                <input name="brand" required defaultValue={initialData?.brand} className="apple-input" placeholder="Ej. Roland" />
+                                <input name="brand" required value={brand || ''} onChange={e => setBrand(e.target.value)} className="apple-input" placeholder="Ej. Roland" />
                             </div>
                             <div>
                                 <label className="apple-label">Modelo *</label>
-                                <input name="model" required defaultValue={initialData?.model} className="apple-input" placeholder="Ej. Juno-106" />
+                                <input name="model" required value={model || ''} onChange={e => setModel(e.target.value)} className="apple-input" placeholder="Ej. Juno-106" />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="apple-label">Tipo *</label>
-                                <select name="type" required defaultValue={initialData?.type} className="apple-select">
+                                <select name="type" required value={type || 'Synthesizer'} onChange={e => setType(e.target.value)} className="apple-select">
                                     <option value="Synthesizer">Sintetizador</option>
                                     <option value="Drum Machine">Caja de Ritmos</option>
                                     <option value="Guitar">Guitarra</option>
@@ -368,18 +410,18 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                             </div>
                             <div>
                                 <label className="apple-label">Subtipo</label>
-                                <input name="subtype" defaultValue={initialData?.subtype} className="apple-input" placeholder="Ej. Analógico, Wavetable" />
+                                <input name="subtype" value={subtype || ''} onChange={e => setSubtype(e.target.value)} className="apple-input" placeholder="Ej. Analógico, Wavetable" />
                             </div>
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label className="apple-label">Versión</label>
-                                <input name="version" defaultValue={initialData?.version} className="apple-input" placeholder="Ej. MkII, Rev 3" />
+                                <input name="version" value={version || ''} onChange={e => setVersion(e.target.value)} className="apple-input" placeholder="Ej. MkII, Rev 3" />
                             </div>
                             <div>
                                 <label className="apple-label">Etiqueta de Variante</label>
-                                <input name="variantLabel" defaultValue={initialData?.variantLabel} className="apple-input" placeholder="Ej. Black Edition" />
+                                <input name="variantLabel" value={variantLabel || ''} onChange={e => setVariantLabel(e.target.value)} className="apple-input" placeholder="Ej. Black Edition" />
                             </div>
                         </div>
 
@@ -390,7 +432,7 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                             </label>
                             <select
                                 name="parentId"
-                                value={parentId}
+                                value={parentId || ''}
                                 onChange={(e) => setParentId(e.target.value)}
                                 className="apple-select border-ios-blue"
                             >
@@ -447,7 +489,7 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
 
                         <div>
                             <label className="apple-label">Años de Fabricación</label>
-                            <input name="years" defaultValue={initialData?.years?.join(', ')} className="apple-input" placeholder="1984, 1985" />
+                            <input name="years" value={years || ''} onChange={e => setYears(e.target.value)} className="apple-input" placeholder="1984, 1985" />
                         </div>
 
                         {/* Original Price Section moved here */}
@@ -500,13 +542,13 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                             </div>
                         </div>
 
-                        <div>
+                        <div className="md:col-span-2">
                             <label className="apple-label">Descripción General</label>
-                            <textarea name="description" rows={12} defaultValue={initialData?.description} className="apple-input min-h-[350px]" placeholder="Breve historia, características sonoras, detalles técnicos..."></textarea>
+                            <textarea name="description" rows={12} value={description || ''} onChange={e => setDescription(e.target.value)} className="apple-input min-h-[350px]" placeholder="Breve historia, características sonoras, detalles técnicos..."></textarea>
                         </div>
 
                         {/* Original Price Section moved here */}
-                        <div className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/50">
+                        <div className="md:col-span-2 p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50/50 dark:bg-gray-800/50">
                             <h3 className="font-medium text-gray-900 dark:text-gray-100 mb-3 text-sm uppercase tracking-wide">Precio Original</h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
@@ -591,6 +633,9 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                                     label="Subir Imágenes"
                                     context="catalog"
                                 />
+                                <div className="mt-8">
+                                    <MediaLibrary onSelect={(url) => addImage(url)} />
+                                </div>
 
                                 {/* Inherited Images Section */}
                                 {parentImages.length > 0 && (
@@ -780,11 +825,41 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                                 forceEditMode={true}
                                 instrumentId={instrumentId}
                             />
+                        ) : artists.length > 0 || albums.length > 0 ? (
+                            <div className="space-y-6">
+                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-900/30 rounded-2xl">
+                                    <h4 className="font-bold text-ios-blue text-sm mb-2 flex items-center gap-2">
+                                        <Sparkles size={16} /> Contexto Musical Detectado
+                                    </h4>
+                                    <p className="text-xs text-blue-600 dark:text-blue-400 mb-4">
+                                        Estos artistas y álbumes se vincularán y enriquecerán automáticamente mediante Discogs al guardar el instrumento.
+                                    </p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {artists.map((a, i) => (
+                                            <div key={i} className="bg-white dark:bg-gray-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-xs font-medium flex items-center gap-2">
+                                                <Users size={12} className="text-ios-blue" />
+                                                {a.name}
+                                            </div>
+                                        ))}
+                                        {albums.map((a, i) => (
+                                            <div key={i} className="bg-white dark:bg-gray-800 px-3 py-1.5 rounded-full border border-gray-200 dark:border-gray-700 text-xs font-medium flex items-center gap-2">
+                                                <Disc3 size={12} className="text-ios-blue" />
+                                                {a.title}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="p-6 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50">
+                                    <p className="text-gray-500 text-xs">
+                                        Podrás añadir más artistas manualmente una vez hayas guardado la ficha.
+                                    </p>
+                                </div>
+                            </div>
                         ) : (
                             <div className="p-6 text-center border border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50">
                                 <p className="text-gray-500">
                                     Para asociar Artistas y Álbumes, primero debes
-                                    <span className="font-bold"> guardar el instrumento</span>.
+                                    <span className="font-bold"> guardar el instrumento</span> o usar el Magic Import.
                                 </p>
                             </div>
                         )}
@@ -859,6 +934,56 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
                         })}
                     </div>
                 </Tab>
+
+                <Tab label="Mercado">
+                    <div className="space-y-8 pt-4">
+                        {/* Live Insights */}
+                        <div className="bg-gray-50 dark:bg-white/5 p-6 rounded-[2.5rem] border border-black/5">
+                            <MarketInsights
+                                query={isEditing ? `${initialData?.brand} ${initialData?.model}` : (initialData?.brand && initialData?.model ? `${initialData.brand} ${initialData.model}` : '')}
+                                instrumentId={instrumentId}
+                            />
+                        </div>
+
+                        {/* Manual Market Value (Snapshot) */}
+                        <div className="apple-card p-8 space-y-6">
+                            <h3 className="apple-label text-ios-blue">Valor de Mercado Actual (Snapshot)</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <label className="apple-label">Valor Estimado</label>
+                                    <input
+                                        type="number"
+                                        value={marketValue.current?.value || ''}
+                                        onChange={(e) => setMarketValue({ ...marketValue, current: { ...marketValue.current, value: parseFloat(e.target.value) } })}
+                                        className="apple-input"
+                                        placeholder="0.00"
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1">Precio representativo o medio.</p>
+                                </div>
+                                <div>
+                                    <label className="apple-label">Rango Mínimo</label>
+                                    <input
+                                        type="number"
+                                        value={marketValue.current?.min || ''}
+                                        onChange={(e) => setMarketValue({ ...marketValue, current: { ...marketValue.current, min: parseFloat(e.target.value) } })}
+                                        className="apple-input"
+                                        placeholder="Min"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="apple-label">Rango Máximo</label>
+                                    <input
+                                        type="number"
+                                        value={marketValue.current?.max || ''}
+                                        onChange={(e) => setMarketValue({ ...marketValue, current: { ...marketValue.current, max: parseFloat(e.target.value) } })}
+                                        className="apple-input"
+                                        placeholder="Max"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </Tab>
             </Tabs>
 
             <div className="flex flex-col sm:flex-row items-center justify-end gap-3 mt-12 pt-8 border-t border-gray-100 dark:border-gray-800">
@@ -889,6 +1014,7 @@ export default function InstrumentForm({ initialData, instrumentId, resources = 
 
             {/* Unified Market Value Object from STATE */}
             <input type="hidden" name="marketValue" value={JSON.stringify(marketValue)} />
+            <input type="hidden" name="reverbUrl" value={reverbUrl} />
         </form >
     );
 }
