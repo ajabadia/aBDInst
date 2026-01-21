@@ -2,660 +2,315 @@
 
 import dbConnect from '@/lib/db';
 import Instrument from '@/models/Instrument';
-import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
 import { InstrumentSchema } from '@/lib/schemas';
 import { escapeRegExp } from '@/lib/utils';
 import { checkRateLimit, getRateLimitKey } from '@/lib/rate-limit';
+import { createSafeAction } from '@/lib/safe-action';
+import { z } from 'zod';
+import { DatabaseError, NotFoundError, AppError, ValidationError, AuthError } from '@/lib/errors';
+import { logEvent } from '@/lib/logger';
 import InstrumentArtist from '@/models/InstrumentArtist';
 import InstrumentAlbum from '@/models/InstrumentAlbum';
-import CatalogMetadata from '@/models/CatalogMetadata';
-import MusicAlbum from '@/models/MusicAlbum';
+import { auth } from '@/auth'; // Needed for manual checks if any, or createSafeAction handles it if passed
 
 // Helper to sanitize Mongoose documents for client
-function sanitize(doc: Record<string, any>) {
-    const { _id, ...rest } = doc.toObject ? doc.toObject() : doc;
-    return { id: _id.toString(), ...rest };
+function sanitize(doc: any) {
+    if (!doc) return null;
+    return JSON.parse(JSON.stringify(doc));
 }
 
-export async function createInstrument(data: FormData) {
-    try {
-        const session = await auth();
-        if (!session) {
-            throw new Error('Unauthorized');
-        }
+export const createInstrument = createSafeAction(
+    InstrumentSchema,
+    async (data, userId, role, correlationId) => {
+        const isPrivileged = ['admin', 'editor', 'supereditor'].includes(role);
 
-        const userRole = (session.user as any).role;
-        const isPrivileged = ['admin', 'editor', 'supereditor'].includes(userRole);
-
-        // Rate limiting for non-privileged users
+        // 1. Rate limiting for non-privileged users
         if (!isPrivileged) {
-            const rateLimitKey = getRateLimitKey(session.user.id, 'createInstrument');
+            const rateLimitKey = getRateLimitKey(userId, 'createInstrument');
             const rateLimit = await checkRateLimit(rateLimitKey, {
-                maxRequests: 5, // 5 instruments
+                maxRequests: 5,
                 windowMs: 60 * 60 * 1000 // per hour
             });
 
             if (!rateLimit.allowed) {
                 const resetIn = Math.ceil((rateLimit.resetAt - Date.now()) / 60000);
-                return {
-                    success: false,
-                    error: `Límite de creación alcanzado. Intenta de nuevo en ${resetIn} minutos.`
-                };
+                throw new AppError(`Límite de creación alcanzado. Intenta de nuevo en ${resetIn} minutos.`, 429, 'RATE_LIMIT_EXCEEDED');
             }
         }
 
         await dbConnect();
 
-        // Check if instrument already exists (Soft check before DB constraint)
-        // This is useful to return the existing ID for redirection
+        // 2. Duplicate Check
         const existingInstrument = await Instrument.findOne({
-            brand: { $regex: new RegExp(`^${escapeRegExp(data.get('brand') as string)}$`, 'i') },
-            model: { $regex: new RegExp(`^${escapeRegExp(data.get('model') as string)}$`, 'i') },
-            version: data.get('version') ? { $regex: new RegExp(`^${escapeRegExp(data.get('version') as string)}$`, 'i') } : null
+            brand: { $regex: new RegExp(`^${escapeRegExp(data.brand)}$`, 'i') },
+            model: { $regex: new RegExp(`^${escapeRegExp(data.model)}$`, 'i') },
+            version: data.version ? { $regex: new RegExp(`^${escapeRegExp(data.version)}$`, 'i') } : null
         }).select('_id');
 
         if (existingInstrument) {
-            // User intention was to add this instrument. If it exists, we likely want to add it to their collection
-            // if they don't have it already.
+            // Auto-add to collection if it exists but user doesn't have it
             const UserCollection = (await import('@/models/UserCollection')).default;
             const existingInCollection = await UserCollection.findOne({
-                userId: session.user.id,
+                userId: userId,
                 instrumentId: existingInstrument._id
             });
 
             if (!existingInCollection) {
                 await UserCollection.create({
-                    userId: session.user.id,
+                    userId: userId,
                     instrumentId: existingInstrument._id,
                     status: 'active',
                     acquisition: { date: new Date(), price: 0, currency: 'EUR' },
                     notes: 'Añadido automáticamente al detectar existencia previa'
                 });
-            }
-
-            return {
-                success: false,
-                error: 'DUPLICATE_INSTRUMENT', // Specific code for frontend
-                id: existingInstrument._id.toString()
-            };
-        }
-
-        const rawMarketValue = data.get('marketValue') ? JSON.parse(data.get('marketValue') as string) : undefined;
-        // Sanitize numeric fields in marketValue
-        if (rawMarketValue) {
-            if (rawMarketValue.original) {
-                if (rawMarketValue.original.price) rawMarketValue.original.price = Number(rawMarketValue.original.price);
-                if (rawMarketValue.original.year) rawMarketValue.original.year = Number(rawMarketValue.original.year);
-            }
-            if (rawMarketValue.current) {
-                if (rawMarketValue.current.value) rawMarketValue.current.value = Number(rawMarketValue.current.value);
-                if (rawMarketValue.current.min) rawMarketValue.current.min = Number(rawMarketValue.current.min);
-                if (rawMarketValue.current.max) rawMarketValue.current.max = Number(rawMarketValue.current.max);
-            }
-        }
-
-        const rawData = {
-            type: data.get('type'),
-            subtype: data.get('subtype')?.toString() || undefined,
-            brand: data.get('brand'),
-            model: data.get('model'),
-            version: data.get('version')?.toString() || undefined,
-            years: data.get('years')?.toString().split(',').map(y => y.trim()).filter(y => y),
-            description: data.get('description')?.toString(),
-            websites: data.get('websites')
-                ? Array.from(new Map((JSON.parse(data.get('websites') as string) as any[]).map(w => [w.url, w])).values())
-                : [],
-            specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [],
-            genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
-            documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
-            relatedTo: data.get('relatedTo') ? JSON.parse(data.get('relatedTo') as string) : [],
-            marketValue: rawMarketValue,
-            reverbUrl: data.get('reverbUrl')?.toString() || undefined,
-
-            // Musical Context
-            artists: data.get('artists') ? JSON.parse(data.get('artists') as string) : [],
-            albums: data.get('albums') ? (JSON.parse(data.get('albums') as string) as any[]).map(a => ({
-                ...a,
-                year: a.year ? Number(a.year) : undefined
-            })) : [],
-
-            // Variants
-            parentId: data.get('parentId')?.toString() || undefined,
-            variantLabel: data.get('variantLabel')?.toString() || undefined,
-            excludedImages: data.get('excludedImages') ? JSON.parse(data.get('excludedImages') as string) : [],
-            isBaseModel: data.get('isBaseModel') === 'true',
-
-            // Force PENDING/DRAFT for all new submissions
-            status: data.get('status')?.toString() || 'pending',
-            statusHistory: [{
-                status: data.get('status')?.toString() || 'pending',
-                changedBy: session.user.id,
-                date: new Date(),
-                note: isPrivileged ? 'Created by Admin (Draft)' : 'Submitted for review'
-            }]
-        };
-
-        // Validate with Zod
-        const validatedData = InstrumentSchema.safeParse(rawData);
-
-        if (!validatedData.success) {
-            // Flatten errors to a single string or map
-            const errorMessage = validatedData.error.issues.map(e => e.message).join(', ');
-            return { success: false, error: errorMessage };
-        }
-
-        const instrumentData = {
-            ...validatedData.data,
-            createdBy: session.user.id,
-        };
-
-        const instrument = await Instrument.create(instrumentData);
-
-        // Auto-add to user's collection as they are defining it
-        const UserCollection = (await import('@/models/UserCollection')).default;
-        await UserCollection.create({
-            userId: session.user.id,
-            instrumentId: instrument._id,
-            status: 'active', // Default status
-            acquisition: {
-                date: new Date(),
-                price: 0,
-                currency: 'EUR' // Default
-            },
-            notes: 'Instrumento creado por mí'
-        });
-
-        // Enrich with music relationships if data present
-        if ((instrumentData.artists && instrumentData.artists.length > 0) ||
-            (instrumentData.albums && instrumentData.albums.length > 0)) {
-            try {
-                const { enrichInstrumentWithMusic } = await import('@/lib/music/enrichment');
-                const enrichmentResult = await enrichInstrumentWithMusic(
-                    instrument._id.toString(),
-                    {
-                        artists: instrumentData.artists,
-                        albums: instrumentData.albums
-                    },
-                    session.user.id
-                );
-
-                if (enrichmentResult.success) {
-                    console.log(`✅ Music Enrichment: ${enrichmentResult.stats.artistsCreated} artists, ${enrichmentResult.stats.albumsCreated} albums, ${enrichmentResult.stats.relationsCreated} relationships`);
-                }
-            } catch (enrichmentError) {
-                // Don't fail instrument creation if enrichment fails
-                console.error('⚠️ Music enrichment failed (non-critical):', enrichmentError);
-            }
-        }
-
-        revalidatePath('/instruments');
-        return { success: true, id: instrument._id.toString() };
-    } catch (error: any) {
-        console.error('Create Instrument Error:', error);
-
-        // Handle E11000 duplicate key error explicitly
-        if (error.code === 11000) {
-            // Try to find the existing one to return its ID
-            try {
-                const existing = await Instrument.findOne({
-                    brand: data.get('brand'),
-                    model: data.get('model'),
-                    version: data.get('version') || null
-                }).select('_id');
-
-                if (existing) {
-                    // Also auto-add to collection here if caught by DB constraint
-                    const UserCollection = (await import('@/models/UserCollection')).default;
-
-                    // Re-fetch session to be safe in catch block scope, though closure should work.
-                    // If TS complains about 'session' not found, it must be block-scoped or similar issue.
-                    // But 'session' is const at top of try block.
-                    // Ah, 'try' block variables are NOT accessible in 'catch' block in JS/TS!
-                    const session = await auth();
-                    if (session?.user?.id) {
-                        const existingInCollection = await UserCollection.findOne({
-                            userId: session.user.id,
-                            instrumentId: existing._id
-                        });
-
-                        if (!existingInCollection) {
-                            await UserCollection.create({
-                                userId: session.user.id,
-                                instrumentId: existing._id,
-                                status: 'active',
-                                acquisition: { date: new Date(), price: 0, currency: 'EUR' },
-                                notes: 'Añadido automáticamente al detectar existencia previa'
-                            });
-                        } else if (existingInCollection.status === 'wishlist') {
-                            // If it was in wishlist, upgrade to owned since the user is trying to "create/add" it
-                            await UserCollection.findByIdAndUpdate(existingInCollection._id, {
-                                status: 'active',
-                                acquisition: { date: new Date() },
-                                $push: {
-                                    events: {
-                                        type: 'status_change',
-                                        date: new Date(),
-                                        title: 'Adquirido',
-                                        description: 'Movido de Wishlist a Colección al re-intentar creación'
-                                    }
-                                }
-                            });
+            } else if (existingInCollection.status === 'wishlist') {
+                // If it was in wishlist, upgrade to owned
+                await UserCollection.findByIdAndUpdate(existingInCollection._id, {
+                    status: 'active',
+                    acquisition: { date: new Date() },
+                    $push: {
+                        events: {
+                            type: 'status_change',
+                            date: new Date(),
+                            title: 'Adquirido',
+                            description: 'Movido de Wishlist a Colección al re-intentar creación'
                         }
                     }
-
-                    return {
-                        success: false,
-                        error: 'DUPLICATE_INSTRUMENT',
-                        id: existing._id.toString()
-                    };
-                }
-            } catch (e) {
-                // ignore
+                });
             }
-            return { success: false, error: "Este instrumento ya existe en la base de datos." };
+
+            throw new AppError('Este instrumento ya existe en el catálogo global', 409, 'DUPLICATE_INSTRUMENT', { id: existingInstrument._id.toString() });
         }
 
-        return { success: false, error: error.message };
-    }
-}
+        try {
+            // 3. Create Instrument
+            const instrumentStatus = data.status || (isPrivileged ? 'published' : 'pending');
+            const instrument = await Instrument.create({
+                ...data,
+                createdBy: userId,
+                status: instrumentStatus,
+                statusHistory: [{
+                    status: instrumentStatus,
+                    changedBy: userId,
+                    date: new Date(),
+                    note: isPrivileged ? 'Created by Admin' : 'Submitted for review'
+                }]
+            });
+
+            // 4. Auto-add to user's collection
+            const UserCollection = (await import('@/models/UserCollection')).default;
+            await UserCollection.create({
+                userId: userId,
+                instrumentId: instrument._id,
+                status: 'active',
+                acquisition: { date: new Date(), price: 0, currency: 'EUR' },
+                notes: 'Instrumento creado por mí'
+            });
+
+            // 5. Music Enrichment
+            if ((data.artists && data.artists.length > 0) || (data.albums && data.albums.length > 0)) {
+                try {
+                    const { enrichInstrumentWithMusic } = await import('@/lib/music/enrichment');
+                    await enrichInstrumentWithMusic(
+                        instrument._id.toString(),
+                        {
+                            artists: data.artists || [],
+                            albums: (data.albums || []).map(a => ({
+                                ...a,
+                                year: a.year ? Number(a.year) : undefined
+                            }))
+                        },
+                        userId
+                    );
+                } catch (enrichmentError) {
+                    console.error('⚠️ Music enrichment failed (non-critical):', enrichmentError);
+                }
+            }
+
+            await logEvent({
+                nivel: 'INFO',
+                origen: 'catalog',
+                accion: 'instrument_create_success',
+                mensaje: `Instrumento creado exitosamente: ${data.brand} ${data.model}`,
+                correlacion_id: correlationId,
+                detalles: { instrumentId: instrument._id }
+            });
+
+            revalidatePath('/instruments');
+            return sanitize(instrument);
+        } catch (error: any) {
+            if (error instanceof AppError) throw error;
+            throw new DatabaseError("Error al crear el instrumento", error);
+        }
+    },
+    { protected: true, name: 'CREATE_INSTRUMENT' }
+);
 
 
-export async function addToCollection(instrumentId: string) {
-    try {
-        const session = await auth();
-        if (!session) throw new Error("Unauthorized");
-
-        // Rate limiting (more permissive than creation)
-        const rateLimitKey = getRateLimitKey(session.user.id, 'addToCollection');
+export const addToCollection = createSafeAction(
+    z.string(),
+    async (instrumentId, userId) => {
+        // Rate limiting
+        const rateLimitKey = getRateLimitKey(userId, 'addToCollection');
         const rateLimit = await checkRateLimit(rateLimitKey, {
-            maxRequests: 10, // 10 additions
-            windowMs: 60 * 60 * 1000 // per hour
+            maxRequests: 10,
+            windowMs: 60 * 60 * 1000
         });
 
         if (!rateLimit.allowed) {
-            const resetIn = Math.ceil((rateLimit.resetAt - Date.now()) / 60000);
-            return {
-                success: false,
-                error: `Límite de adiciones alcanzado. Intenta de nuevo en ${resetIn} minutos.`
-            };
+            throw new AppError('Rate limit exceeded', 429, 'RATE_LIMIT_EXCEEDED');
         }
 
         await dbConnect();
-
-        // Dynamic import to avoid circular dep issues if any
         const UserCollection = (await import('@/models/UserCollection')).default;
 
-        // Check if already in collection
         const existing = await UserCollection.findOne({
-            userId: session.user.id,
+            userId: userId,
             instrumentId: instrumentId
         });
 
         if (existing) {
-            return { success: false, error: "Ya tienes este instrumento en tu colección" };
+            throw new ValidationError('Instrument already in collection');
         }
 
         await UserCollection.create({
-            userId: session.user.id,
+            userId: userId,
             instrumentId: instrumentId,
-            status: 'active', // Default status
-            acquisition: {
-                date: new Date(),
-                price: 0,
-                currency: 'EUR'
-            },
+            status: 'active',
+            acquisition: { date: new Date(), price: 0, currency: 'EUR' },
             notes: 'Añadido desde catálogo global'
         });
 
         revalidatePath('/dashboard/collection');
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
+    },
+    { protected: true }
+);
 
-export async function getInstruments(
-    query?: string,
-    category?: string | null,
-    sortBy: 'brand' | 'model' | 'year' | 'type' | 'artist' = 'brand',
-    sortOrder: 'asc' | 'desc' = 'asc',
-    brand?: string | null
-) {
-    try {
+// Note: Legacy search functions (getInstruments, getBrands, getInstrumentById) moved to catalog.ts
+
+export const updateInstrument = createSafeAction(
+    z.object({
+        id: z.string(),
+        data: InstrumentSchema.partial()
+    }),
+    async ({ id, data }, userId, role, correlationId) => {
         await dbConnect();
 
-        const filter: Record<string, any> = {};
-
-        if (query) {
-            const safeQuery = escapeRegExp(query);
-            filter.$or = [
-                { brand: { $regex: safeQuery, $options: 'i' } },
-                { model: { $regex: safeQuery, $options: 'i' } }
-            ];
+        const instrument = await Instrument.findById(id);
+        if (!instrument) {
+            throw new NotFoundError('Instrumento');
         }
 
-        if (category) {
-            const safeCategory = escapeRegExp(category);
-            filter.type = { $regex: new RegExp(`^${safeCategory}$`, 'i') };
+        const isStaff = ['admin', 'editor'].includes(role);
+        const isCreator = instrument.createdBy.toString() === userId;
+
+        if (!isStaff && !isCreator) {
+            throw new AuthError('Permission denied');
         }
 
-        if (brand) {
-            const safeBrand = escapeRegExp(brand);
-            filter.brand = { $regex: new RegExp(`^${safeBrand}$`, 'i') };
-        }
+        try {
+            const updatedInstrument = await Instrument.findByIdAndUpdate(
+                id,
+                { $set: data },
+                { runValidators: true, new: true }
+            );
 
-        // Default to published only, unless specific status requested (and authorized - TODO)
-        // For now, simplify: Front-end filters. 
-        // Better:
-        // filter.status = 'published'; // Temporarily enforce published for safety, 
-        // but we need admins to see drafts.
-        // Let's check session roughly or rely on arguments.
-        // For this task, I'll filter by published unless specifically asked for 'all' (which admin dashboard will do).
-        // Since I can't easily change signature everywhere without breaking things, I'll default to published if not specified.
-        if (!filter.status) {
-            // If caller didn't specify, default to published? 
-            // Actually, let's just leave it open for now and handle in UI or new admin action?
-            // No, user requirement is "Filter published by default".
-            // filter.status = 'published';
-        }
-
-
-        // Determine Sort Object
-        let sort: Record<string, any> = {};
-        const dir = sortOrder === 'asc' ? 1 : -1;
-
-        switch (sortBy) {
-            case 'brand':
-                sort = { brand: dir, model: 1 };
-                break;
-            case 'model':
-                sort = { model: dir };
-                break;
-            case 'type':
-                sort = { type: dir, brand: 1 };
-                break;
-            case 'year':
-                // Sort by the first year in the array
-                sort = { 'years.0': dir, brand: 1 };
-                break;
-            case 'artist':
-                // Sort by the first artist in the array
-                sort = { 'artists.0': dir, brand: 1 };
-                break;
-            default:
-                sort = { brand: 1, model: 1 };
-        }
-
-        // Optimize: Select only necessary fields and use lean()
-        const instruments = await Instrument.find(filter)
-            .select('brand model type subtype genericImages years description variantLabel websites')
-            .sort(sort)
-            .lean();
-
-        // Efficient transformation to plain objects for Server Components
-        const safeInstruments = JSON.parse(JSON.stringify(instruments));
-        return safeInstruments.map((inst: Record<string, any>) => ({
-            ...inst,
-            _id: inst._id.toString(),
-            id: inst._id.toString()
-        }));
-    } catch (error) {
-        console.error('Get Instruments Error:', error);
-        return [];
-    }
-}
-
-export async function getBrands() {
-    try {
-        await dbConnect();
-        const brands = await Instrument.distinct('brand');
-        return brands.sort();
-    } catch (error) {
-        console.error('Get Brands Error:', error);
-        return [];
-    }
-}
-
-import { mergeInstruments } from '@/lib/inheritance';
-
-export async function getInstrumentById(id: string) {
-    try {
-        await dbConnect();
-        const instrument = await Instrument.findById(id)
-            .populate('relatedTo', 'brand model variantLabel')
-            .populate('parentId', 'brand model variantLabel')
-            .lean();
-
-        if (!instrument) return null;
-
-        // Recursive inheritance
-        let effectiveInstrument = JSON.parse(JSON.stringify(instrument));
-        let currentParentId = (instrument as any).parentId?._id || (instrument as any).parentId;
-
-        const hierarchy: any[] = [];
-
-        while (currentParentId) {
-            // Prevent infinite loops if database has cycles
-            if (currentParentId.toString() === id.toString()) break;
-
-            // Prevent duplicates in hierarchy
-            if (hierarchy.some((p: any) => p._id.toString() === currentParentId.toString())) break;
-
-            const parent = await Instrument.findById(currentParentId).lean() as any;
-            if (!parent) break;
-
-            effectiveInstrument = mergeInstruments(effectiveInstrument, JSON.parse(JSON.stringify(parent)));
-
-            // Add to hierarchy
-            hierarchy.push(JSON.parse(JSON.stringify(parent)));
-
-            currentParentId = parent.parentId;
-        }
-
-        const variants = await Instrument.find({ parentId: id }).select('brand model variantLabel genericImages').lean();
-
-        // Enforce uniqueness in hierarchy to prevent React duplicate key errors
-        const uniqueHierarchy = Array.from(new Map(hierarchy.map((item: any) => [item._id.toString(), item])).values());
-
-        // Fetch confirmed relationships (InstrumentArtist, InstrumentAlbum)
-        const [artistRelations, albumRelations] = await Promise.all([
-            InstrumentArtist.find({ instrumentId: id }).populate('artistId').lean(),
-            InstrumentAlbum.find({ instrumentId: id }).populate('albumId').lean()
-        ]);
-
-        // Map relationships to the same format as internal AI-detected fields
-        const confirmedArtists = artistRelations.map((rel: any) => ({
-            _id: rel._id.toString(),
-            name: rel.artistId?.label || 'Artista Desconocido',
-            key: rel.artistId?.key || '',
-            assetUrl: rel.artistId?.assetUrl,
-            yearsUsed: rel.yearsUsed,
-            notes: rel.notes
-        }));
-
-        const confirmedAlbums = albumRelations.map((rel: any) => ({
-            _id: rel._id.toString(),
-            title: rel.albumId?.title || 'Álbum Desconocido',
-            artist: rel.albumId?.artist || 'Varios',
-            year: rel.albumId?.year,
-            coverImage: rel.albumId?.coverImage,
-            notes: rel.notes
-        }));
-
-        // Safe return (ensure full serialization)
-        const safeResult = JSON.parse(JSON.stringify({
-            ...effectiveInstrument,
-            artists: confirmedArtists, // OVERWRITE internal artists with confirmed ones
-            albums: confirmedAlbums,   // OVERWRITE internal albums with confirmed ones
-            _hierarchy: uniqueHierarchy,
-            _variants: variants
-        }));
-
-        return safeResult;
-    } catch (error) {
-        console.error('Get Instrument Error:', error);
-        return null;
-    }
-}
-
-export async function updateInstrument(id: string, data: FormData) {
-    try {
-        const session = await auth();
-        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
-            throw new Error('Unauthorized');
-        }
-
-        await dbConnect();
-
-        const rawMarketValue = data.get('marketValue') ? JSON.parse(data.get('marketValue') as string) : undefined;
-        // Sanitize numeric fields in marketValue
-        if (rawMarketValue) {
-            if (rawMarketValue.original) {
-                if (rawMarketValue.original.price) rawMarketValue.original.price = Number(rawMarketValue.original.price);
-                if (rawMarketValue.original.year) rawMarketValue.original.year = Number(rawMarketValue.original.year);
-            }
-            if (rawMarketValue.current) {
-                if (rawMarketValue.current.value) rawMarketValue.current.value = Number(rawMarketValue.current.value);
-                if (rawMarketValue.current.min) rawMarketValue.current.min = Number(rawMarketValue.current.min);
-                if (rawMarketValue.current.max) rawMarketValue.current.max = Number(rawMarketValue.current.max);
-            }
-        }
-
-        const rawUpdateData = {
-            type: data.get('type'),
-            subtype: data.get('subtype')?.toString() || undefined,
-            brand: data.get('brand'),
-            model: data.get('model'),
-            version: data.get('version')?.toString() || undefined,
-            years: data.get('years')?.toString().split(',').map(y => y.trim()).filter(y => y),
-            description: data.get('description')?.toString(),
-            websites: data.get('websites')
-                ? Array.from(new Map((JSON.parse(data.get('websites') as string) as any[]).map(w => [w.url, w])).values())
-                : [],
-            specs: data.get('specs') ? JSON.parse(data.get('specs') as string) : [],
-            genericImages: data.get('genericImages') ? JSON.parse(data.get('genericImages') as string) : [],
-            documents: data.get('documents') ? JSON.parse(data.get('documents') as string) : [],
-
-            relatedTo: data.get('relatedTo') ? JSON.parse(data.get('relatedTo') as string) : [],
-            marketValue: rawMarketValue,
-
-            // Variants
-            parentId: data.get('parentId')?.toString() || undefined,
-            variantLabel: data.get('variantLabel')?.toString() || undefined,
-            excludedImages: data.get('excludedImages') ? JSON.parse(data.get('excludedImages') as string) : [],
-            isBaseModel: data.get('isBaseModel') === 'true',
-            status: data.get('status'),
-            artists: data.get('artists') ? JSON.parse(data.get('artists') as string) : undefined,
-            albums: data.get('albums') ? (JSON.parse(data.get('albums') as string) as any[]).map(a => ({
-                ...a,
-                year: a.year ? Number(a.year) : undefined
-            })) : undefined,
-            reverbUrl: data.get('reverbUrl')?.toString() || undefined,
-        };
-
-
-        // Remove undefined fields
-        Object.keys(rawUpdateData).forEach(key => (rawUpdateData as Record<string, any>)[key] === undefined && delete (rawUpdateData as Record<string, any>)[key]);
-
-        const validatedData = InstrumentSchema.partial().safeParse(rawUpdateData);
-
-        if (!validatedData.success) {
-            const errorMessage = validatedData.error.issues.map(e => e.message).join(', ');
-            return { success: false, error: errorMessage };
-        }
-
-        await Instrument.findByIdAndUpdate(
-            id,
-            { $set: validatedData.data },
-            { runValidators: true, new: true }
-        );
-
-        // Music Enrichment (Secondary flow)
-        if (rawUpdateData.artists || rawUpdateData.albums) {
-            try {
-                const { enrichInstrumentWithMusic } = await import('@/lib/music/enrichment');
-                const enrichmentResult = await enrichInstrumentWithMusic(
-                    id,
-                    {
-                        artists: rawUpdateData.artists,
-                        albums: rawUpdateData.albums
-                    },
-                    session.user.id
-                );
-
-                if (enrichmentResult.success) {
-                    console.log(`✅ Music Enrichment (Update): ${enrichmentResult.stats.artistsCreated} artists, ${enrichmentResult.stats.albumsCreated} albums, ${enrichmentResult.stats.relationsCreated} relationships`);
+            if (data.artists || data.albums) {
+                try {
+                    const { enrichInstrumentWithMusic } = await import('@/lib/music/enrichment');
+                    await enrichInstrumentWithMusic(
+                        id,
+                        {
+                            artists: data.artists,
+                            albums: data.albums
+                        },
+                        userId
+                    );
+                } catch (e) {
+                    await logEvent({
+                        nivel: 'WARN',
+                        origen: 'catalog',
+                        accion: 'enrichment_failed',
+                        mensaje: `Error en enriquecimiento musical para ${id}`,
+                        correlacion_id: correlationId,
+                        detalles: { error: e instanceof Error ? e.message : String(e) }
+                    });
                 }
-            } catch (enrichmentError) {
-                console.error('⚠️ Music enrichment during update failed (non-critical):', enrichmentError);
             }
+
+            await logEvent({
+                nivel: 'INFO',
+                origen: 'catalog',
+                accion: 'instrument_update_success',
+                mensaje: `Instrumento ${id} actualizado`,
+                correlacion_id: correlationId,
+                detalles: { instrumentId: id }
+            });
+
+            revalidatePath('/instruments');
+            revalidatePath(`/instruments/${id}`);
+
+            return sanitize(updatedInstrument);
+        } catch (error: any) {
+            throw new DatabaseError("Error al actualizar instrumento", error);
         }
+    },
+    { protected: true }
+);
 
-        revalidatePath('/instruments');
-        revalidatePath(`/instruments/${id}`);
-
-        return { success: true };
-    } catch (error: any) {
-        console.error('Update Instrument Error:', error);
-        return { success: false, error: error.message };
-    }
-}
-
-export async function getRelatedGear(id: string) {
-    try {
+export const getRelatedGear = createSafeAction(
+    z.string(),
+    async (id) => {
         await dbConnect();
         const accessories = await Instrument.find({ relatedTo: id }).lean();
-        return JSON.parse(JSON.stringify(accessories));
-    } catch (error) {
-        console.error('Get Related Gear Error:', error);
-        return [];
+        return sanitize(accessories);
     }
-}
+);
 
-export async function deleteInstruments(ids: string[]) {
-    try {
-        const session = await auth();
-        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
-            throw new Error('Unauthorized');
-        }
-
+export const deleteInstruments = createSafeAction(
+    z.array(z.string()),
+    async (ids, userId, role, correlationId) => {
         await dbConnect();
-        await Instrument.deleteMany({ _id: { $in: ids } });
+        const result = await Instrument.deleteMany({ _id: { $in: ids } });
+
+        await logEvent({
+            nivel: 'INFO',
+            origen: 'catalog',
+            accion: 'instruments_deleted',
+            mensaje: `${result.deletedCount} instrumentos eliminados`,
+            correlacion_id: correlationId,
+            detalles: { count: result.deletedCount, ids }
+        });
 
         revalidatePath('/instruments');
-        return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
+        return { success: true, count: result.deletedCount };
+    },
+    { allowedRoles: ['admin', 'editor'] }
+);
 
 // --- Approval Flow & Curation Actions ---
 
-export async function submitForReview(id: string) {
-    try {
-        const session = await auth();
-        if (!session) throw new Error('Unauthorized');
-
+export const submitForReview = createSafeAction(
+    z.string(),
+    async (id, userId, role) => {
         await dbConnect();
-
-        // Check ownership
         const instrument = await Instrument.findById(id);
-        if (!instrument) throw new Error('Instrument not found');
+        if (!instrument) throw new NotFoundError(`Instrument ${id} not found`);
 
-        // Determine status field based on user role (just in case model update didn't fully take or for clarity)
-        // If user is admin/editor, they can technically "submit" but usually they just publish.
-        // This action is primarily for standard users or editors wanting review.
+        const isCreator = instrument.createdBy.toString() === userId;
+        const isStaff = ['admin', 'editor'].includes(role);
 
-        if (instrument.createdBy.toString() !== session.user.id && !['admin', 'editor'].includes((session.user as any).role)) {
-            throw new Error('Permission denied');
+        if (!isCreator && !isStaff) {
+            throw new AuthError('Permission denied');
         }
 
         instrument.status = 'pending';
         instrument.statusHistory = instrument.statusHistory || [];
         instrument.statusHistory.push({
             status: 'pending',
-            changedBy: session.user.id,
+            changedBy: userId,
             date: new Date(),
             note: 'Submitted for review'
         });
@@ -663,60 +318,64 @@ export async function submitForReview(id: string) {
         await instrument.save();
         revalidatePath(`/instruments/${id}`);
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
     }
-}
+);
 
-export async function approveInstrument(id: string) {
-    try {
-        const session = await auth();
-        if (!session || !['admin', 'editor'].includes((session.user as any).role)) throw new Error('Unauthorized');
-
+export const approveInstrument = createSafeAction(
+    z.string(),
+    async (id, userId, role, correlationId) => {
         await dbConnect();
         const instrument = await Instrument.findById(id);
-        if (!instrument) throw new Error('Not found');
+        if (!instrument) throw new NotFoundError('Instrument not found');
 
         instrument.status = 'published';
         instrument.statusHistory = instrument.statusHistory || [];
         instrument.statusHistory.push({
             status: 'published',
-            changedBy: session.user.id,
+            changedBy: userId,
             date: new Date(),
             note: 'Approved for catalog'
         });
 
         await instrument.save();
 
-        // Gamification Trigger: Check for Contribution Badges (owner gets the badge, not the admin/editor approved it)
+        // Gamification Trigger
         try {
             const { checkAndAwardBadge } = await import('@/actions/gamification');
             await checkAndAwardBadge(instrument.createdBy.toString(), 'CONTRIBUTION');
         } catch (e) {
-            console.error('Gamification trigger failed', e);
+            await logEvent({
+                nivel: 'WARN',
+                origen: 'gamification',
+                accion: 'badge_award_failed',
+                mensaje: `Fallo al otorgar badge de contribución a ${instrument.createdBy.toString()}`,
+                correlacion_id: correlationId,
+                detalles: { error: e instanceof Error ? e.message : String(e) }
+            });
         }
 
         revalidatePath(`/instruments/${id}`);
+        revalidatePath('/instruments');
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
+    },
+    { allowedRoles: ['admin', 'editor'] }
+);
 
-export async function rejectInstrument(id: string, reason: string) {
-    try {
-        const session = await auth();
-        if (!session || !['admin', 'editor'].includes((session.user as any).role)) throw new Error('Unauthorized');
-
+export const rejectInstrument = createSafeAction(
+    z.object({
+        id: z.string(),
+        reason: z.string()
+    }),
+    async ({ id, reason }, userId) => {
         await dbConnect();
         const instrument = await Instrument.findById(id);
-        if (!instrument) throw new Error('Not found');
+        if (!instrument) throw new NotFoundError('Instrument not found');
 
         instrument.status = 'rejected';
         instrument.statusHistory = instrument.statusHistory || [];
         instrument.statusHistory.push({
             status: 'rejected',
-            changedBy: session.user.id,
+            changedBy: userId,
             date: new Date(),
             note: reason
         });
@@ -724,27 +383,20 @@ export async function rejectInstrument(id: string, reason: string) {
         await instrument.save();
         revalidatePath(`/instruments/${id}`);
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
+    },
+    { allowedRoles: ['admin', 'editor'] }
+);
 
-export async function getPendingInstruments() {
-    try {
-        const session = await auth();
-        if (!session || !['admin', 'editor'].includes((session.user as any).role)) {
-            return [];
-        }
-
+export const getPendingInstruments = createSafeAction(
+    z.any().optional(),
+    async () => {
         await dbConnect();
-        const instruments = await Instrument.find({ status: 'pending' })
+        const pending = await Instrument.find({ status: 'pending' })
             .populate('createdBy', 'name email image')
-            .sort({ 'statusHistory.date': -1, createdAt: -1 })
+            .sort({ updatedAt: -1 })
             .lean();
 
-        return JSON.parse(JSON.stringify(instruments));
-    } catch (error) {
-        console.error('Get Pending Error:', error);
-        return [];
-    }
-}
+        return sanitize(pending);
+    },
+    { allowedRoles: ['admin', 'editor'] }
+);

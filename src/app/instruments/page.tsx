@@ -1,5 +1,6 @@
 import { auth } from '@/auth';
-import { getInstruments, getMetadataMap, getBrands, getCatalogMetadata } from '@/actions/catalog';
+import { getInstruments, getMetadataMap, getBrands } from '@/actions/catalog';
+import { getCatalogMetadata } from '@/actions/metadata';
 import Link from 'next/link';
 import Search from '@/components/Search';
 import InstrumentFilter from '@/components/InstrumentFilter';
@@ -34,12 +35,26 @@ export default async function InstrumentsPage(props: {
     const activeArtists = searchParams?.artists ? searchParams.artists.split(',') : [];
 
     const session = await auth();
-    const [rawInstruments, metadata, brands, allArtists] = await Promise.all([
-        getInstruments(query, category, sortBy, sortOrder, undefined, false, brand, minYear, maxYear, activeArtists),
-        getMetadataMap(),
-        getBrands(),
+    const [rawInstrumentsRes, metadataRes, brandsRes, allArtistsRes] = await Promise.all([
+        getInstruments({
+            query,
+            category,
+            sortBy,
+            sortOrder,
+            brand,
+            minYear,
+            maxYear,
+            artists: activeArtists
+        }),
+        getMetadataMap({}),
+        getBrands({}),
         getCatalogMetadata('artist')
     ]);
+
+    const rawInstruments = rawInstrumentsRes.data || [];
+    const metadata = metadataRes.data || {};
+    const brands = brandsRes.data || [];
+    const allArtists = allArtistsRes;
 
     const instruments = cleanData(rawInstruments);
     const role = (session?.user as any)?.role;

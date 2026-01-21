@@ -6,8 +6,8 @@ import { GitCompare } from 'lucide-react';
 export default async function CatalogComparePage() {
     // CRITICAL FIX: We need to pass 'true' to the 'full' parameter 
     // to fetch the 'specs' and 'description' fields for comparison.
-    const rawInstruments = await getInstruments(undefined, null, 'brand', 'asc', undefined, true);
-    const instruments = cleanData(rawInstruments);
+    const result = await getInstruments({ full: true });
+    const instruments = cleanData(result.data || []);
 
     return (
         <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 space-y-12">

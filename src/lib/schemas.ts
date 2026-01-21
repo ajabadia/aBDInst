@@ -34,6 +34,7 @@ export const InstrumentSchema = z.object({
     variantLabel: z.string().optional(),
     excludedImages: z.array(z.string()).optional(),
     isBaseModel: z.boolean().default(false),
+    status: z.enum(['pending', 'published', 'rejected', 'draft']).optional(),
     reverbUrl: z.string().url("URL de Reverb inválida").optional().or(z.literal("")),
     marketValue: z.object({
         original: z.object({
@@ -125,3 +126,57 @@ export const CatalogMetadataSchema = z.object({
 });
 
 export type CatalogMetadataData = z.infer<typeof CatalogMetadataSchema>;
+
+export const GetInstrumentsSchema = z.object({
+    query: z.string().optional(),
+    category: z.string().nullable().optional(),
+    sortBy: z.enum(['brand', 'model', 'year', 'type', 'artist']).default('brand'),
+    sortOrder: z.enum(['asc', 'desc']).default('asc'),
+    limit: z.number().optional(),
+    full: z.boolean().default(false),
+    brand: z.string().nullable().optional(),
+    minYear: z.number().nullable().optional(),
+    maxYear: z.number().nullable().optional(),
+    artists: z.array(z.string()).nullable().optional(),
+});
+
+export type GetInstrumentsData = z.infer<typeof GetInstrumentsSchema>;
+
+// User Collection Schemas
+export const UserCollectionSchema = z.object({
+    status: z.enum(['active', 'sold', 'wishlist', 'repair']).default('active'),
+    condition: z.enum(['Mint', 'Excellent', 'Good', 'Fair', 'Poor', 'Non-Functional']).default('Good'),
+    location: z.string().optional(),
+    serialNumber: z.string().optional(),
+    inventorySerial: z.string().optional(),
+    acquisition: z.object({
+        date: z.union([z.date(), z.string()]).optional(),
+        price: z.number().optional().or(z.literal("")).transform(v => v === "" ? 0 : v),
+        currency: z.string().default('EUR'),
+        seller: z.string().optional(),
+        source: z.string().optional(),
+        isOriginalOwner: z.boolean().default(false),
+        provenance: z.string().optional(),
+    }).optional(),
+    customNotes: z.string().optional(),
+    marketValue: z.object({
+        current: z.number().optional(),
+        currency: z.string().default('EUR'),
+    }).optional(),
+    tags: z.array(z.string()).optional(),
+});
+
+export const MaintenanceRecordSchema = z.object({
+    date: z.union([z.date(), z.string()]).default(() => new Date()),
+    type: z.enum(['repair', 'modification', 'cleaning', 'setup']),
+    description: z.string().min(1, "La descripción es obligatoria"),
+    cost: z.number().default(0),
+    technician: z.string().optional(),
+});
+
+export const LoanSchema = z.object({
+    action: z.enum(['lend', 'return']),
+    loanee: z.string().optional(),
+    expectedReturn: z.union([z.date(), z.string()]).optional(),
+    notes: z.string().optional(),
+});

@@ -1,238 +1,194 @@
-'use server';
-
 import dbConnect from '@/lib/db';
 import UserCollection from '@/models/UserCollection';
 import Instrument from '@/models/Instrument';
-import { auth } from '@/auth';
 import { revalidatePath } from 'next/cache';
+import { createSafeAction } from '@/lib/safe-action';
+import { z } from 'zod';
+import { DatabaseError, NotFoundError, AppError, ValidationError, AuthError } from '@/lib/errors';
+import { logEvent } from '@/lib/logger';
+import { UserCollectionSchema, MaintenanceRecordSchema, LoanSchema } from '@/lib/schemas';
 import { logActivity } from './social';
 
-export async function getUserCollection() {
-    try {
-        const session = await auth();
-        if (!session?.user) return [];
+// Helper to sanitize
+function sanitize(doc: any) {
+    if (!doc) return null;
+    return JSON.parse(JSON.stringify(doc));
+}
 
+export const getUserCollection = createSafeAction(
+    z.any().optional(),
+    async (_, userId) => {
         await dbConnect();
-
-        // Force model registration (fix for schema not registered error)
+        // Force model registration
         await Instrument.init();
 
         const collection = await UserCollection.find({
-            userId: session.user.id,
+            userId: userId,
             deletedAt: null
         })
-            .populate('instrumentId')
             .populate('instrumentId')
             .sort({ createdAt: -1 })
             .lean();
 
-        // With lean(), the result is a POJO. JSON.parse/stringify is still useful for stripping undefined/Dates to ISO
-        // but much faster than on Documents.
-        return JSON.parse(JSON.stringify(collection));
-    } catch (error) {
-        console.error('Get Collection Error:', error);
-        return [];
-    }
-}
+        return sanitize(collection);
+    },
+    { protected: true }
+);
 
-export async function addToCollection(instrumentId: string) {
-    try {
-        const session = await auth();
-        if (!session?.user) throw new Error('Unauthorized');
-
+export const addToCollection = createSafeAction(
+    z.string(),
+    async (instrumentId, userId, role, correlationId) => {
         await dbConnect();
 
-        // Check if already in collection? (Optional: allow duplicates)
-
         const newItem = await UserCollection.create({
-            userId: session.user.id,
+            userId: userId,
             instrumentId: instrumentId,
             status: 'active',
-            acquisition: { date: new Date() } // Default to now
+            acquisition: { date: new Date(), currency: 'EUR' }
         });
 
+        await logEvent({
+            nivel: 'INFO',
+            origen: 'COLLECTION_ACTION',
+            accion: 'ADD_TO_COLLECTION',
+            mensaje: `Instrumento ${instrumentId} añadido a la colección del usuario ${userId}`,
+            correlacion_id: correlationId,
+            detalles: { instrumentId, collectionId: newItem._id.toString() }
+        });
 
-
-        // ... existing imports
-
-        // ... inside addToCollection
-        // ...
         revalidatePath('/dashboard');
 
-        // Log activity
+        // Log activity (Fire & Forget)
         const instrument = await Instrument.findById(instrumentId).select('brand model');
         if (instrument) {
-            await logActivity('add_collection', {
+            logActivity('add_collection', {
                 instrumentId,
                 instrumentName: `${instrument.brand} ${instrument.model}`
-            });
+            }).catch(e => console.error('Social log failed', e));
         }
 
         return { success: true, id: newItem._id.toString() };
-    } catch (error: any) {
-        console.error('Add to Collection Error:', error);
-        return { success: false, error: error.message };
-    }
-}
+    },
+    { protected: true }
+);
 
-export async function getCollectionItemById(id: string) {
-    try {
-        const session = await auth();
-        if (!session?.user) return null;
-
+export const getCollectionItemById = createSafeAction(
+    z.string(),
+    async (id, userId) => {
         await dbConnect();
-
         const item = await UserCollection.findOne({
             _id: id,
-            userId: session.user.id
-        }).populate('instrumentId');
+            userId: userId
+        }).populate('instrumentId').lean();
 
-        if (!item) return null;
+        if (!item) throw new NotFoundError('Ítem de colección');
 
-        const obj = item.toObject();
+        const serialized = sanitize(item);
 
-        // Deep serialize to handle all nested _id (like in specs, documents)
-        const serialized = JSON.parse(JSON.stringify(obj));
+        // Format date for UI input if needed
+        if (serialized.acquisition?.date) {
+            serialized.acquisition.date = serialized.acquisition.date.split('T')[0];
+        }
 
-        return {
-            ...serialized,
-            // Ensure dates are strings if stringify didn't handle it the way we want (it usually does ISO)
-            // But we specifically need acquisition.date formatted for input if needed, or            ...serialized,
-            // Ensure dates are strings if stringify didn't handle it the way we want
-            acquisition: {
-                ...serialized.acquisition,
-                date: serialized.acquisition?.date ? serialized.acquisition.date.split('T')[0] : ''
-            },
-            // Fallback for missing populated instrument (e.g. if deleted)
-            instrumentId: serialized.instrumentId || { brand: 'Unknown', model: 'Instrument', type: 'Deleted', genericImages: [] }
-        };
+        // Fallback for missing instrument
+        if (!serialized.instrumentId) {
+            serialized.instrumentId = { brand: 'Incógnito', model: 'Instrumento', type: 'Eliminado', genericImages: [] };
+        }
 
-    } catch (error) {
-        console.error('Get Collection Item Error:', error);
-        return null;
-    }
-}
+        return serialized;
+    },
+    { protected: true }
+);
 
-export async function updateCollectionItem(id: string, formData: FormData) {
-    try {
-        const session = await auth();
-        if (!session?.user) throw new Error('Unauthorized');
-
+export const updateCollectionItem = createSafeAction(
+    z.object({
+        id: z.string(),
+        data: UserCollectionSchema.partial()
+    }),
+    async ({ id, data }, userId) => {
         await dbConnect();
 
-        const data: any = {
-            status: formData.get('status'),
-            condition: formData.get('condition'),
-            serialNumber: formData.get('serialNumber'),
-            inventorySerial: formData.get('inventorySerial'),
-            acquisition: {
-                date: formData.get('acquisition.date') ? new Date(formData.get('acquisition.date') as string) : undefined,
-                price: Number(formData.get('acquisition.price')) || undefined,
-                currency: formData.get('acquisition.currency'),
-                seller: formData.get('acquisition.seller'),
-                source: formData.get('acquisition.source'),
-                isOriginalOwner: formData.get('acquisition.isOriginalOwner') === 'true',
-                provenance: formData.get('acquisition.provenance'),
-            },
-            customNotes: formData.get('customNotes'),
-            location: formData.get('location'),
-        };
-
-        const marketVal = formData.get('marketValue.current');
         const updateOps: Record<string, any> = { $set: data };
 
-        if (marketVal) {
-            const val = Number(marketVal);
-            if (!isNaN(val)) {
-                updateOps.$set['marketValue.current'] = val;
-                updateOps.$set['marketValue.lastUpdated'] = new Date();
-                updateOps.$push = {
-                    'marketValue.history': {
-                        date: new Date(),
-                        value: val
-                    }
-                };
-            }
+        // Handle market value history logic if current value is provided
+        if (data.marketValue?.current !== undefined) {
+            updateOps.$set['marketValue.lastUpdated'] = new Date();
+            updateOps.$push = {
+                'marketValue.history': {
+                    date: new Date(),
+                    value: data.marketValue.current
+                }
+            };
         }
 
         const updated = await UserCollection.findOneAndUpdate(
-            { _id: id, userId: session.user.id },
+            { _id: id, userId: userId },
             updateOps,
             { new: true }
-        );
+        ).lean();
 
-        if (!updated) throw new Error('Item not found or unauthorized');
+        if (!updated) throw new NotFoundError('Ítem');
 
         revalidatePath('/dashboard');
         revalidatePath(`/dashboard/collection/${id}`);
         return { success: true };
-    } catch (error: any) {
-        console.error('Update Collection Item Error:', error);
-        return { success: false, error: error.message };
-    }
-}
+    },
+    { protected: true }
+);
 
-export async function addMaintenanceRecord(collectionId: string, formData: FormData) {
-    try {
-        const session = await auth();
-        if (!session?.user) throw new Error('Unauthorized');
-
+export const addMaintenanceRecord = createSafeAction(
+    z.object({
+        collectionId: z.string(),
+        record: MaintenanceRecordSchema
+    }),
+    async ({ collectionId, record }, userId) => {
         await dbConnect();
-
-        const newRecord = {
-            date: new Date(formData.get('date') as string),
-            type: formData.get('type') as string,
-            description: formData.get('description') as string,
-            cost: Number(formData.get('cost')) || 0,
-            technician: formData.get('technician') as string,
-            documents: [] // Handle documents later if needed
-        };
-
         const updated = await UserCollection.findOneAndUpdate(
-            { _id: collectionId, userId: session.user.id },
-            { $push: { maintenanceHistory: newRecord } },
+            { _id: collectionId, userId: userId },
+            { $push: { maintenanceHistory: record } },
             { new: true }
         );
 
-        if (!updated) throw new Error('Item not found or unauthorized');
+        if (!updated) throw new NotFoundError('Ítem');
 
         revalidatePath(`/dashboard/collection/${collectionId}`);
         return { success: true };
-    } catch (error: any) {
-        console.error('Add Maintenance Record Error:', error);
-        return { success: false, error: error.message };
-    }
-}
+    },
+    { protected: true }
+);
 
-export async function deleteCollectionItem(id: string) {
-    try {
-        const session = await auth();
-        if (!session?.user) throw new Error('Unauthorized');
-
+export const deleteCollectionItem = createSafeAction(
+    z.string(),
+    async (id, userId, role, correlationId) => {
         await dbConnect();
-
-        // Soft delete
-        await UserCollection.findOneAndUpdate(
-            { _id: id, userId: session.user.id },
+        const result = await UserCollection.findOneAndUpdate(
+            { _id: id, userId: userId },
             { deletedAt: new Date(), status: 'archived' }
         );
 
+        if (!result) throw new NotFoundError('Ítem');
+
+        await logEvent({
+            nivel: 'INFO',
+            origen: 'COLLECTION_ACTION',
+            accion: 'DELETE_ITEM',
+            mensaje: `Item ${id} eliminado`,
+            correlacion_id: correlationId,
+            detalles: { userId, collectionId: id }
+        });
+
         revalidatePath('/dashboard');
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
+    },
+    { protected: true }
+);
 
-export async function restoreCollectionItem(id: string) {
-    try {
-        const session = await auth();
-        if (!session?.user) throw new Error('Unauthorized');
-
+export const restoreCollectionItem = createSafeAction(
+    z.string(),
+    async (id, userId) => {
         await dbConnect();
-
-        await UserCollection.findOneAndUpdate(
-            { _id: id, userId: session.user.id },
+        const result = await UserCollection.findOneAndUpdate(
+            { _id: id, userId: userId },
             {
                 deletedAt: null,
                 status: 'active',
@@ -247,35 +203,32 @@ export async function restoreCollectionItem(id: string) {
             }
         );
 
+        if (!result) throw new NotFoundError('Ítem');
+
         revalidatePath('/dashboard');
         return { success: true };
-    } catch (error: any) {
-        return { success: false, error: error.message };
-    }
-}
+    },
+    { protected: true }
+);
 
-export async function toggleLoan(collectionId: string, formData: FormData) {
-    try {
-        const session = await auth();
-        if (!session?.user?.id) throw new Error('No autorizado');
-
+export const toggleLoan = createSafeAction(
+    z.object({
+        collectionId: z.string(),
+        loanData: LoanSchema
+    }),
+    async ({ collectionId, loanData }, userId, role, correlationId) => {
         await dbConnect();
-
-        const action = formData.get('action'); // 'lend' or 'return'
         const item = await UserCollection.findOne({
             _id: collectionId,
-            userId: session.user.id
+            userId: userId
         });
 
-        if (!item) {
-            return { success: false, error: 'Item not found' };
-        }
+        if (!item) throw new NotFoundError('Ítem de colección');
+
+        const { action, loanee, expectedReturn, notes } = loanData;
 
         if (action === 'lend') {
-            // Start loan
-            const loanee = formData.get('loanee') as string;
-            const expectedReturn = formData.get('expectedReturn') as string;
-            const notes = formData.get('notes') as string;
+            if (!loanee) throw new ValidationError('El nombre del prestatario es obligatorio para el préstamo');
 
             item.loan = {
                 active: true,
@@ -285,23 +238,20 @@ export async function toggleLoan(collectionId: string, formData: FormData) {
                 notes
             };
 
-            // Add event
             item.events.push({
                 date: new Date(),
                 type: 'status_change',
                 title: `Prestado a ${loanee}`,
                 description: notes || `Instrumento prestado a ${loanee}`
             });
-        } else if (action === 'return') {
-            // End loan
-            if (item.loan?.loanee) {
-                item.events.push({
-                    date: new Date(),
-                    type: 'status_change',
-                    title: `Devuelto por ${item.loan.loanee}`,
-                    description: 'Instrumento devuelto'
-                });
-            }
+        } else {
+            const previousLoanee = item.loan?.loanee;
+            item.events.push({
+                date: new Date(),
+                type: 'status_change',
+                title: previousLoanee ? `Devuelto por ${previousLoanee}` : 'Devuelto',
+                description: 'Instrumento devuelto'
+            });
 
             item.loan = {
                 active: false,
@@ -313,10 +263,18 @@ export async function toggleLoan(collectionId: string, formData: FormData) {
         }
 
         await item.save();
+
+        await logEvent({
+            nivel: 'INFO',
+            origen: 'COLLECTION_ACTION',
+            accion: action === 'lend' ? 'LOAN_STARTED' : 'LOAN_RETURNED',
+            mensaje: `Préstamo ${action === 'lend' ? 'iniciado' : 'finalizado'} para ${collectionId}`,
+            correlacion_id: correlationId,
+            detalles: { collectionId, loanee }
+        });
+
         revalidatePath(`/dashboard/collection/${collectionId}`);
         return { success: true };
-    } catch (error: any) {
-        console.error('Toggle loan error:', error);
-        return { success: false, error: error.message };
-    }
-}
+    },
+    { protected: true }
+);

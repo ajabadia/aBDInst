@@ -122,6 +122,22 @@
 
 ---
 
+## 🏛 Infrastructure & Global Refactor (V2 Architecture) ✅ COMPLETED
+*Goal: Implement strict standards for stability, security, and scalability.*
+
+### Phase 1: Custom Error & Logging System ✅
+- [x] **`AppError` Classes**: Specialized subclasses for `Validation`, `Auth`, `NotFound`, `Database`, and `ExternalService`.
+- [x] **Structured Spanish Logging**: Implementation of `logEvent` with standardized Spanish keys.
+- [x] **Middleware Integration**: Performance SLAs and error capturing in `createSafeAction`.
+
+### Phase 2: Global Server Actions Refactor (Golden Rules) ✅
+- [x] **Zod Validation FIRST**: Mandatory schemas for all incoming action data.
+- [x] **Consolidated Catalog Layer**: All getters migrated to `catalog.ts` with recursive inheritance support.
+- [x] **Protected Mutations**: Standardized refactor for `instrument.ts` and `collection.ts`.
+- [x] **AI & Scraper Unification**: Refactored `ai.ts` with standardized error propagation.
+
+---
+
 ## 🔧 Code Quality & DRY Refactoring (Technical Debt)
 *Goal: Eliminate code duplication and centralize common patterns.*
 

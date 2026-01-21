@@ -16,11 +16,11 @@ export type ActionResponse<T> = {
 /**
  * A wrapper to handle authentication, validation, and error management consistently.
  */
-export async function createSafeAction<TInput, TOutput>(
+export function createSafeAction<TInput, TOutput>(
     schema: z.ZodSchema<TInput>,
     action: (data: TInput, userId: string, role: string, correlationId: string) => Promise<TOutput>,
     options: { protected?: boolean; allowedRoles?: string[]; name?: string } = { protected: true }
-): Promise<(data: TInput) => Promise<ActionResponse<TOutput>>> {
+): (data: TInput) => Promise<ActionResponse<TOutput>> {
     const actionName = options.name || 'ANONYMOUS_ACTION';
 
     return async (input: TInput): Promise<ActionResponse<TOutput>> => {
