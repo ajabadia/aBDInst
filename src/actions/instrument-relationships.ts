@@ -7,6 +7,7 @@ import CatalogMetadata from '@/models/CatalogMetadata';
 import MusicAlbum from '@/models/MusicAlbum';
 import { revalidatePath } from 'next/cache';
 import { auth } from '@/auth';
+import { syncInstrumentToArtist, syncInstrumentToAlbum, syncAlbumToArtist } from '@/lib/sync/bidirectional';
 
 /**
  * Add an artist relationship to an instrument
@@ -33,6 +34,9 @@ export async function addArtistRelation(instrumentId: string, artistKey: string,
             { upsert: true, new: true }
         );
 
+        // Bidirectional Sync (Phase 5)
+        await syncInstrumentToArtist(instrumentId, artist._id.toString(), 'add');
+
         revalidatePath(`/instruments/${instrumentId}`);
         revalidatePath(`/instruments/${instrumentId}/edit`);
         return { success: true };
@@ -51,7 +55,17 @@ export async function removeArtistRelation(relationId: string, instrumentId: str
         if (!session?.user) throw new Error('Unauthorized');
 
         await dbConnect();
+
+        // Get relation before deleting (for sync)
+        const relation = await InstrumentArtist.findById(relationId);
+        const artistId = relation?.artistId?.toString();
+
         await InstrumentArtist.findByIdAndDelete(relationId);
+
+        // Bidirectional Sync (Phase 5)
+        if (artistId) {
+            await syncInstrumentToArtist(instrumentId, artistId, 'remove');
+        }
 
         revalidatePath(`/instruments/${instrumentId}`);
         revalidatePath(`/instruments/${instrumentId}/edit`);
@@ -91,16 +105,17 @@ export async function addAlbumRelation(instrumentId: string, albumId: string, de
             { upsert: true, new: true }
         );
 
-        // 4. Relationship Propagation: Link instrument to album artist
-        const artistName = album.artist;
-        const artistMetadata = await CatalogMetadata.findOne({
-            type: 'artist',
-            label: { $regex: new RegExp(`^${artistName}$`, 'i') }
-        });
+        // 4. Bidirectional Sync (Phase 5)
+        await syncInstrumentToAlbum(instrumentId, targetAlbumId.toString(), 'add');
 
-        if (artistMetadata) {
+        // 5. Sync album to artist metadata
+        const artistName = album.artist;
+        const syncResult = await syncAlbumToArtist(targetAlbumId.toString(), artistName);
+
+        // 6. Relationship Propagation: Link instrument to album artist (if artist metadata exists)
+        if (syncResult.success && syncResult.artistId) {
             await InstrumentArtist.findOneAndUpdate(
-                { instrumentId, artistId: artistMetadata._id },
+                { instrumentId, artistId: syncResult.artistId },
                 {
                     notes: `Automated from album: ${album.title}`,
                     createdBy: session.user.id,
@@ -108,6 +123,9 @@ export async function addAlbumRelation(instrumentId: string, albumId: string, de
                 },
                 { upsert: true }
             );
+
+            // Sync instrument to artist as well
+            await syncInstrumentToArtist(instrumentId, syncResult.artistId, 'add');
         }
 
         revalidatePath(`/instruments/${instrumentId}`);
@@ -128,7 +146,17 @@ export async function removeAlbumRelation(relationId: string, instrumentId: stri
         if (!session?.user) throw new Error('Unauthorized');
 
         await dbConnect();
+
+        // Get relation before deleting (for sync)
+        const relation = await InstrumentAlbum.findById(relationId);
+        const albumId = relation?.albumId?.toString();
+
         await InstrumentAlbum.findByIdAndDelete(relationId);
+
+        // Bidirectional Sync (Phase 5)
+        if (albumId) {
+            await syncInstrumentToAlbum(instrumentId, albumId, 'remove');
+        }
 
         revalidatePath(`/instruments/${instrumentId}`);
         return { success: true };

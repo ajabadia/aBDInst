@@ -298,6 +298,9 @@ export async function enrichInstrumentWithMusic(
     const stats = { artistsCreated: 0, albumsCreated: 0, relationsCreated: 0 };
 
     try {
+        const artistIds: string[] = [];
+        const albumIds: string[] = [];
+
         // 1. Ensure artists exist
         if (aiData.artists && aiData.artists.length > 0) {
             const artistMap = await ensureArtistsExist(aiData.artists, userId);
@@ -306,6 +309,9 @@ export async function enrichInstrumentWithMusic(
             // 2. Create instrument-artist relations
             await createInstrumentArtistRelations(instrumentId, aiData.artists, artistMap, userId);
             stats.relationsCreated += aiData.artists.length;
+
+            // Collect artist IDs for batch sync
+            artistIds.push(...Array.from(artistMap.values()));
         }
 
         // 3. Ensure albums exist (search Discogs if needed)
@@ -316,6 +322,16 @@ export async function enrichInstrumentWithMusic(
             // 4. Create instrument-album relations
             await createInstrumentAlbumRelations(instrumentId, aiData.albums, albumMap, userId);
             stats.relationsCreated += aiData.albums.length;
+
+            // Collect album IDs for batch sync
+            albumIds.push(...Array.from(albumMap.values()));
+        }
+
+        // 5. Bidirectional Sync (Phase 5)
+        if (artistIds.length > 0 || albumIds.length > 0) {
+            const { batchSyncInstrument } = await import('@/lib/sync/bidirectional');
+            const syncResult = await batchSyncInstrument(instrumentId, artistIds, albumIds);
+            console.log(`✅ Batch sync: ${syncResult.stats.artistsSynced} artists, ${syncResult.stats.albumsSynced} albums`);
         }
 
         return { success: true, stats };

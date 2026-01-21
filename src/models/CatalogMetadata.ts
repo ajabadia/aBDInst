@@ -33,7 +33,10 @@ const CatalogMetadataSchema = new Schema<ICatalogMetadata>({
         externalId: { type: String }
     }],
     description: { type: String },
-    order: { type: Number, default: 0 }
+    order: { type: Number, default: 0 },
+
+    // Bidirectional Sync (Phase 5) - Only for type: 'artist'
+    instruments: [{ type: Schema.Types.ObjectId, ref: 'Instrument' }] // Reverse link to instruments using this artist
 }, {
     timestamps: true
 });

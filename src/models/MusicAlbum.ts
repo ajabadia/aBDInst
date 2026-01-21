@@ -28,6 +28,10 @@ const MusicAlbumSchema = new Schema({
 
     description: { type: String },
 
+    // Bidirectional Sync (Phase 5)
+    artistRefs: [{ type: Schema.Types.ObjectId, ref: 'CatalogMetadata' }], // Links to artist metadata
+    instruments: [{ type: Schema.Types.ObjectId, ref: 'Instrument' }], // Reverse link to instruments using this album
+
     createdBy: { type: Schema.Types.ObjectId, ref: 'User' },
 }, {
     timestamps: true
