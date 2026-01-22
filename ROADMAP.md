@@ -219,13 +219,13 @@
             - Daily market price analysis and history storage in `PriceHistory`.
 ---
 
-## 📸 Short-Term: Phase 8 - Immersive Media & High-Res Views 🚧 IN PROGRESS
+## 📸 Short-Term: Phase 8 - Immersive Media & High-Res Views ✅ COMPLETED
 *Goal: Cinematic exploration of the museum assets.*
 
-- [ ] **High-Performance Lightbox**: Ultra-zoom with pan/pinch support.
-- [ ] **Unsplash Integration**: Sourcing atmospheric imagery for profiles.
-- [ ] **3D / AR Views**: Interactive `<model-viewer>` for `.glb` assets.
-- [ ] **Visual Performance**: Lazy-loading and progressive image blur for 4K assets.
+- [x] **High-Performance Lightbox**: Ultra-zoom with pan/pinch support.
+- [x] **Unsplash Integration**: Sourcing atmospheric imagery for profiles.
+- [x] **3D / AR Views**: Interactive `<model-viewer>` for `.glb` assets.
+- [x] **Visual Performance**: Lazy-loading and progressive image blur for 4K assets.
 
 ---
 

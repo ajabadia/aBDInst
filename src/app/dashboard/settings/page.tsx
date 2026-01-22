@@ -94,6 +94,19 @@ export default async function SettingsPage() {
                     <UserSettingsForm user={sanitizedUser} />
                 </div>
             </section>
+
+            {/* Data Portability Section */}
+            <section className="space-y-6">
+                <div className="flex items-center gap-3 px-2">
+                    <Database size={20} className="text-ios-blue" />
+                    <h2 className="text-2xl font-bold tracking-tight">Portabilidad y Datos</h2>
+                    <div className="h-[1px] flex-1 bg-black/5 dark:bg-white/5" />
+                </div>
+
+                <ExportTools />
+            </section>
         </div>
     );
 }
+import ExportTools from '@/components/dashboard/ExportTools';
+import { Database } from 'lucide-react';

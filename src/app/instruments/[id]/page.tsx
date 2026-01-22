@@ -6,6 +6,7 @@ import { notFound } from 'next/navigation';
 import InstrumentHeaderButtons from '@/components/InstrumentHeaderButtons';
 import SubmitForReviewButton from '@/components/SubmitForReviewButton';
 import ImageGallery from '@/components/ImageGallery';
+import Instrument3DViewer from '@/components/Instrument3DViewer';
 import SpecRow from '@/components/SpecRow';
 import PrintSpecSheet from '@/components/PrintSpecSheet';
 import CommentSection from '@/components/comments/CommentSection';
@@ -171,6 +172,9 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
                     <div className="flex flex-col gap-2 items-end">
                         <InstrumentHeaderButtons
                             instrumentId={instrument._id || instrument.id}
+                            brand={instrument.brand}
+                            model={instrument.model}
+                            imageUrl={instrument.genericImages?.[0]}
                             canEdit={canEdit}
                             isLoggedIn={isLoggedIn}
                         />
@@ -211,8 +215,12 @@ export default async function InstrumentDetailPage({ params }: { params: Promise
 
                 {/* Visuals Column */}
                 <div className="lg:col-span-7">
-                    <div className="sticky top-28">
-                        <ImageGallery images={instrument.genericImages || []} altText={`${instrument.brand} ${instrument.model}`} />
+                    <div className="sticky top-28 space-y-6">
+                        <ImageGallery
+                            images={instrument.genericImages || []}
+                            altText={`${instrument.brand} ${instrument.model}`}
+                            modelUrl={resources.find(r => r.url?.match(/\.(glb|usdz)$/i))?.url}
+                        />
                     </div>
                 </div>
 

@@ -64,48 +64,68 @@ export default async function ArtistPage({ params }: ArtistPageProps) {
     };
 
     return (
-        <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 space-y-12">
-            {/* Hero Section */}
-            <div className="flex flex-col md:flex-row gap-8 items-start">
-                {/* Artist Image */}
-                <div className="relative w-48 h-48 rounded-[3rem] overflow-hidden bg-gray-100 dark:bg-white/5 flex-shrink-0">
-                    {artist.assetUrl ? (
+        <div className="max-w-7xl mx-auto px-6 py-12 lg:py-20 space-y-16">
+            {/* Immersive Hero Section */}
+            <div className="relative min-h-[400px] flex items-end p-8 md:p-16 rounded-[3.5rem] overflow-hidden group shadow-2xl">
+                {/* Cinematic Background */}
+                <div className="absolute inset-0 bg-neutral-900">
+                    {artist.images?.length > 0 ? (
                         <Image
-                            src={artist.assetUrl}
+                            src={artist.images[1]?.url || artist.images[0]?.url || artist.assetUrl}
                             alt={artist.label}
                             fill
-                            className="object-cover"
+                            className="object-cover opacity-40 group-hover:scale-110 transition-transform duration-[10s] ease-linear"
                         />
                     ) : (
-                        <div className="w-full h-full flex items-center justify-center">
-                            <Music className="w-20 h-20 text-gray-300 dark:text-gray-600" />
-                        </div>
+                        <div className="w-full h-full bg-gradient-to-br from-ios-blue/40 to-purple-600/40" />
                     )}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/40 to-transparent" />
                 </div>
 
-                {/* Artist Info */}
-                <div className="flex-1 space-y-4">
-                    <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-white">
-                        {artist.label}
-                    </h1>
-                    {artist.description && (
-                        <p className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-3xl">
-                            {artist.description}
-                        </p>
-                    )}
-
-                    {/* Social Links */}
-                    <div className="flex gap-3 pt-4">
-                        {artist.images?.find(img => img.source === 'discogs')?.externalId && (
-                            <Link
-                                href={`https://www.discogs.com/artist/${artist.images.find(img => img.source === 'discogs')?.externalId}`}
-                                target="_blank"
-                            >
-                                <Button variant="secondary" icon={ExternalLink} className="text-sm">
-                                    Discogs
-                                </Button>
-                            </Link>
+                <div className="relative flex flex-col md:flex-row gap-10 items-end w-full z-10">
+                    {/* Artist Image (Avatar style) */}
+                    <div className="relative w-40 h-40 md:w-56 md:h-56 rounded-[2.5rem] overflow-hidden bg-white/10 backdrop-blur-md shadow-2xl border-4 border-white/10 flex-shrink-0 animate-in fade-in slide-in-from-bottom-8 duration-700">
+                        {artist.assetUrl ? (
+                            <Image
+                                src={artist.assetUrl}
+                                alt={artist.label}
+                                fill
+                                className="object-cover"
+                            />
+                        ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                                <Music className="w-20 h-20 text-white/20" />
+                            </div>
                         )}
+                    </div>
+
+                    {/* Artist Info */}
+                    <div className="flex-1 space-y-6 pb-2 animate-in fade-in slide-in-from-left-8 duration-1000">
+                        <div className="space-y-2">
+                            <p className="text-ios-blue font-bold text-xs uppercase tracking-[0.3em]">Perfil de Artista</p>
+                            <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white leading-none">
+                                {artist.label}
+                            </h1>
+                        </div>
+
+                        {artist.description && (
+                            <p className="text-xl text-white/80 leading-relaxed max-w-2xl font-medium line-clamp-3">
+                                {artist.description}
+                            </p>
+                        )}
+
+                        <div className="flex gap-4">
+                            {artist.images?.find(img => img.source === 'discogs')?.externalId && (
+                                <Link
+                                    href={`https://www.discogs.com/artist/${artist.images.find(img => img.source === 'discogs')?.externalId}`}
+                                    target="_blank"
+                                >
+                                    <Button variant="secondary" icon={ExternalLink} className="rounded-2xl px-8 py-6 bg-white/10 hover:bg-white/20 backdrop-blur-md border-white/10 text-white">
+                                        Explorar en Discogs
+                                    </Button>
+                                </Link>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>
